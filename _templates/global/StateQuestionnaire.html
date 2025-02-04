@@ -1,0 +1,123 @@
+Instructions.html{{ extends 'global/Page.html' }}
+
+{{ block title }}
+
+    <div class="d-flex justify-content-center" style="margin-top: -50px">
+        <h2 style="margin-bottom:20px">TRANSCRIPTION TASK: INSTRUCTIONS</h2>
+    </div>
+
+{{ endblock }}
+
+{{ block content }}
+
+    <div class="survey-container">
+        <div class="row">
+            <h3><b>Select the figure that best represents your level of pleasure.</b></h3>
+        </div>
+
+        <div class="row" style="margin-bottom:20px">
+            <div class="col d-flex justify-content-center">
+                <p style="margin-top:45%"> Unhappy </p>
+            </div>
+            <div class="col d-flex justify-content-center">
+                <img src="{% static 'maniA1.png' %}" alt="1">
+            </div>
+             <div class="col d-flex justify-content-center">
+                <img src="{% static 'maniA2.png' %}" alt="2">
+            </div>
+             <div class="col d-flex justify-content-center">
+                <img src="{% static 'maniA3.png' %}" alt="3">
+            </div>
+             <div class="col d-flex justify-content-center">
+                <img src="{% static 'maniA4.png' %}" alt="4">
+            </div>
+             <div class="col d-flex justify-content-center">
+                <img src="{% static 'maniA5.png' %}" alt="5">
+            </div>
+            <div class="col d-flex justify-content-center">
+                <p style="margin-top:45%"> Happy </p>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col"></div>
+            {% for choice in form.pleasure %}
+                <div class="col d-flex justify-content-center"> {{ choice }} </div>
+            {% endfor %}
+            <div class="col"></div>
+        </div>
+
+        <hr/>
+
+        <div class="row">
+            <h3><b>Select the figure that best represents your level of arousal.</b></h3>
+        </div>
+
+        <div class="row" style="margin-top:20px">
+            <div class="col d-flex justify-content-center">
+                <p style="margin-top:45%"> Relaxed </p>
+            </div>
+            <div class="col d-flex justify-content-center">
+                <img src="{% static 'maniB1.png' %}" alt="1">
+            </div>
+             <div class="col d-flex justify-content-center">
+                <img src="{% static 'maniB2.png' %}" alt="2">
+            </div>
+             <div class="col d-flex justify-content-center">
+                <img src="{% static 'maniB3.png' %}" alt="3">
+            </div>
+             <div class="col d-flex justify-content-center">
+                <img src="{% static 'maniB4.png' %}" alt="4">
+            </div>
+             <div class="col d-flex justify-content-center">
+                <img src="{% static 'maniB5.png' %}" alt="5">
+            </div>
+            <div class="col d-flex justify-content-center">
+                <p style="margin-top:45%"> Stimulated </p>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col"></div>
+            {% for choice in form.arousal %}
+                <div class="col d-flex justify-content-center"> {{ choice }} </div>
+            {% endfor %}
+            <div class="col"></div>
+        </div>
+
+    </div>
+
+    <div class="survey-container">
+        <div class="row">
+            <h3><b>Please state how much the following statements describe your current situation.</b></h3>
+        </div>
+        <table class="table mytable" frame="void" style="width:100%; ">
+            <tr>
+                <th></th>
+                <th style="text-align:center"> Strongly Disagree </th>
+                <th>  </th>
+                <th style="text-align:center"> Neither Agree or Disagree</th>
+                <th>  </th>
+                <th style="text-align:center"> Strongly Agree </th>
+            </tr>
+        {% for field in form %}
+            {% if field.id.startswith("id_mf") %}
+                <tr>
+                    <td align="left" style="width:33%">{{ field.label }}</td>
+
+                    {% for choice in field %}
+                        <td align="center" >{{ choice }}</td>
+                    {% endfor %}
+                </tr>
+            {% endif %}
+        {% endfor %}
+
+        </table>
+    </div>
+
+
+    <div class="d-flex justify-content-center">
+        <button class="otree-btn-next btn btn-primary next-button otree-next-button">Next</button>
+    </div>
+
+{{ endblock }}

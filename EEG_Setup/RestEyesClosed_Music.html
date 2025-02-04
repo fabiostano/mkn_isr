@@ -1,0 +1,124 @@
+{{ extends 'global/Page.html' }}
+
+{% block title%}
+    <div class="d-flex justify-content-center" style="margin-top: -50px">
+        <h2 style="margin-bottom:20px">RESTING PHASE</h2>
+    </div>
+{% endblock %}
+
+{% block content %}
+
+<!-- Latest compiled and minified CSS -->
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
+
+<!-- jQuery library -->
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+
+<!-- Latest compiled JavaScript -->
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
+
+{{ if playlist == 'lofi.mp3'}}
+    <audio id="background-audio" autoplay loop>
+        <source src="{% static 'music/lofi.mp3' %}" type="audio/mpeg">
+        Your browser does not support the audio element.
+    </audio>
+{{ endif }}
+{{ if playlist == 'jazz.mp3'}}
+    <audio id="background-audio" autoplay loop>
+        <source src="{% static 'music/jazz.mp3' %}" type="audio/mpeg">
+        Your browser does not support the audio element.
+    </audio>
+{{ endif }}
+{{ if playlist == 'classical.mp3'}}
+    <audio id="background-audio" autoplay loop>
+        <source src="{% static 'music/classical.mp3' %}" type="audio/mpeg">
+        Your browser does not support the audio element.
+    </audio>
+{{ endif }}
+{{ if playlist == 'house.mp3'}}
+    <audio id="background-audio" autoplay loop>
+        <source src="{% static 'music/house.mp3' %}" type="audio/mpeg">
+        Your browser does not support the audio element.
+    </audio>
+{{ endif }}
+
+<div class="jumbotron" style="padding-top: 5%">
+    <div id="instructions">
+        <p>Over the next few minutes please try to relax. You can let your mind wander where it takes you.</p>
+
+        <p>Music should be playing currently. If it doesn't please open your door and inform a lab assistant.</p>
+
+        <p>Please <a style="color: #FFA500"><b>close your eyes</b></a> the whole time. Also, please avoid unnecessary movements.</p>
+
+        <p>When the music stops, the phase is over, and you can open your eyes again.</p>
+
+        <p> </p>
+
+        <p>To begin, please <span style="color:#FFA500;"><strong>click the "Start" button</strong></span> below.</p>
+
+        <p><button class="btn btn-danger" id="taskStartButton" type="button">Start</button></p>
+    </div>
+    <div id="stimulus" style="display: none">
+        <p>Please <a style="color: #FFA500"><b>close your eyes now</b></a>.</p>
+        <p><img alt="" src="{{ static 'two-eyelashes.png' }}" style="display: block; margin-left: auto; margin-right: auto; width: 50%;" /></p>
+    </div>
+    <div id="finish" style="display: none">
+        <p>The resting phase <span style="color:#FFA500;"><strong>is now over.</strong></span></p>
+    </div>
+</div>
+
+<input type="hidden" name="start_time_ec_m" id="start_time_ec_m" value=""/>
+{{ formfield_errors 'start_time_ec_m' }}
+
+<div class="d-flex justify-content-center" style="clear:both">
+    <button class="otree-btn-next btn btn-primary next-button otree-next-button" id="nextbtn">Next</button>
+</div>
+
+<script>
+    function startTask(instField, taskField, taskOverField, nextBtn) {
+        return function () {
+            document.getElementById("start_time_ec_m").value = Date.now();
+
+            // Hide instruction field
+            instField.style.display = "none";
+            taskField.style.display = "block";
+
+            // Schedule the timer
+            scheduleInterruption(nextBtn, taskField, taskOverField);
+        }
+    }
+
+    function scheduleInterruption(nextBtn, taskField, taskOverField) {
+        const intTime = {{ duration }} * 1000;
+
+        setTimeout(function(){
+            // Stop Music
+            document.getElementById('background-audio').pause();
+
+            // Hide Task and show move-on message
+            taskField.style.display = "none";
+            taskOverField.style.display = "block";
+
+            nextBtn.disabled = false;
+            nextBtn.style.display = "block";
+        }, intTime);
+    }
+
+    jQuery(document).ready( function() {
+        let nextBtn = document.getElementById("nextbtn");
+        nextBtn.disabled = true;
+        nextBtn.style.display = "none";
+
+        let instFieldDiv = document.getElementById("instructions");
+        let taskFieldDiv = document.getElementById("stimulus");
+        taskFieldDiv.style.display = "none";
+
+        let taskOverFieldDiv = document.getElementById("finish");
+        taskOverFieldDiv.style.display = "none";
+
+        const startBtn = document.getElementById("taskStartButton");
+        startBtn.addEventListener("click", startTask(instFieldDiv, taskFieldDiv, taskOverFieldDiv, nextBtn));
+    } );
+</script>
+
+{% endblock %}

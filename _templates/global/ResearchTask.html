@@ -1,0 +1,70 @@
+{{ extends 'global/Page.html' }}
+
+{{ block title }}
+
+    <div class="d-flex justify-content-center" style="margin-top: -50px">
+        <h2 style="margin-bottom:20px">RESEARCH TASK</h2>
+    </div>
+
+{{ endblock }}
+
+{{ block content }}
+    <style>
+        @media (min-width: 1200px) {
+            .container {
+                width: 1700px !important;
+            }
+        }
+    </style>
+
+    <div class="split-screen">
+        <!-- PDF Viewer -->
+        <div class="pdf-container">
+            <iframe src="/static/papers/{{ pdf_url }}" title="PDF Viewer"></iframe>
+        </div>
+
+        <!-- Text Input Area -->
+        <div class="text-container">
+            <textarea placeholder="Take notes here..."></textarea>
+        </div>
+    </div>
+
+{{ endblock }}
+
+{{ block style }}
+
+ <style>
+        .split-screen {
+            display: flex;
+            height: 100%;
+        }
+        .pdf-container {
+            width: 60%;
+            height: 100%;
+            overflow: hidden;
+        }
+        .pdf-container iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+        .text-container {
+            width: 40%;
+            height: 100%;
+            padding: 10px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+        }
+        .text-container textarea {
+            width: 100%;
+            height: 100%;
+            resize: none;
+            border: 1px solid #ccc;
+            padding: 10px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+    </style>
+
+{{ endblock }}
