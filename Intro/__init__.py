@@ -44,6 +44,11 @@ class Player(BasePlayer):
         choices=["Apprentice", "Student", "Employee", "Self-Employed", "Unemployed", "Other"]
     )
 
+    dominant_hand = models.StringField(
+        label='What is your dominant hand?',
+        choices=["Left", "Right", "Both"]
+    )
+
     ### --- STATE Q --- ###
     # ----- Mental Readiness ----- #
     mr2 = models.IntegerField(label="How sleepy are you feeling right now?.",

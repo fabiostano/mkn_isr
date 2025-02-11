@@ -1,0 +1,31 @@
+{% extends "global/Page.html" %}
+
+{% block title %}
+    Roles
+{% endblock %}
+
+{% block content %}
+
+<style>
+     .content-box {
+        border: 1px solid #ccc;
+        padding: 10px;
+        background-color: #f9f9f9;
+    }
+</style>
+
+<div class="content-box">
+    <ul>
+        <li>While making your decision you and your team members will be assigned to one of the following roles each:</li>
+        <br/>
+        <ul>
+            <li><strong>Financial Officer (CFO):</strong> Is in charge of making financial decisions for the company, as well as making sure that projects are within reasonable budget limits. </li>
+            <li><strong>Sustainability Officer (CSO):</strong> Is focused on environmental impact and sustainable practices for the projects of the organization.</li>
+            <li><strong>Marketing Officer (CMO):</strong> Is focused on achieving a high market demand and brand visibility.</li>
+            <li><strong>Human Resources Officer (CHRO):</strong> Advocates for projects that contribute to a supportive workplace while managing employee costs effectively.</li>
+        </ul>
+    </ul>
+</div>
+<br/><br/>
+{{ next_button }}
+{% endblock %}

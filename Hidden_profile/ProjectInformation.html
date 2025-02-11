@@ -1,0 +1,112 @@
+{% extends "global/Page.html" %}
+
+{% block title %}
+    Project Information
+{% endblock %}
+
+{% block content %}
+
+<style>
+     .content-box {
+        border: 1px solid #ccc;
+        padding: 10px;
+        background-color: #f9f9f9;
+    }
+</style>
+
+<div class="content-box">
+   <p>Dear <strong>{{ role }}</strong>, Only you possess the information below, so it is essential that you share it with the rest of the team to achieve an optimal decision for the company. Feel free to take notes using the pen and paper on your desk, as the information will not be repeated later.<p/>
+
+
+<h2>Project Descriptions</h2>
+<p>Here’s a brief overview of each project:</p>
+
+<div class="project-description">
+    <h3>Project A: E-Track</h3>
+    <p>EcoTrack is an innovative software platform designed to help companies monitor and optimize their environmental impact. By integrating real-time data analytics and machine learning algorithms, EcoTrack allows organizations to track their carbon footprint, energy consumption, and resource utilization. This project is crucial for businesses looking to enhance their sustainability efforts and meet regulatory requirements while improving their public image.</p>
+</div>
+
+<div class="project-description">
+    <h3>Project B: T-Sphere</h3>
+    <p>TalentSphere is a cutting-edge human resource management tool that leverages AI-driven insights to enhance employee recruitment and retention. This project focuses on creating a seamless candidate experience and optimizing salary structures through predictive analytics. By streamlining the hiring process and ensuring competitive salary offerings, TalentSphere positions companies as leaders in the talent acquisition landscape.</p>
+</div>
+
+<div class="project-description">
+    <h3>Project C: M-Pulse</h3>
+    <p>MarketPulse is an innovative market intelligence platform designed to help businesses understand consumer trends and preferences in real time. Utilizing big data analytics and natural language processing, MarketPulse delivers actionable insights that allow marketing teams to craft targeted campaigns that resonate with their audience. This project not only helps businesses stay ahead of market shifts but also maximizes ROI on marketing spend.</p>
+</div>
+
+<h2>Project Information</h2>
+<p>Remember, the project with the highest total attribute scores is considered the optimal choice for the company.</p>
+
+<style>
+    table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    th, td {
+        border: 1px solid #ddd;
+        padding: 8px;
+        text-align: left;
+    }
+    th {
+        background-color: #f2f2f2;
+        font-weight: bold;
+    }
+    tr:nth-child(even) {
+        background-color: #f9f9f9;
+    }
+    tr:hover {
+        background-color: #e2e2e2;
+    }
+</style>
+
+<table>
+    <thead>
+        <tr>
+            <th>Project Name</th>
+            {% if role == 'Chief Sustainability Officer' %}
+                <th>Environmental Impact (tonnes of CO2/year)</th>
+            {% endif %}
+            {% if role == 'Chief Marketing Officer' %}
+                <th>Market Demand (expected users in Germany)</th>
+            {% endif %}
+            {% if role == 'Chief Human Resources Officer' %}
+                <th>Salary Cost (€ per year)</th>
+            {% endif %}
+            {% if role == 'Chief Financial Officer' %}
+                <th>Profit (million €/year)</th>
+            {% endif %}
+        </tr>
+    </thead>
+    <tbody>
+        {% for project in project_info %}
+        <tr>
+            <td>{{ project.name }}</td>
+            {% if role == 'Chief Sustainability Officer' %}
+                <td>{{ project.env_impact }}</td>
+            {% endif %}
+            {% if role == 'Chief Marketing Officer' %}
+                <td>{{ project.market_demand }}</td>
+            {% endif %}
+            {% if role == 'Chief Human Resources Officer' %}
+                <td>{{ project.salary_cost }}</td>
+            {% endif %}
+            {% if role == 'Chief Financial Officer' %}
+                <td>{{ project.profit }}</td>
+            {% endif %}
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+
+<p>Take a moment to review the project details. This information will be essential for your upcoming discussion with the team.</p>
+
+<p>Once you feel prepared, click the next button below to proceed to the next step.</p>
+</div>
+
+<br/><br/>
+
+{{ next_button }}
+{% endblock %}

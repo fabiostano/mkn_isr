@@ -1,0 +1,37 @@
+{% extends "global/Page.html" %}
+{% block title %}
+    Results - Hidden Profile Game
+{% endblock %}
+
+{% block content %}
+
+
+<style>
+     .content-box {
+        border: 1px solid #ccc;
+        padding: 10px;
+        background-color: #f9f9f9;
+    }
+</style>
+
+<div class="content-box">
+    <h1>Game Results</h1>
+
+    {% if payoff == 15 %}
+        <p>🎉 Congratulations! Your team chose the optimal project! 🎉</p>
+    {% elif payoff == 10 %}
+        <p>Well done! Your team chose the second-best project.</p>
+    {% elif payoff == 5 %}
+         <p>Your team chose the least beneficial project. 😢</p>
+    {% else %}
+        <p>Unfortunately you did not decide as a team and there was no clear choice. 😢😢</p>
+    {% endif %}
+    <p>Thank you for your efforts! Here are your results:</p>
+    <p>Your total score: <strong>{{ payoff }} points<strong/>.</p>
+    <p>The team selected <strong>Project {{ chosen_project }}</strong>.</p>
+</div>
+
+<br/><br/>
+{{ next_button }}
+
+{% endblock %}

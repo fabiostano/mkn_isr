@@ -1,9 +1,6 @@
 from os import environ
 SESSION_CONFIG_DEFAULTS = dict(real_world_currency_per_point=1, participation_fee=15)
-SESSION_CONFIGS = [dict(name='full_research_first', num_demo_participants=2, app_sequence=['Intro', 'Outro']),
-                   dict(name='full_transcription_first', num_demo_participants=2, app_sequence=['Intro', 'Outro']),
-                   dict(name='Intro', num_demo_participants=None, app_sequence=['Intro']),
-                   dict(name='outro', num_demo_participants=None, app_sequence=['Outro'])]
+SESSION_CONFIGS = [dict(name='math_jitsi', num_demo_participants=3, app_sequence=['mathJitsi'])]
 LANGUAGE_CODE = 'en'
 REAL_WORLD_CURRENCY_CODE = 'EUR'
 USE_POINTS = False
