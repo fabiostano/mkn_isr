@@ -177,6 +177,9 @@ class Task(Page):
         elif info_type == "Equations":
             return {p.id_in_group: data for p in group.get_players()}
 
+        elif info_type == "timeUp":
+            return {p.id_in_group: data for p in group.get_players()}
+
         return {}
 
 

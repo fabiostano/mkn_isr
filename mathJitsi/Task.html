@@ -71,8 +71,6 @@
 <input type="hidden" name="action_log" id="action_log" value=""/>
 {{ formfield_errors 'action_log' }}
 
-
-
 {% endblock %}
 
 {% block style %}
@@ -168,6 +166,58 @@
             finalSolution: finalSolution
         };
     }
+
+    function resetForNewEquations(reason="submit") {
+        // Get the current input values (default to "NA" if empty)
+        let sol1 = document.getElementById("sol_1").value || "NA";
+        let sol2 = document.getElementById("sol_2").value || "NA";
+        let sol3 = document.getElementById("sol_3").value || "NA";
+        let finSolOwn = document.getElementById("fin_sol_own").value || "NA";
+        let finSolA = document.getElementById("fin_sol_a").value || "NA";
+        let finSolB = document.getElementById("fin_sol_b").value || "NA";
+
+        // Compute correctness (1 = correct, 0 = incorrect)
+        let isCorrect1 = (sol1 === equationObject.solutions[0]) ? 1 : 0;
+        let isCorrect2 = (sol2 === equationObject.solutions[1]) ? 1 : 0;
+        let isCorrect3 = (sol3 === equationObject.solutions[2]) ? 1 : 0;
+        let isCorrectFinSolOwn = (finSolOwn === equationObject.finalSolution) ? 1 : 0;
+        let isCorrectFinSolA = (finSolA === equationObject.finalSolution) ? 1 : 0;
+        let isCorrectFinSolB = (finSolB === equationObject.finalSolution) ? 1 : 0;
+
+        // Get timestamp
+        let timestamp = Date.now();
+
+        // Update the action log (store correctness instead of actual answers)
+        let actionLog = document.getElementById("action_log").value;
+
+        if (reason === "timeUp"){
+            actionLog += `,[timeUp,${isCorrect1},${isCorrect2},${isCorrect3},${isCorrectFinSolOwn},${isCorrectFinSolA},${isCorrectFinSolB},${timestamp}]`;
+        } else if (reason === "start"){
+            actionLog += `[start,${isCorrect1},${isCorrect2},${isCorrect3},${isCorrectFinSolOwn},${isCorrectFinSolA},${isCorrectFinSolB},${timestamp}]`;
+        } else {
+            actionLog += `,[submit,${isCorrect1},${isCorrect2},${isCorrect3},${isCorrectFinSolOwn},${isCorrectFinSolA},${isCorrectFinSolB},${timestamp}]`;
+        }
+
+        document.getElementById("action_log").value = actionLog;
+
+        // Clear all input fields
+        document.getElementById("sol_1").value = "";
+        document.getElementById("sol_2").value = "";
+        document.getElementById("sol_3").value = "";
+        document.getElementById("fin_sol_own").value = "";
+        document.getElementById("fin_sol_a").value = "";
+        document.getElementById("fin_sol_b").value = "";
+
+        document.getElementById("eq_1").textContent = "loading ...";
+        document.getElementById("eq_2").textContent = "loading ...";
+        document.getElementById("eq_3").textContent = "loading ...";
+
+
+        // Ensure inputs are not focused or selected
+        document.activeElement.blur();
+    }
+
+
 </script>
 
 <script>
@@ -193,6 +243,21 @@
         }
     }
 
+    function startEquationCycle() {
+        // Allow participants to work for 28 seconds
+        setTimeout(() => {
+            liveSend({"info_type": "timeUp"}); // Broadcast to all players
+
+
+            // Wait 4 seconds (break), then restart the cycle
+            setTimeout(() => {
+                updateEquations();
+                startEquationCycle(); // Step 3: Start new round after the break
+            }, 4000);
+
+        }, 8000);
+    }
+
     /// Start Time Log
     document.addEventListener("DOMContentLoaded", function() {
         if ('{{color}}' === 'lightcoral') {
@@ -201,7 +266,7 @@
             document.getElementById("fin_sol_b").classList.add("lightgreen-b");
 
             setTimeout(() => {
-                updateEquations();
+                updateEquations("start");
             }, 1000);
 
         } else if ('{{color}}' === 'lightgreen') {
@@ -221,7 +286,9 @@
             document.getElementById("nextbtn").click();
         }, duration * 1000);
 
-        setInterval(updateEquations, 28 * 1000);
+        if ('{{color}}' === 'lightcoral') {
+            startEquationCycle();
+        }
     });
 
     function selectSol(element) {
@@ -253,8 +320,12 @@
             document.getElementById("eq_2").innerText = data.equations[1];
             document.getElementById("eq_3").innerText = data.equations[2];
 
-            let solutions = data.solutions;
-            let final_solution = data.finalSolution;
+            // Ensure all players store the equationObject properly
+            equationObject = {
+                equations: data.equations,
+                solutions: data.solutions,
+                finalSolution: data.finalSolution
+            };
         }
 
         if (data.info_type === "selected") {
@@ -299,6 +370,10 @@
                     document.querySelector(".lightgreen-b").value = data.content;
                 }
             }
+        }
+
+        else if (data.info_type === "timeUp") {
+            resetForNewEquations("timeUp");
         }
     }
 
