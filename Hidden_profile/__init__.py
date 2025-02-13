@@ -2,7 +2,7 @@ from otree.api import *
 
 class C(BaseConstants):
     NAME_IN_URL = 'hidden_profile_game'
-    PLAYERS_PER_GROUP = 4  # CSO, CHRO, CMO, CFO
+    PLAYERS_PER_GROUP = 3  # CSO, CHRO, CMO, CFO
     NUM_ROUNDS = 1
     BASE_PAYOUT = 200
     TEAM_BONUS = 30

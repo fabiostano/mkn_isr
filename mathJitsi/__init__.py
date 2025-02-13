@@ -7,9 +7,9 @@ class C(BaseConstants):
     NAME_IN_URL = 'mathJitsi'
     PLAYERS_PER_GROUP = 3
     NUM_ROUNDS = 4
-    TASK_TIME_LIMIT = 60 * 5  # Task Time
+    TASK_TIME_LIMIT = 5 * 60 # Task Time
     TRIAL_TIME = 28
-    BREAK_TIME = 4  # 4 seconds break
+    BREAK_TIME = 4
     MIN_DIFFICULTY = 1  # Start difficulty level
     MAX_DIFFICULTY = 16  # Highest difficulty level
 
@@ -24,15 +24,12 @@ class Group(BaseGroup):
 class Player(BasePlayer):
     color = models.StringField(initial="none")
     action_log = models.LongStringField(initial="")
-    load_time = models.IntegerField()
-
-    # ----- Task Functionality ----- #
-    team_role = models.StringField()
+    answer_history = models.StringField(initial="")
+    level_history = models.StringField(initial="")
 
     # ----- Timestamps ----- #
     task_load_time = models.StringField(blank=True)
     rest_load_time = models.StringField(blank=True)
-
 
 
     # ----- Pleasure & Arousal ----- #
@@ -95,14 +92,18 @@ class TaskQuestionnaire(Page):
 
 class Task(Page):
     form_model = 'player'
-    form_fields = ['action_log', 'load_time']
+    form_fields = ['action_log', 'task_load_time', 'level_history']
 
     def vars_for_template(player):
         return dict(
-            level = 5,
+            level = 10,
+            min_level = C.MIN_DIFFICULTY,
+            max_level = C.MAX_DIFFICULTY,
             difficulty = "Optimal",
             id = player.id_in_group,
-            timeout_seconds = C.TASK_TIME_LIMIT,
+            taskDuration = C.TASK_TIME_LIMIT,
+            trialDuration=C.TRIAL_TIME,
+            breakDuration=C.BREAK_TIME,
             color = C.COLORMAP[player.id_in_group-1]
         )
 

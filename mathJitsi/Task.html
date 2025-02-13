@@ -8,55 +8,67 @@
 
 {% block content %}
 
-<div class="row" style="padding-left:150px; padding-right: 150px; font-size: larger">
-    <div class="col-8">
-        <table class="table text-center borderless no-shading table-fixed-height">
-            <colgroup>
-                <col style="width: 55%;">  <!-- First column: 2/3 of table width -->
-                <col style="width: 10%;">    <!-- Second column: Small width for "=" -->
-                <col style="width: 35%;">  <!-- Third column: Remaining space -->
-            </colgroup>
-            <tr>
-                <td></td>
-                <td></td>
-                <td>Partial Answers</td>
-            </tr>
-            <tr>
-                <td id="eq_1">loading...</td>
-                <td>=</td>
-                <td><input id="sol_1" type="number" pattern="[0-9]*" maxlength="3" class="form-control answer-box editable" onclick="selectSol(this)" onblur="deselectSol(this)" oninput="inputChanged(this)"></td>
-            </tr>
-            <tr>
-                <td id="eq_2">loading...</td>
-                <td>=</td>
-                <td><input id="sol_2" type="number" pattern="[0-9]*" maxlength="3" class="form-control answer-box editable" onclick="selectSol(this)" onblur="deselectSol(this)" oninput="inputChanged(this)"></td>
-            </tr>
-            <tr>
-                <td id="eq_3">loading...</td>
-                <td>=</td>
-                <td><input id="sol_3" type="number" pattern="[0-9]*" maxlength="3" class="form-control answer-box editable" onclick="selectSol(this)" onblur="deselectSol(this)" oninput="inputChanged(this)"></td>
-            </tr>
-        </table>
-    </div>
-    <div class="col-1">
-    </div>
-    <div class="col-3">
-        <table class="table text-center borderless no-shading table-fixed-height">
-            <tr>
-                <td>Final Answer</td>
-            </tr>
-            <tr>
-                <td><input id="fin_sol_a" type="number" pattern="[0-9]*" maxlength="3" class="form-control answer-box readonly" placeholder="" readonly></td>
-            </tr>
-            <tr>
-                <td><input id="fin_sol_own" type="number" pattern="[0-9]*" maxlength="3" class="form-control answer-box editable" placeholder="" onclick="selectFinSol()" oninput="finalInputChanged(this)"></td>
-            </tr>
-            <tr>
-                <td><input id="fin_sol_b" type="number" pattern="[0-9]*" maxlength="3" class="form-control answer-box readonly" placeholder="" readonly></td>
-            </tr>
-        </table>
+<div class="row">
+    <div class="col-5">
+    <div class="row survey-container" style="padding-left:50px; padding-right: 50px; margin-left:40px; font-size: larger; border-left-color:{{color}}; height: 350px">
+        <div class="col-8">
+            <table class="table text-center borderless no-shading table-fixed-height">
+                <colgroup>
+                    <col style="width: 55%;">  <!-- First column: 2/3 of table width -->
+                    <col style="width: 10%;">    <!-- Second column: Small width for "=" -->
+                    <col style="width: 35%;">  <!-- Third column: Remaining space -->
+                </colgroup>
+                <tr>
+                    <td></td>
+                    <td></td>
+                    <td>Partial Answers</td>
+                </tr>
+                <tr>
+                    <td id="eq_1">loading...</td>
+                    <td>=</td>
+                    <td><input id="sol_1" type="number" pattern="[0-9]*" maxlength="3" class="form-control answer-box editable" onclick="selectSol(this)" onblur="deselectSol(this)" oninput="inputChanged(this)"></td>
+                </tr>
+                <tr>
+                    <td id="eq_2">loading...</td>
+                    <td>=</td>
+                    <td><input id="sol_2" type="number" pattern="[0-9]*" maxlength="3" class="form-control answer-box editable" onclick="selectSol(this)" onblur="deselectSol(this)" oninput="inputChanged(this)"></td>
+                </tr>
+                <tr>
+                    <td id="eq_3">loading...</td>
+                    <td>=</td>
+                    <td><input id="sol_3" type="number" pattern="[0-9]*" maxlength="3" class="form-control answer-box editable" onclick="selectSol(this)" onblur="deselectSol(this)" oninput="inputChanged(this)"></td>
+                </tr>
+            </table>
+        </div>
+        <div class="col-1">
+        </div>
+        <div class="col-3">
+            <table class="table text-center borderless no-shading table-fixed-height">
+                <tr>
+                    <td>Final <br> Answer</td>
+                </tr>
+                <tr>
+                    <td><input id="fin_sol_a" type="number" pattern="[0-9]*" maxlength="3" class="form-control answer-box readonly" placeholder="" readonly></td>
+                </tr>
+                <tr>
+                    <td><input id="fin_sol_own" type="number" pattern="[0-9]*" maxlength="3" class="form-control answer-box editable" placeholder="" onclick="selectFinSol()" oninput="finalInputChanged(this)"></td>
+                </tr>
+                <tr>
+                    <td><input id="fin_sol_b" type="number" pattern="[0-9]*" maxlength="3" class="form-control answer-box readonly" placeholder="" readonly></td>
+                </tr>
+            </table>
+        </div>
+        <p> Please solve the equations. Then press Enter to submit. </p>
     </div>
 </div>
+<div class="col-7">
+    <div class="video-container">
+        <div id="jitsi-surface"></div>
+    </div>
+</div>
+</div>
+
+
 
 <!-- NEXT BUTTON -->
 <div>
@@ -66,17 +78,64 @@
 </div>
 
 <!-- Logging fields -->
-<input type="hidden" name="load_time" id="load_time" value=""/>
-{{ formfield_errors 'load_time' }}
+<input type="hidden" name="task_load_time" id="task_load_time" value=""/>
+{{ formfield_errors 'task_load_time' }}
+
 <input type="hidden" name="action_log" id="action_log" value=""/>
 {{ formfield_errors 'action_log' }}
+
+<input type="hidden" name="answer_history" id="answer_history" value=""/>
+
+<input type="hidden" name="level_history" id="level_history" value="{{level}}">
+{{ formfield_errors 'level_history' }}
+
+<input type="hidden" id="level_storage" value="{{level}}">
+
+<input type="hidden" name="speech_time" id="speech_time" value=""/>
 
 {% endblock %}
 
 {% block style %}
 
+<script>
+    // Block refresh
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'F5' || (event.ctrlKey && event.key === 'r') ||
+                (event.ctrlKey && event.key === 'F5') || (event.shiftKey && event.key === 'F5') ||
+                (event.ctrlKey && event.shiftKey && event.key === 'r')) {
+                event.preventDefault();
+            }
+        });
+
+    // Block contextmenu (right-click)
+        document.addEventListener('contextmenu', function(event) {
+            event.preventDefault();
+        });
+
+    </script>
+
 <style>
-    .answer-box {text-align: center; font-weight: bold; font-size: large }
+    .video-container{
+        width: 1020px;
+        height: 350px;
+        padding: 10px;
+        margin-top: 10px;
+        border-radius: 5px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        background: black;
+        margin-left:20px;
+    }
+
+    .otree-body{
+        background-color: rgba(112, 128, 144, 0.1);
+        border-radius: 10px;
+        margin-top: 20px;
+        max-width: 1900px;
+        font-size: 16px;
+        width:100%
+    }
+
+    .answer-box {text-align: center; font-weight: bold; font-size: large;}
     .editable { cursor: pointer; background-color: white; }
     .readonly { cursor: not-allowed; }
     .highlighted { background-color: {{color}} !important; }
@@ -127,8 +186,169 @@
 
 {% block scripts %}
 
+<script src="https://video-meeting-system-backend.k8s.iism.kit.edu/external_api.js"></script>
+
 <script>
-    function generateEquations(level, difficulty) {
+    /////////// JITSI STUFF
+
+    const domain = "video-meeting-system-backend.k8s.iism.kit.edu/";
+    const options = {
+        roomName: "study",   // hier otree group variable oder alternativ ein string
+        lang: "en",
+        width:  1000,   // anpassen je nach px größe
+        height: 330,   // anpassen je nach px größe
+        configOverwrite: {
+            hideConferenceTimer: true,
+            disableFilmstripAutohiding: true,
+            toolbarButtons: [],
+            prejoinConfig: {
+                enabled: false,
+            },
+            disableSelfView: false,   // wollen wir selfview?
+            startWithAudioMuted: false,
+            startWithVideoMuted: false,
+            filmstrip: {
+                disableResizable: true,
+            },
+        },
+        branding: {
+            disableDeepLinking: true,
+            disableBranding: true,
+            disableLogo: true,
+        },
+        parentNode: document.getElementById("jitsi-surface"),  // wenn div anders benannt, dann hier anpassen
+        userInfo: {
+            displayName: "{{ id }}",  // hier otree participant name
+        },
+    };
+
+    api = new JitsiMeetExternalAPI(domain, options);
+
+
+    // code snippets für unterschiedliche Logs
+
+    //get participant ID after I joined   - braucht man um herauszufinden wer wer ist beim speaker
+    api.on("videoConferenceJoined", function (abc) {
+        console.log("videoConferenceJoined");
+        me = api.getParticipantsInfo();
+
+        my_ID = abc.id;
+        const myId = me[0].participantId;
+        allIds[0] = myId;
+    });
+
+    // I left
+    api.on("videoConferenceLeft", function (abc) {
+        console.log("videoConferenceLeft");
+    });
+
+    // video available changed
+    api.on("videoAvailabilityChanged", function (available) {
+        console.log("videoAvailabilityChanged" + available.available);
+    });
+
+    // video mute changed
+    api.on("videoMuteStatusChanged", function (muted) {
+        console.log("videoMuteStatusChanged" + muted.muted);
+    });
+
+    // audio mute changed
+    api.on("audioMuteStatusChanged", function (muted) {
+        console.log("audioMuteStatusChanged" + muted.muted);
+    });
+
+
+    // particiapnt joined
+    api.on("participantJoined", function (parjoin) {
+        console.log("partjoined_id_" + parjoin.id);
+        //console.log(      new Date().toString() + ": " + "partjoinedvarname",      parjoin.id    );
+
+        part_count = api.getNumberOfParticipants();
+        console.log("numberparticiants_" + part_count);
+
+        let i = part_count - 1;
+        const part = api.getParticipantsInfo();
+        const pId = part[i].participantId;
+
+        // Id in Array für alle Ids speichern
+        allIds[i] = pId;
+        console.log("overview_all_ids:" + allIds);
+    });
+
+    // participant left
+    api.on("participantLeft", function (parjoin) {
+        part_count = api.getNumberOfParticipants();
+        console.log("leave_numberparticiants_" + part_count);
+
+        let i = part_count - 1;
+        const part = api.getParticipantsInfo();
+        const pId = part[i].participantId;
+
+        // Id in Array für alle Ids speichern
+
+        const index = allIds.indexOf(pId);
+        const x = allIds.splice(index, 1);
+        console.log("leave_overview_all_ids:" + allIds);
+    });
+
+    //dominant speaker changed event  , required for audio check
+    let speakingEvents = "";
+    let lastSpeaker = null;
+
+
+    api.on("dominantSpeakerChanged", function (event) {
+        console.log("dominantspeakerchanged_to_" + event.id);
+
+        let timestamp = Date.now();
+
+        if (event.id == my_ID) {
+            lastSpeaker = event.id;
+            document.getElementById("speech_time").value += "S_" + timestamp + "/";
+
+        } else {
+            document.getElementById("speech_time").value += "E_" + timestamp + "/";
+            if (lastSpeaker == my_ID) {
+                document.getElementById("speech_time").value += "E_" + timestamp + "/";
+            }
+        }
+
+        lastSpeaker = event.id;
+    });
+</script>
+
+<script>
+    function generateEquations(difficulty) {
+        // Load level from hidden input
+        let level = parseInt(document.getElementById("level_storage").value) || 0;
+        let level_hist = parseInt(document.getElementById("level_history").value) || 0;
+
+        // Get the answer history to potentially adapt the level
+        let answer_history = document.getElementById("answer_history").value || "";
+
+        if (answer_history.split("").length === 3) {
+            let correctCount = answer_history.split("").filter(char => char === "1").length;
+
+            if (difficulty === "Optimal"){
+                if (correctCount === 3) {
+                    level += 1; // Level up if last 3 were correct
+                } else if (correctCount <= 1) {
+                    level = Math.max(0, level - 1); // Level down if 2 or more incorrect
+                }
+            } else if (difficulty === "Hard") {
+                if (correctCount >= 2) {
+                    level += 1; // Level up if 2/3 were correct
+                } else if (correctCount === 0) {
+                    level = Math.max(0, level - 1); // Level down if all 3 were incorrect
+                }
+            }
+
+            document.getElementById("answer_history").value = "";
+        }
+
+        // Store level for next round
+        document.getElementById("level_storage").value = level;
+        document.getElementById("level_history").value += "," + level;
+
         // Define digit range based on difficulty
         let digitRange = difficulty === "Hard" ? 6 : 3;
 
@@ -177,12 +397,12 @@
         let finSolB = document.getElementById("fin_sol_b").value || "NA";
 
         // Compute correctness (1 = correct, 0 = incorrect)
-        let isCorrect1 = (sol1 === equationObject.solutions[0]) ? 1 : 0;
-        let isCorrect2 = (sol2 === equationObject.solutions[1]) ? 1 : 0;
-        let isCorrect3 = (sol3 === equationObject.solutions[2]) ? 1 : 0;
-        let isCorrectFinSolOwn = (finSolOwn === equationObject.finalSolution) ? 1 : 0;
-        let isCorrectFinSolA = (finSolA === equationObject.finalSolution) ? 1 : 0;
-        let isCorrectFinSolB = (finSolB === equationObject.finalSolution) ? 1 : 0;
+        let isCorrect1 = (Number(sol1) === Number(equationObject.solutions[0])) ? 1 : 0;
+        let isCorrect2 = (Number(sol2) === Number(equationObject.solutions[1])) ? 1 : 0;
+        let isCorrect3 = (Number(sol3) === Number(equationObject.solutions[2])) ? 1 : 0;
+        let isCorrectFinSolOwn = (Number(finSolOwn) === Number(equationObject.finalSolution)) ? 1 : 0;
+        let isCorrectFinSolA = (Number(finSolA) === Number(equationObject.finalSolution)) ? 1 : 0;
+        let isCorrectFinSolB = (Number(finSolB) === Number(equationObject.finalSolution)) ? 1 : 0;
 
         // Get timestamp
         let timestamp = Date.now();
@@ -197,8 +417,13 @@
         } else {
             actionLog += `,[submit,${isCorrect1},${isCorrect2},${isCorrect3},${isCorrectFinSolOwn},${isCorrectFinSolA},${isCorrectFinSolB},${timestamp}]`;
         }
-
         document.getElementById("action_log").value = actionLog;
+
+        // Update the Count of Correct Answers
+        let answer_history = document.getElementById("answer_history").value
+        let correct_amount = isCorrectFinSolOwn + isCorrectFinSolA + isCorrectFinSolB;
+        if (correct_amount >= 2) {answer_history += "1";} else {answer_history += "0";}
+        document.getElementById("answer_history").value = answer_history;
 
         // Clear all input fields
         document.getElementById("sol_1").value = "";
@@ -212,7 +437,6 @@
         document.getElementById("eq_2").textContent = "loading ...";
         document.getElementById("eq_3").textContent = "loading ...";
 
-
         // Ensure inputs are not focused or selected
         document.activeElement.blur();
     }
@@ -221,14 +445,16 @@
 </script>
 
 <script>
-    const duration = 5*60;
+    const taskDuration = {{taskDuration}} * 1000;
+    const trialDuration = {{trialDuration}} * 1000;
+    const breakDuration = {{breakDuration}} * 1000;
+
     let equationObject = [];
-    let level = {{level}};
     let difficulty = "{{difficulty}}";
 
     function updateEquations() {
-         if ('{{color}}' === 'lightcoral') {
-            equationObject = generateEquations(level, "Optimal");
+        if ('{{color}}' === 'lightcoral') {
+            equationObject = generateEquations("Optimal");
             // Send the generated equations to all players
             liveSend({
                 "info_type": "Equations",
@@ -248,14 +474,13 @@
         setTimeout(() => {
             liveSend({"info_type": "timeUp"}); // Broadcast to all players
 
-
             // Wait 4 seconds (break), then restart the cycle
             setTimeout(() => {
                 updateEquations();
                 startEquationCycle(); // Step 3: Start new round after the break
-            }, 4000);
+            }, breakDuration);
 
-        }, 8000);
+        }, trialDuration);
     }
 
     /// Start Time Log
@@ -279,12 +504,11 @@
             document.getElementById("fin_sol_b").classList.add("lightcoral-b");
         }
 
-        document.getElementById("load_time").value = Date.now();
-
+        document.getElementById("task_load_time").value = Date.now();
 
         setTimeout(() => {
             document.getElementById("nextbtn").click();
-        }, duration * 1000);
+        }, taskDuration);
 
         if ('{{color}}' === 'lightcoral') {
             startEquationCycle();
