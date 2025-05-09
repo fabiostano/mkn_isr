@@ -83,10 +83,12 @@
         </div>
     </div>
     <div class="col-7">
-        <div class="video-container">
-            <div id="jitsi-surface"></div>
+        <div class="chat-container">
+            <div id="chat-box" class="chat-box"></div>
+            <input type="text" id="chat-input" class="chat-input" placeholder="Type a message..." onkeypress="sendMessage(event)">
         </div>
     </div>
+
 </div>
 
 
@@ -113,6 +115,8 @@
 <input type="hidden" id="level_storage" value="{{level}}">
 
 <input type="hidden" name="speech_time" id="speech_time" value=""/>
+<input type="hidden" name="chat_log" id="chat_log" value=""/>
+
 
 {% endblock %}
 
@@ -120,21 +124,65 @@
 
 
 <style>
+    .chat-container {
+        height: 500px;
+        border: 1px solid #ccc;
+        display: flex;
+        flex-direction: column;
+        border-radius: 15px;
+        margin-top: 10px;
+        margin-left: 30px;
+        margin-right: 50px;
+    }
+
+    .chat-box {
+        flex-grow: 1;
+        padding: 10px;
+        overflow-y: auto;
+        background: #f9f9f9;
+        max-height: 500px;
+        display: flex;
+        flex-direction: column; /* Ensures messages stack vertically */
+    }
+
+    .message-row {
+        width: 100%;
+        display: flex;
+        margin: 5px 0;
+    }
+
+    .my-message {
+        justify-content: flex-end; /* Aligns sender's message to the right */
+    }
+
+    .other-message {
+        justify-content: flex-start; /* Aligns received messages to the left */
+    }
+
+    .chat-message {
+        padding: 8px 12px;
+        border-radius: 12px;
+        color: black; /* Ensures text stays visible */
+        max-width: 60%;
+        word-wrap: break-word;
+        opacity: 1;
+        box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.15);
+    }
+
+    .chat-input {
+        border: none;
+        padding: 10px;
+        margin: 10px;
+        font-size: 16px;
+        border-radius: 12px;
+        height: 50px;
+    }
+
+
     .fit-image {
         max-width: 100%;  /* Ensures it doesn't overflow the column width */
         max-height: 60%; /* Ensures it doesn't overflow the column height */
         object-fit: contain; /* Keeps the aspect ratio while fitting inside */
-    }
-
-    .video-container{
-        width: 1020px;
-        height: 500px;
-        padding: 10px;
-        margin-top: 10px;
-        border-radius: 5px;
-        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-        background: black;
-        margin-left:20px;
     }
 
     .otree-body{
@@ -209,140 +257,21 @@
     });
 
     // Block contextmenu (right-click)
-    document.addEventListener('contextmenu', function(event) {
-        event.preventDefault();
-    });
+    // document.addEventListener('contextmenu', function(event) {
+    //     event.preventDefault();
+    // });
 
 </script>
 
-<script src="https://video-meeting-system-backend.k8s.iism.kit.edu/external_api.js"></script>
-
 <script>
-    /////////// JITSI STUFF
-
-    const domain = "video-meeting-system-backend.k8s.iism.kit.edu/";
-    const options = {
-        roomName: "study",   // hier otree group variable oder alternativ ein string
-        lang: "en",
-        width:  1000,   // anpassen je nach px größe
-        height: 480,   // anpassen je nach px größe
-        configOverwrite: {
-            hideConferenceTimer: true,
-            disableFilmstripAutohiding: true,
-            toolbarButtons: [],
-            prejoinConfig: {
-                enabled: false,
-            },
-            disableSelfView: false,   // wollen wir selfview?
-            startWithAudioMuted: false,
-            startWithVideoMuted: false,
-            filmstrip: {
-                disableResizable: true,
-            },
-        },
-        branding: {
-            disableDeepLinking: true,
-            disableBranding: true,
-            disableLogo: true,
-        },
-        parentNode: document.getElementById("jitsi-surface"),  // wenn div anders benannt, dann hier anpassen
-        userInfo: {
-            displayName: "{{ id }}",  // hier otree participant name
-        },
-    };
-
-    api = new JitsiMeetExternalAPI(domain, options);
-
-
-    // code snippets für unterschiedliche Logs
-
-    //get participant ID after I joined   - braucht man um herauszufinden wer wer ist beim speaker
-    api.on("videoConferenceJoined", function (abc) {
-        console.log("videoConferenceJoined");
-        me = api.getParticipantsInfo();
-
-        my_ID = abc.id;
-        const myId = me[0].participantId;
-        allIds[0] = myId;
-    });
-
-    // I left
-    api.on("videoConferenceLeft", function (abc) {
-        console.log("videoConferenceLeft");
-    });
-
-    // video available changed
-    api.on("videoAvailabilityChanged", function (available) {
-        console.log("videoAvailabilityChanged" + available.available);
-    });
-
-    // video mute changed
-    api.on("videoMuteStatusChanged", function (muted) {
-        console.log("videoMuteStatusChanged" + muted.muted);
-    });
-
-    // audio mute changed
-    api.on("audioMuteStatusChanged", function (muted) {
-        console.log("audioMuteStatusChanged" + muted.muted);
-    });
-
-
-    // particiapnt joined
-    api.on("participantJoined", function (parjoin) {
-        console.log("partjoined_id_" + parjoin.id);
-        //console.log(      new Date().toString() + ": " + "partjoinedvarname",      parjoin.id    );
-
-        part_count = api.getNumberOfParticipants();
-        console.log("numberparticiants_" + part_count);
-
-        let i = part_count - 1;
-        const part = api.getParticipantsInfo();
-        const pId = part[i].participantId;
-
-        // Id in Array für alle Ids speichern
-        allIds[i] = pId;
-        console.log("overview_all_ids:" + allIds);
-    });
-
-    // participant left
-    api.on("participantLeft", function (parjoin) {
-        part_count = api.getNumberOfParticipants();
-        console.log("leave_numberparticiants_" + part_count);
-
-        let i = part_count - 1;
-        const part = api.getParticipantsInfo();
-        const pId = part[i].participantId;
-
-        // Id in Array für alle Ids speichern
-
-        const index = allIds.indexOf(pId);
-        const x = allIds.splice(index, 1);
-        console.log("leave_overview_all_ids:" + allIds);
-    });
-
-    //dominant speaker changed event  , required for audio check
-    let speakingEvents = "";
-    let lastSpeaker = null;
-
-
-    api.on("dominantSpeakerChanged", function (event) {
-        console.log("dominantspeakerchanged_to_" + event.id);
-
-        let timestamp = Date.now();
-
-        if (event.id == my_ID) {
-            lastSpeaker = event.id;
-            document.getElementById("speech_time").value += "S_" + timestamp + "/";
-
-        } else {
-            document.getElementById("speech_time").value += "E_" + timestamp + "/";
-            if (lastSpeaker == my_ID) {
-                document.getElementById("speech_time").value += "E_" + timestamp + "/";
-            }
+    function sendMessage(event) {
+        if (event.key === "Enter") {
+            let message = document.getElementById("chat-input").value;
+            liveSend({"info_type": "chat_message", "message": message, "color": "{{color}}"});
+            document.getElementById("chat-input").value = "";  // Clear input field
+            document.getElementById("chat_log").value += "[" + date.getDate() + "," + message + "],"
         }
-
-        lastSpeaker = event.id;
-    });
+    }
 </script>
 
 <script>
@@ -628,9 +557,54 @@
         else if (data.info_type === "timeUp") {
             resetForNewEquations("timeUp");
         }
+
+       else if (data.info_type === "chat_message") {
+            let chatBox = document.getElementById("chat-box");
+            let senderColor = data.color || "#ccc"; // Default to light gray if no color provided
+
+            let messageDiv = document.createElement("div");
+            messageDiv.classList.add("chat-message");
+
+            // Convert the color to a semi-transparent RGBA value
+            messageDiv.style.backgroundColor = convertToRGBA(senderColor, 0.5); // 50% transparency
+
+            messageDiv.innerHTML = `<b>${data.color}:</b> ${data.message}`;
+
+            let messageWrapper = document.createElement("div");
+            messageWrapper.classList.add("message-row");
+
+            // Check if the message was sent by the current player
+            if (data.color === "{{color}}") {
+                messageWrapper.classList.add("my-message"); // Apply special class for own messages
+            } else {
+                messageWrapper.classList.add("other-message");
+            }
+
+            messageWrapper.appendChild(messageDiv);
+            chatBox.appendChild(messageWrapper);
+            chatBox.scrollTop = chatBox.scrollHeight; // Auto-scroll to latest message
+        }
+
+
+
     }
 
 
+</script>
+
+<script>
+    // Function to convert HEX or named colors to RGBA
+    function convertToRGBA(color, opacity) {
+        let tempElem = document.createElement("div");
+        tempElem.style.color = color;
+        document.body.appendChild(tempElem);
+
+        let computedColor = window.getComputedStyle(tempElem).color;
+        document.body.removeChild(tempElem);
+
+        let rgba = computedColor.replace("rgb", "rgba").replace(")", `, ${opacity})`);
+        return rgba;
+    }
 </script>
 {% endblock %}
 
