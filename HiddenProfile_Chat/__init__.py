@@ -1,13 +1,16 @@
 from otree.api import *
 
 class C(BaseConstants):
-    NAME_IN_URL = 'hidden_profile_game'
+    NAME_IN_URL = 'HiddenProfile_Chat'
     PLAYERS_PER_GROUP = 3  # CSO, CHRO, CMO, CFO
     NUM_ROUNDS = 1
     BASE_PAYOUT = 200
     TEAM_BONUS = 30
     DEPT_BONUS = 50
     MAX_INFO_SHARING_BONUS = 70
+    TASK_TIME_LIMIT = 10 # 3 * 60  # Task Time
+
+    COLORMAP = ['lightcoral', 'lightgreen', 'lightblue']
 
     PROJECTS = [
         {'name': 'Project A: E-Track', 'profit': 4, 'env_impact': 60, 'market_demand': 70000, 'salary_cost': 50000,
@@ -21,24 +24,26 @@ class C(BaseConstants):
     ROLES = ['Chief Sustainability Officer', 'Chief Human Resources Officer', 'Chief Marketing Officer',
              'Chief Financial Officer']
     TIMEOUT_SECONDS = 7 * 60  # 7 minutes in seconds
-    SENTIMENT_UPDATE_INTERVAL = 15  # seconds
 
 class Subsession(BaseSubsession):
     pass
-
 
 class Group(BaseGroup):
     chosen_project = models.StringField(initial=None)
     project_profit = models.CurrencyField(initial=0)
 
-
 class Player(BasePlayer):
+    color = models.StringField(initial="none")
+    chat_log = models.LongStringField(initial="")
     player_role = models.StringField()
     personal_interest = models.StringField()
     shared_info = models.StringField()
     project_choice = models.StringField()
     player_payoff = models.CurrencyField(initial=C.BASE_PAYOUT)
 
+    # ----- Timestamps ----- #
+    task_load_time = models.StringField(blank=True)
+    # rest_load_time = models.StringField(blank=True)
 
 def creating_session(subsession: Subsession):
     import random
@@ -60,7 +65,6 @@ def creating_session(subsession: Subsession):
         elif p.player_role == 'Chief Financial Officer':
             p.personal_interest = 'Profit'
             p.shared_info = 'None'
-
 
 class RoleAssignment(Page):
     def vars_for_template(player: Player):
@@ -98,7 +102,6 @@ class RoleAssignment(Page):
             'project_info': project_info  # Pass the project info to the template
         }
 
-
 class WaitForRoleAssignment(WaitPage):
     def is_displayed(self):
         # This ensures that all players must pass through this wait page
@@ -112,25 +115,33 @@ class DiscussionPreface(Page):
     def is_displayed(player: Player):
         return True
 
-
 class Discussion(Page):
-    timeout_seconds = 7 * 60  # 7 minutes
-    
-    @staticmethod
-    def before_next_page(player, timeout_happened):
-        if timeout_happened:
-            # Handle timeout case
-            pass
+    form_model = 'player'
+    form_fields = ['task_load_time', 'chat_log']
 
-class EnhancedDiscussion(Page):
-    timeout_seconds = 7 * 60  # 7 minutes
-    
-    @staticmethod
-    def before_next_page(player, timeout_happened):
-        if timeout_happened:
-            # Handle timeout case
-            pass
+    def vars_for_template(player):
+        return dict(
+            id = player.id_in_group,
+            color=C.COLORMAP[player.id_in_group - 1],
+            taskDuration=C.TASK_TIME_LIMIT
+        )
 
+    @staticmethod
+    def live_method(player, data):
+        group = player.group
+        info_type = data.get("info_type")
+
+        # Get the group-level shared dict to track selections
+        if not group.session.vars.get("active_selections"):
+            group.session.vars["active_selections"] = {}  # { "sol_1": "lightblue", "sol_2": "lightgreen", ... }
+
+        active_selections = group.session.vars["active_selections"]
+
+        # Handle incoming chat messages
+        if data["info_type"] == "chat_message":
+            return {p.id_in_group: data for p in group.get_players()}
+
+        return {}
 
 class Decision(Page):
     form_model = 'player'
@@ -149,10 +160,8 @@ class Decision(Page):
             'group_id': player.group.id_in_subsession,
         }
 
-
 class WaitForDecision(WaitPage):
     after_all_players_arrive = 'set_winning_project'
-
 
 class Results(Page):
     def vars_for_template(player: Player):
@@ -161,42 +170,35 @@ class Results(Page):
             'chosen_project': player.group.chosen_project,
         }
 
-
 class Introduction(Page):
     @staticmethod
     def is_displayed(player: Player):
         return True
-
 
 class GameOverview(Page):
     @staticmethod
     def is_displayed(player: Player):
         return True
 
-
 class Overview_1(Page):
     @staticmethod
     def is_displayed(player: Player):
         return True
-
 
 class Overview_2(Page):
     @staticmethod
     def is_displayed(player: Player):
         return True
 
-
 class Overview_3(Page):
     @staticmethod
     def is_displayed(player: Player):
         return True
 
-
 class GameGoal(Page):
     @staticmethod
     def is_displayed(player: Player):
         return True
-
 
 class ProjectInformation(Page):
     @staticmethod
@@ -209,7 +211,6 @@ class ProjectInformation(Page):
             'project_info': C.PROJECTS
         }
 
-
 def normalize(value, min_value, max_value, higher_is_better=True):
     """
     Normalize a value between 0 and 100, with option to invert for metrics where lower is better.
@@ -218,8 +219,6 @@ def normalize(value, min_value, max_value, higher_is_better=True):
         return 0
     normalized = (value - min_value) / (max_value - min_value) * 100
     return normalized if higher_is_better else (100 - normalized)
-
-
 
 def set_winning_project(group: Group):
     projects = C.PROJECTS
@@ -300,8 +299,13 @@ def set_winning_project(group: Group):
 
 
 
-page_sequence = [Introduction, Overview_1, Overview_2, Overview_3, RoleAssignment, ProjectInformation, DiscussionPreface, WaitForRoleAssignment,
-                 Discussion, Decision, WaitForDecision, Results]
+page_sequence = [Introduction,
+                 Overview_1, Overview_2, Overview_3,
+                 RoleAssignment, ProjectInformation,
+                 # DiscussionPreface, # This is the sentiment analysis explanation - we don't want that...
+                 WaitForRoleAssignment,
+                 Discussion,
+                 Decision, WaitForDecision, Results]
 
 #page_sequence = [Discussion]
 

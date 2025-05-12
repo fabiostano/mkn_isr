@@ -7,7 +7,7 @@ class C(BaseConstants):
     NAME_IN_URL = 'mathChat'
     PLAYERS_PER_GROUP = 3
     NUM_ROUNDS = 4
-    TASK_TIME_LIMIT = 5 * 60 # Task Time
+    TASK_TIME_LIMIT = 10 # 5 * 60 # Task Time
     TRIAL_TIME = 28
     BREAK_TIME = 4
     MIN_DIFFICULTY = 1  # Start difficulty level
@@ -28,18 +28,9 @@ class Player(BasePlayer):
     level_history = models.StringField(initial="")
     chat_log = models.LongStringField(initial="")
 
-
     # ----- Timestamps ----- #
     task_load_time = models.StringField(blank=True)
-    rest_load_time = models.StringField(blank=True)
-
-
-    # ----- Pleasure & Arousal ----- #
-    pleasure = models.IntegerField(label="test", choices=[[1, '1'], [2, '2'], [3, '3'], [4, '4'], [5, '5']],
-                                   widget=widgets.RadioSelectHorizontal)
-    arousal = models.IntegerField(label="test", choices=[[1, '1'], [2, '2'], [3, '3'], [4, '4'], [5, '5']],
-                                  widget=widgets.RadioSelectHorizontal)
-
+    # rest_load_time = models.StringField(blank=True)
 
 class Explanation(Page):
     form_model = 'player'
@@ -64,7 +55,6 @@ class BeforeTask(Page):
 
     def before_next_page(player, timeout_happened):
         player.color = C.COLORMAP[player.id_in_group-1]
-
 
 class Wait_Page(WaitPage):
     form_model = 'player'
@@ -95,6 +85,12 @@ class TaskQuestionnaire(Page):
 class Task(Page):
     form_model = 'player'
     form_fields = ['action_log', 'task_load_time', 'level_history', 'chat_log']
+    # timeout_seconds = 5
+
+    # @staticmethod
+    # def before_next_page(player, timeout_happened):
+    #     if timeout_happened:
+    #         print("Timeout should have happened now...")
 
     def vars_for_template(player):
         return dict(
@@ -189,5 +185,4 @@ class Task(Page):
 
         return {}
 
-
-page_sequence = [Task]
+page_sequence = [BeforeTask, Task]

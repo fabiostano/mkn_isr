@@ -1,0 +1,129 @@
+/* Reset styles for consistency */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+/* Body styling */
+body {
+    background-color: #f5f5f7; /* Apple-inspired light gray background */
+    color: #1d1d1f; /* Dark gray for text */
+    display: flex;
+    justify-content: center;
+    padding: 20px;
+}
+
+/* Main container styling */
+.container {
+    max-width: 1500px;
+    width: 100%;
+    background-color: #ffffff;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0px 4px 16px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+    margin-bottom: 20px;
+}
+
+/* Header title */
+h1 {
+    text-align: center;
+    font-size: 2.5em;
+    font-weight: 600;
+    color: #1d1d1f;
+    margin-bottom: 20px;
+}
+
+/* Form styling */
+form label {
+    font-weight: 500;
+    color: #1d1d1f;
+}
+
+input[type="text"] {
+    width: 100%;
+    padding: 12px;
+    margin-top: 10px;
+    border: 1px solid #d1d1d6;
+    border-radius: 8px;
+    font-size: 1em;
+    background-color: #fafafa;
+}
+
+input[type="submit"] {
+    margin-top: 15px;
+    padding: 12px 24px;
+    font-size: 1em;
+    color: white;
+    background-color: #007aff; /* Apple-style blue for buttons */
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+input[type="submit"]:hover {
+    background-color: #005bb5; /* Darker blue on hover */
+}
+
+/* Response box for AI feedback */
+#response-box {
+    background-color: #f9f9f9;
+    border: 1px solid #d1d1d6;
+    border-radius: 8px;
+    padding: 15px;
+    margin-top: 20px;
+    display: none;
+}
+
+#response-box h3 {
+    color: #1d1d1f;
+    margin-bottom: 10px;
+}
+
+#response-box p {
+    color: #666666;
+    font-size: 1em;
+}
+
+/* Card sections for structured content */
+.card {
+    background-color: #ffffff;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.05); /* Subtle shadow for a "floating" effect */
+    margin: 20px 0;
+}
+
+.card h3 {
+    color: #1d1d1f;
+    font-size: 1.5em;
+    margin-bottom: 15px;
+}
+
+.card p {
+    color: #666666;
+    font-size: 1em;
+}
+
+
+/* Sentiment score styling */
+#meeting-compound-score {
+    font-size: 1.3em;
+    color: #007aff;
+    font-weight: 500;
+    text-align: center;
+    margin-top: 10px;
+}
+
+/* Footer styling */
+.footer {
+    text-align: center;
+    font-size: 0.9em;
+    color: #8e8e93;
+    padding: 20px 0;
+    border-top: 1px solid #e0e0e0;
+    margin-top: 20px;
+}
+

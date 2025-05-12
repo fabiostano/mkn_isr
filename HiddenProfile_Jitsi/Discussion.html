@@ -1,0 +1,247 @@
+{% extends "global/Page.html" %}
+
+{% block title %}
+<div class="d-flex justify-content-center" style="margin-top: -50px">
+    <h2 style="margin-bottom:20px">TEAM DISCUSSION</h2>
+</div>
+{% endblock %}
+
+{% block content %}
+
+<div class="row">
+    <div class="video-container">
+        <div id="jitsi-surface"></div>
+    </div>
+</div>
+
+<!-- NEXT BUTTON -->
+<div>
+    <div class="d-flex justify-content-center" style="display:none">
+        <button class="btn-primary btn-lg" id="nextbtn" style="display:none">Next</button>
+    </div>
+</div>
+
+<!-- Logging fields -->
+<input type="hidden" name="task_load_time" id="task_load_time" value=""/>
+<input type="hidden" name="speech_time" id="speech_time" value=""/>
+{{ formfield_errors 'speech_time' }}
+
+{% endblock %}
+
+{% block style %}
+
+<style>
+    .fit-image {
+        max-width: 100%;  /* Ensures it doesn't overflow the column width */
+        max-height: 60%; /* Ensures it doesn't overflow the column height */
+        object-fit: contain; /* Keeps the aspect ratio while fitting inside */
+    }
+
+    .video-container{
+        width: 1020px;
+        height: 500px;
+        padding: 10px;
+        margin-top: 10px;
+        border-radius: 5px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        background: black;
+        margin-left:20px;
+    }
+
+    .otree-body{
+        background-color: rgba(112, 128, 144, 0.1);
+        border-radius: 10px;
+        margin-top: 20px;
+        max-width: 1900px;
+        font-size: 16px;
+        width:100%
+    }
+
+    .answer-box {text-align: center; font-weight: bold; font-size: large;}
+    .editable { cursor: pointer; background-color: white; }
+    .readonly { cursor: not-allowed; }
+    .highlighted { background-color: {{color}} !important; }
+
+    /* Remove all table borders */
+    .table.borderless td, .table.borderless th {
+        border: none !important;
+        background: transparent !important;
+    }
+
+    /* Remove Bootstrap's row striping (shading for even rows) */
+    .table.no-shading tbody tr:nth-of-type(even),
+    .table.no-shading tbody tr:nth-of-type(odd) {
+        background-color: transparent !important;
+    }
+
+    .table-fixed-height td {
+        height: 50px; /* Adjust this value as needed */
+        vertical-align: middle; /* Ensures text stays centered */
+    }
+</style>
+
+{% endblock %}
+
+{% block scripts %}
+
+<script>
+    // Block refresh
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'F5' || (event.ctrlKey && event.key === 'r') ||
+            (event.ctrlKey && event.key === 'F5') || (event.shiftKey && event.key === 'F5') ||
+            (event.ctrlKey && event.shiftKey && event.key === 'r')) {
+            event.preventDefault();
+        }
+    });
+
+    // Block contextmenu (right-click)
+    document.addEventListener('contextmenu', function(event) {
+        event.preventDefault();
+    });
+</script>
+
+<script src="https://video-meeting-system-backend.k8s.iism.kit.edu/external_api.js"></script>
+
+<script>
+    /////////// JITSI STUFF
+
+    const domain = "video-meeting-system-backend.k8s.iism.kit.edu/";
+    const options = {
+        roomName: "study",   // hier otree group variable oder alternativ ein string
+        lang: "en",
+        width:  1000,   // anpassen je nach px größe
+        height: 480,   // anpassen je nach px größe
+        configOverwrite: {
+            hideConferenceTimer: true,
+            disableFilmstripAutohiding: true,
+            toolbarButtons: [],
+            prejoinConfig: {
+                enabled: false,
+            },
+            disableSelfView: false,   // wollen wir selfview?
+            startWithAudioMuted: false,
+            startWithVideoMuted: false,
+            filmstrip: {
+                disableResizable: true,
+            },
+        },
+        branding: {
+            disableDeepLinking: true,
+            disableBranding: true,
+            disableLogo: true,
+        },
+        parentNode: document.getElementById("jitsi-surface"),  // wenn div anders benannt, dann hier anpassen
+        userInfo: {
+            displayName: "{{ id }}",  // hier otree participant name
+        },
+    };
+
+    api = new JitsiMeetExternalAPI(domain, options);
+
+
+    // code snippets für unterschiedliche Logs
+
+    //get participant ID after I joined   - braucht man um herauszufinden wer wer ist beim speaker
+    api.on("videoConferenceJoined", function (abc) {
+        console.log("videoConferenceJoined");
+        me = api.getParticipantsInfo();
+
+        my_ID = abc.id;
+        const myId = me[0].participantId;
+        allIds[0] = myId;
+    });
+
+    // I left
+    api.on("videoConferenceLeft", function (abc) {
+        console.log("videoConferenceLeft");
+    });
+
+    // video available changed
+    api.on("videoAvailabilityChanged", function (available) {
+        console.log("videoAvailabilityChanged" + available.available);
+    });
+
+    // video mute changed
+    api.on("videoMuteStatusChanged", function (muted) {
+        console.log("videoMuteStatusChanged" + muted.muted);
+    });
+
+    // audio mute changed
+    api.on("audioMuteStatusChanged", function (muted) {
+        console.log("audioMuteStatusChanged" + muted.muted);
+    });
+
+
+    // particiapnt joined
+    api.on("participantJoined", function (parjoin) {
+        console.log("partjoined_id_" + parjoin.id);
+        //console.log(      new Date().toString() + ": " + "partjoinedvarname",      parjoin.id    );
+
+        part_count = api.getNumberOfParticipants();
+        console.log("numberparticiants_" + part_count);
+
+        let i = part_count - 1;
+        const part = api.getParticipantsInfo();
+        const pId = part[i].participantId;
+
+        // Id in Array für alle Ids speichern
+        allIds[i] = pId;
+        console.log("overview_all_ids:" + allIds);
+    });
+
+    // participant left
+    api.on("participantLeft", function (parjoin) {
+        part_count = api.getNumberOfParticipants();
+        console.log("leave_numberparticiants_" + part_count);
+
+        let i = part_count - 1;
+        const part = api.getParticipantsInfo();
+        const pId = part[i].participantId;
+
+        // Id in Array für alle Ids speichern
+
+        const index = allIds.indexOf(pId);
+        const x = allIds.splice(index, 1);
+        console.log("leave_overview_all_ids:" + allIds);
+    });
+
+    //dominant speaker changed event  , required for audio check
+    let speakingEvents = "";
+    let lastSpeaker = null;
+
+
+    api.on("dominantSpeakerChanged", function (event) {
+        console.log("dominantspeakerchanged_to_" + event.id);
+
+        let timestamp = Date.now();
+
+        if (event.id == my_ID) {
+            lastSpeaker = event.id;
+            document.getElementById("speech_time").value += "S_" + timestamp + "/";
+
+        } else {
+            document.getElementById("speech_time").value += "E_" + timestamp + "/";
+            if (lastSpeaker == my_ID) {
+                document.getElementById("speech_time").value += "E_" + timestamp + "/";
+            }
+        }
+
+        lastSpeaker = event.id;
+    });
+</script>
+
+<script>
+    const taskDuration = {{taskDuration}} * 1000;
+
+    // Start Time Log
+    document.addEventListener("DOMContentLoaded", function() {
+        document.getElementById("task_load_time").value = Date.now();
+
+        setTimeout(() => {
+            document.getElementById("nextbtn").click();
+        }, taskDuration);
+    });
+</script>
+
+{% endblock %}
+

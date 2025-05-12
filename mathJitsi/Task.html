@@ -89,8 +89,6 @@
     </div>
 </div>
 
-
-
 <!-- NEXT BUTTON -->
 <div>
     <div class="d-flex justify-content-center" style="display:none">
@@ -99,26 +97,26 @@
 </div>
 
 <!-- Logging fields -->
-<input type="hidden" name="task_load_time" id="task_load_time" value=""/>
-{{ formfield_errors 'task_load_time' }}
+<div>
+    <input type="hidden" name="task_load_time" id="task_load_time" value=""/>
+    {{ formfield_errors 'task_load_time' }}
 
-<input type="hidden" name="action_log" id="action_log" value=""/>
-{{ formfield_errors 'action_log' }}
+    <input type="hidden" name="action_log" id="action_log" value="TODO"/>
+    {{ formfield_errors 'action_log' }}
 
-<input type="hidden" name="answer_history" id="answer_history" value=""/>
+    <input type="hidden" name="answer_history" id="answer_history" value="TODO"/>
 
-<input type="hidden" name="level_history" id="level_history" value="{{level}}">
-{{ formfield_errors 'level_history' }}
+    <input type="hidden" name="level_history" id="level_history" value="{{level}}">
+    {{ formfield_errors 'level_history' }}
 
-<input type="hidden" id="level_storage" value="{{level}}">
+    <input type="hidden" id="level_storage" value="{{level}}">
 
-<input type="hidden" name="speech_time" id="speech_time" value=""/>
+    <input type="hidden" name="speech_time" id="speech_time" value="TODO"/>
+</div>
 
 {% endblock %}
 
 {% block style %}
-
-
 <style>
     .fit-image {
         max-width: 100%;  /* Ensures it doesn't overflow the column width */
@@ -192,12 +190,11 @@
 
 
 </style>
-
 {% endblock %}
 
 {% block scripts %}
 
-
+<!-- Button behvaiors -->
 <script>
     // Block refresh
     document.addEventListener('keydown', function(event) {
@@ -212,11 +209,10 @@
     document.addEventListener('contextmenu', function(event) {
         event.preventDefault();
     });
-
 </script>
 
+<!-- JITSI -->
 <script src="https://video-meeting-system-backend.k8s.iism.kit.edu/external_api.js"></script>
-
 <script>
     /////////// JITSI STUFF
 
@@ -345,7 +341,110 @@
     });
 </script>
 
+<!-- Math Task -->
 <script>
+    const taskDuration = {{taskDuration}} * 1000;
+    const trialDuration = {{trialDuration}} * 1000;
+    const breakDuration = {{breakDuration}} * 1000;
+
+    let equationObject = [];
+    let difficulty = "{{difficulty}}";
+
+    function updateEquations() {
+        if ('{{color}}' === 'lightcoral') {
+            equationObject = generateEquations("Optimal");
+            // Send the generated equations to all players
+            liveSend({
+                "info_type": "Equations",
+                "equations": equationObject.equations,
+                "solutions": equationObject.solutions,
+                "finalSolution": equationObject.finalSolution
+            });
+
+            document.getElementById("eq_1").textContent = equationObject.equations[0];
+            document.getElementById("eq_2").textContent = equationObject.equations[1];
+            document.getElementById("eq_3").textContent = equationObject.equations[2];
+        }
+    }
+
+    function startEquationCycle() {
+        // Allow participants to work for 28 seconds
+        setTimeout(() => {
+            liveSend({"info_type": "timeUp"}); // Broadcast to all players
+
+            // Wait 4 seconds (break), then restart the cycle
+            setTimeout(() => {
+                updateEquations();
+                startEquationCycle(); // Step 3: Start new round after the break
+            }, breakDuration);
+
+        }, trialDuration);
+    }
+
+    // Start Time Log
+    document.addEventListener("DOMContentLoaded", function() {
+        // Add keypress listener to own final input
+        const finSolInput = document.getElementById("fin_sol_own");
+        finSolInput.addEventListener("keydown", function (event) {
+            if (event.key === "Enter") {
+              submitAnswer();
+            }
+          });
+
+        if ('{{color}}' === 'lightcoral') {
+            document.getElementById("fin_sol_own").classList.add("lightcoral-b");
+            document.getElementById("fin_sol_a").classList.add("lightblue-b");
+            document.getElementById("fin_sol_b").classList.add("lightgreen-b");
+
+            setTimeout(() => {
+                updateEquations("start");
+            }, 1000);
+
+        } else if ('{{color}}' === 'lightgreen') {
+            document.getElementById("fin_sol_own").classList.add("lightgreen-b");
+            document.getElementById("fin_sol_a").classList.add("lightblue-b");
+            document.getElementById("fin_sol_b").classList.add("lightcoral-b");
+        } else if ('{{color}}' === 'lightblue') {
+            document.getElementById("fin_sol_own").classList.add("lightblue-b");
+            document.getElementById("fin_sol_a").classList.add("lightgreen-b");
+            document.getElementById("fin_sol_b").classList.add("lightcoral-b");
+        }
+
+        document.getElementById("task_load_time").value = Date.now();
+
+        setTimeout(() => {
+            document.getElementById("nextbtn").click();
+        }, taskDuration);
+
+        if ('{{color}}' === 'lightcoral') {
+            startEquationCycle();
+        }
+    });
+
+    function selectSol(element) {
+        liveSend({"info_type": "selected", "player": "{{color}}", "selected": element.id});
+    }
+
+    function selectFinSol(element) {
+        liveSend({"info_type": "selected", "player": "{{color}}", "selected": "final"});
+    }
+
+    function deselectSol(element) {
+        liveSend({"info_type": "deselect", "player": "{{color}}", "deselected": element.id});
+    }
+
+    function inputChanged(element) {
+        liveSend({"info_type": "input_changed", "player": "{{color}}", "selected": element.id, "content": element.value});
+    }
+
+    function finalInputChanged(element) {
+        liveSend({"info_type": "final_input_changed", "player": "{{color}}", "selected": "final", "content": element.value});
+    }
+
+    function submitAnswer() {
+        console.log("Attempting to submit an answer!")
+    }
+
     function generateEquations(difficulty) {
         // Load level from hidden input
         let level = parseInt(document.getElementById("level_storage").value) || 0;
@@ -469,103 +568,9 @@
         // Ensure inputs are not focused or selected
         document.activeElement.blur();
     }
-
-
 </script>
 
-<script>
-    const taskDuration = {{taskDuration}} * 1000;
-    const trialDuration = {{trialDuration}} * 1000;
-    const breakDuration = {{breakDuration}} * 1000;
-
-    let equationObject = [];
-    let difficulty = "{{difficulty}}";
-
-    function updateEquations() {
-        if ('{{color}}' === 'lightcoral') {
-            equationObject = generateEquations("Optimal");
-            // Send the generated equations to all players
-            liveSend({
-                "info_type": "Equations",
-                "equations": equationObject.equations,
-                "solutions": equationObject.solutions,
-                "finalSolution": equationObject.finalSolution
-            });
-
-            document.getElementById("eq_1").textContent = equationObject.equations[0];
-            document.getElementById("eq_2").textContent = equationObject.equations[1];
-            document.getElementById("eq_3").textContent = equationObject.equations[2];
-        }
-    }
-
-    function startEquationCycle() {
-        // Allow participants to work for 28 seconds
-        setTimeout(() => {
-            liveSend({"info_type": "timeUp"}); // Broadcast to all players
-
-            // Wait 4 seconds (break), then restart the cycle
-            setTimeout(() => {
-                updateEquations();
-                startEquationCycle(); // Step 3: Start new round after the break
-            }, breakDuration);
-
-        }, trialDuration);
-    }
-
-    /// Start Time Log
-    document.addEventListener("DOMContentLoaded", function() {
-        if ('{{color}}' === 'lightcoral') {
-            document.getElementById("fin_sol_own").classList.add("lightcoral-b");
-            document.getElementById("fin_sol_a").classList.add("lightblue-b");
-            document.getElementById("fin_sol_b").classList.add("lightgreen-b");
-
-            setTimeout(() => {
-                updateEquations("start");
-            }, 1000);
-
-        } else if ('{{color}}' === 'lightgreen') {
-            document.getElementById("fin_sol_own").classList.add("lightgreen-b");
-            document.getElementById("fin_sol_a").classList.add("lightblue-b");
-            document.getElementById("fin_sol_b").classList.add("lightcoral-b");
-        } else if ('{{color}}' === 'lightblue') {
-            document.getElementById("fin_sol_own").classList.add("lightblue-b");
-            document.getElementById("fin_sol_a").classList.add("lightgreen-b");
-            document.getElementById("fin_sol_b").classList.add("lightcoral-b");
-        }
-
-        document.getElementById("task_load_time").value = Date.now();
-
-        setTimeout(() => {
-            document.getElementById("nextbtn").click();
-        }, taskDuration);
-
-        if ('{{color}}' === 'lightcoral') {
-            startEquationCycle();
-        }
-    });
-
-    function selectSol(element) {
-        liveSend({"info_type": "selected", "player": "{{color}}", "selected": element.id});
-    }
-
-    function selectFinSol(element) {
-        liveSend({"info_type": "selected", "player": "{{color}}", "selected": "final"});
-    }
-
-    function deselectSol(element) {
-        liveSend({"info_type": "deselect", "player": "{{color}}", "deselected": element.id});
-    }
-
-    function inputChanged(element) {
-        liveSend({"info_type": "input_changed", "player": "{{color}}", "selected": element.id, "content": element.value});
-    }
-
-    function finalInputChanged(element) {
-        liveSend({"info_type": "final_input_changed", "player": "{{color}}", "selected": "final", "content": element.value});
-    }
-
-</script>
-
+<!-- Messaging -->
 <script>
     function liveRecv(data) {
         if (data.info_type === "Equations") {
@@ -629,8 +634,6 @@
             resetForNewEquations("timeUp");
         }
     }
-
-
 </script>
 {% endblock %}
 

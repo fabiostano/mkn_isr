@@ -7,7 +7,7 @@ class C(BaseConstants):
     NAME_IN_URL = 'mathJitsi'
     PLAYERS_PER_GROUP = 3
     NUM_ROUNDS = 4
-    TASK_TIME_LIMIT = 5 * 60 # Task Time
+    TASK_TIME_LIMIT = 10 # 5 * 60 # Task Time
     TRIAL_TIME = 28
     BREAK_TIME = 4
     MIN_DIFFICULTY = 1  # Start difficulty level
@@ -29,7 +29,8 @@ class Player(BasePlayer):
 
     # ----- Timestamps ----- #
     task_load_time = models.StringField(blank=True)
-    rest_load_time = models.StringField(blank=True)
+    # rest_load_time = models.StringField(blank=True)
+    speech_time = models.StringField(blank=True)
 
 
     # ----- Pleasure & Arousal ----- #
@@ -62,7 +63,6 @@ class BeforeTask(Page):
 
     def before_next_page(player, timeout_happened):
         player.color = C.COLORMAP[player.id_in_group-1]
-
 
 class Wait_Page(WaitPage):
     form_model = 'player'
@@ -184,4 +184,4 @@ class Task(Page):
         return {}
 
 
-page_sequence = [Task]
+page_sequence = [BeforeTask, Task]

@@ -1,8 +1,15 @@
 from os import environ
 SESSION_CONFIG_DEFAULTS = dict(real_world_currency_per_point=1, participation_fee=15)
-SESSION_CONFIGS = [dict(name='math_jitsi', num_demo_participants=3, app_sequence=['mathJitsi']),
+
+SESSION_CONFIGS = [
+                   dict(name='all', num_demo_participants=3, app_sequence=['mathChat', 'mathJitsi',
+                                                                           'HiddenProfile_Chat', 'HiddenProfile_Jitsi']),
+                   dict(name='math_jitsi', num_demo_participants=3, app_sequence=['mathJitsi']),
                    dict(name='math_chat', num_demo_participants=3, app_sequence=['mathChat']),
-                   dict(name='hidden_profile', num_demo_participants=3, app_sequence=['Hidden_profile'])]
+                   dict(name='hidden_profile_jitsi', num_demo_participants=3, app_sequence=['HiddenProfile_Jitsi']),
+                   dict(name='hidden_profile_chat', num_demo_participants=3, app_sequence=['HiddenProfile_Chat'])
+                   ]
+
 LANGUAGE_CODE = 'en'
 REAL_WORLD_CURRENCY_CODE = 'EUR'
 USE_POINTS = False
