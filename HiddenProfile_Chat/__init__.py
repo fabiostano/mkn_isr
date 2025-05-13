@@ -45,6 +45,36 @@ class Player(BasePlayer):
     task_load_time = models.StringField(blank=True)
     # rest_load_time = models.StringField(blank=True)
 
+    def make_7p_likert_field(label):
+        return models.IntegerField(
+            label=label,
+            choices=[1, 2, 3, 4, 5, 6, 7],
+            widget=widgets.RadioSelectHorizontal
+        )
+
+    # ----- FLOW ----- #
+    fss01 = make_7p_likert_field('I felt just the right amount of challenge.')
+    fss02 = make_7p_likert_field('My thoughts/activities ran fluidly and smoothly.')
+    fss03 = make_7p_likert_field('I didn’t notice time passing.')
+    fss04 = make_7p_likert_field('I had no difficulty concentrating.')
+    fss05 = make_7p_likert_field('My mind was completely clear.')
+    fss07 = make_7p_likert_field('The right thoughts/movements occurred of their own accord.')
+    fss10 = make_7p_likert_field('I was completely involved in the task.')
+    fss06 = make_7p_likert_field('I was totally absorbed in what I was doing.')
+    fss08 = make_7p_likert_field('I knew what I had to do each step of the way.')
+    fss09 = make_7p_likert_field('I felt that I had everything under control.')
+
+    # ----- TLX ------
+    # "Please indicate on each scale at the point that best indicates your experience of the last few minutes."
+    tlx_single = models.IntegerField(
+        # Low | High
+        # label = "How much mental and perceptual activity was required (e.g. thinking, deciding, calculating, remembering, looking, searching, etc)? Was the task easy or demanding, simple or complex, exacting or forgiving?",
+        min=0,
+        max=21
+    )
+
+    difficulty = make_7p_likert_field('How difficult was this task for you?')
+
 def creating_session(subsession: Subsession):
     import random
     roles = C.ROLES[:]
@@ -297,7 +327,17 @@ def set_winning_project(group: Group):
     for player in group.get_players():
         player.player_payoff = group.project_profit
 
+class TaskSurvey(Page):
+    form_model = 'player'
+    all_fields = []
 
+    @staticmethod
+    def get_form_fields(player: Player):
+        import random
+        flow_fields = ['fss01', 'fss02', 'fss03', 'fss04', 'fss05', 'fss06', 'fss07', 'fss08', 'fss09', 'fss10']
+        random.shuffle(flow_fields)
+        all_fields = flow_fields + ['tlx_single', 'difficulty']
+        return all_fields
 
 page_sequence = [Introduction,
                  Overview_1, Overview_2, Overview_3,
@@ -305,7 +345,5 @@ page_sequence = [Introduction,
                  # DiscussionPreface, # This is the sentiment analysis explanation - we don't want that...
                  WaitForRoleAssignment,
                  Discussion,
-                 Decision, WaitForDecision, Results]
-
-#page_sequence = [Discussion]
-
+                 Decision, WaitForDecision, Results,
+                 TaskSurvey]
