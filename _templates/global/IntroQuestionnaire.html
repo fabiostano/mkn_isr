@@ -1,0 +1,81 @@
+{{ extends 'global/Page.html' }}
+
+{% block title%}
+    <div class="d-flex justify-content-center" style="margin-top: -50px">
+        <h2 style="margin-bottom:20px">DEMOGRAPHIC SURVEY</h2>
+    </div>
+{% endblock %}
+
+{% block content %}
+
+<!-- Latest compiled and minified CSS -->
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
+
+<!-- jQuery library -->
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+
+<!-- Latest compiled JavaScript -->
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
+
+<style>
+    #fatigue_trait tr:nth-child(even) {background-color: #f9f9f9;}
+    th {
+            text-align:center;
+            width: 5%;
+        }
+    input[type="radio"]{margin-left:-5.5px}
+</style>
+
+    <div class="survey-container" style="padding-top: 5%">
+        <p>Before we can start, we need some information from you.</p>
+        <div class="age" style="float:left; margin-right:10%">
+            {% formfield player.age %}
+        </div>
+        <div class="gender" style="float:left">
+            {% formfield player.gender %}
+        </div>
+        <div style="clear:both">
+            {% formfield player.english %}
+            {% formfield player.occupation %}
+            {% formfield player.dominant_hand %}
+        </div>
+    </div>
+
+    <div class="survey-container">
+        <table class="table mytable" frame="void" style="width:100%; ">
+            <tr>
+                <th></th>
+                <th style="text-align:center"> Not at all </th>
+                <th>  </th>
+                <th style="text-align:center"> </th>
+                <th>  </th>
+                <th style="text-align:center"> Very much </th>
+            </tr>
+        {% for field in form %}
+            {% if field.id.startswith("id_mr") %}
+                <tr>
+                    <td align="left" style="width:33%">{{ field.label }}</td>
+
+                    {% for choice in field %}
+                        <td align="center" >{{ choice }}</td>
+                    {% endfor %}
+                </tr>
+            {% endif %}
+        {% endfor %}
+
+        </table>
+    </div>
+
+<div class="d-flex justify-content-center" style="clear:both">
+    <button class="otree-btn-next btn btn-primary next-button otree-next-button">Next</button>
+</div>
+
+<script>
+    // For better UX: Select radio button when clicking into a table cell
+    $('td').click(function() {
+        $(this).find('input:radio').prop('checked', true);
+    })
+</script>
+
+
+{% endblock %}

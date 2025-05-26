@@ -1,21 +1,5 @@
-{% extends 'global/Page.html' %}
+{% extends 'global/Explanation.html' %}
 
-{% block title %}
-    <div class="d-flex justify-content-center" style="margin-top: -50px">
-        <h2 id="heading" style="margin-bottom:20px">MATH TASK</h2>
-    </div>
+{% block speak_instruction %}
+    <p>Please avoid unnecessary movements, and please do not speak more than necessary (i.e. please stay silent).</p>
 {% endblock %}
-
-{% block content %}
-    <div class="jumbotron">
-        <p>In the following round, please solve the equations as quickly as you can.</p>
-        <p>Please avoid unnecessary movements, and please do not speak (i.e. please stay silent).</p>
-        <p>Click on "Next" to proceed.</p>
-    </div>
-
-    <div class="d-flex justify-content-center">
-        <button class="otree-btn-next btn btn-primary next-button otree-next-button">Next</button>
-    </div>
-
-{% endblock %}
-

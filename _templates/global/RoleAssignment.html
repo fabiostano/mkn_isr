@@ -1,0 +1,35 @@
+{% extends "global/Page.html" %}
+
+{% block title %}
+    Role Assignment
+{% endblock %}
+
+{% block content %}
+
+<style>
+     .content-box {
+        border: 1px solid #ccc;
+        padding: 10px;
+        background-color: #f9f9f9;
+    }
+</style>
+
+<div class="content-box">
+    <p>Welcome, <strong>{{ role }}</strong>! Here’s what you need to know:</p>
+
+{% if role == 'Chief Sustainability Officer' %}
+    <p>As the Chief Sustainability Officer (CSO), your primary focus is on projects with a <strong>low environmental impact</strong>.</p>
+{% elif role == 'Chief Marketing Officer' %}
+    <p>As the Chief Marketing Officer (CMO), your main interest is in projects with <strong>high market demand.</strong></p>
+{% elif role == 'Chief Human Resources Officer' %}
+    <p>As the Chief Human Resources Officer (CHRO), you prioritize projects with <strong>lower salary costs</strong>.</p>
+{% elif role == 'Chief Financial Officer' %}
+<p>As the Chief Financial Officer (CFO), you are focused on projects with <strong>high profitability</strong>.</p>
+{% endif %}
+</div>
+
+
+<br/><br/>
+
+{{ next_button }}
+{% endblock %}

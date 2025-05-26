@@ -1,0 +1,105 @@
+{% extends 'global/TaskQuestionnaire.html' %}
+
+{% block title %}
+    <div class="d-flex justify-content-center" style="margin-top: -50px">
+        <h2 style="margin-bottom:20px">Questionnaire</h2>
+    </div>
+    <div class="jumbotron" style="padding-top: 2%; padding-bottom: 2%; font-size: 21px; font-weight: 200">
+        Please answer the following questions.
+        There are no right or wrong answers in this experiment.
+        We are only interested in <b>your personal opinion.</b>
+    </div>
+{% endblock %}
+
+{% block content %}
+
+    <style>
+        #fss tr:nth-child(even) {background-color: #f9f9f9;}
+        #dcd tr:nth-child(even) {background-color: #f9f9f9;}
+        #aut tr:nth-child(even) {background-color: #f9f9f9;}
+        th {
+            text-align:center;
+            width: 5%;
+        }
+        input[type="radio"]{margin-left:-5.5px}
+
+        input[type="range"] {
+            -webkit-appearance: slider-horizontal;
+            max-width: 85%;
+            display: inline;
+            margin-left: 2%;
+            margin-right: 2%;
+        }
+    </style>
+
+    <div id="fss" class="jumbotron" style="padding-top: 5%">
+        <p>How much do you agree with the following statements?</p>
+        <table class="table mytable" frame="void" style="width:100%; ">
+            <tr>
+                <th></th>
+                <th style="text-align:center"> Not At All </th>
+                <th>  </th>
+                <th>  </th>
+                <th style="text-align:center"> Partly </th>
+                <th>  </th>
+                <th>  </th>
+                <th style="text-align:center"> Very Much </th>
+            </tr>
+
+            {% for field in form %}
+            {% if  forloop.counter < 11 %}
+                <tr>
+                    <td align="left" style="width:40%">{{ field.label }}</td>
+
+                    {% for choice in field %}
+                        <td align="center" >{{ choice }}</td>
+                    {% endfor %}
+                </tr>
+            {% endif %}
+            {% endfor %}
+        </table>
+    </div>
+
+    <div id="tlx" class="jumbotron" style="padding-top: 5%">
+        <!--
+        <p>Please indicate on each scale at the point that best indicates your experience of the last few minutes.</p>
+        -->
+        <div>
+            <span>How much mental activity was required (e.g. thinking, deciding, calculating, remembering, looking, searching, etc.?)</span>
+            <div style="margin: 15px 0 30px 0; text-align: center;">
+                <span>Very little</span>
+                    <input name="tlx_single" class="input-range" type="range" step="1" value="11" min="0" max="21" style="display: inline; max-width: 70%;">
+                <span>Very much</span>
+            </div>
+        </div>
+    </div>
+
+    <div id="diff" class="jumbotron" style="padding-top: 5%">
+        <!--
+        <p>Please indicate on each scale at the point that best indicates your experience of the last few minutes.</p>
+        -->
+        <div>
+            <span>How difficult was this task for you?</span>
+            <div style="margin: 15px 0 30px 0; text-align: center;">
+                <span>Very easy</span>
+                    <input name="difficulty" class="input-range" type="range" step="1" value="4" min="1" max="7" style="display: inline; max-width: 70%;">
+                <span>Very hard</span>
+            </div>
+        </div>
+    </div>
+
+    <div id="next-page" class="d-flex justify-content-center" style="display:none">
+        {% next_button %}
+    </div>
+
+    <script>
+        // Reset the selections
+        $('input[class=form-check-input]').attr('checked',false);
+
+        // For better UX: Select radio button when clicking into a table cell
+        $('td').click(function() {
+            $(this).find('input:radio').prop('checked', true);
+        })
+    </script>
+
+{% endblock %}

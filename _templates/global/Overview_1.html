@@ -1,0 +1,31 @@
+{% extends "global/Page.html" %}
+
+{% block title %}
+    Study Overview
+{% endblock %}
+
+{% block content %}
+
+<style>
+     .content-box {
+        border: 1px solid #ccc;
+        padding: 10px;
+        background-color: #f9f9f9;
+    }
+</style>
+
+
+<div class="content-box">
+    <p>Here is how the study works:</p>
+    <ul>
+        <li>You and your team-members will receive information about three projects. Only one of them is the best for your company!</li>
+        <li> To make an informed decision, you must collaborate and <strong>share</strong> the information you have with your team. Please note that the project information has been distributed between you and your team members.</li>
+        <li>Your objective is to communicate effectively to compile an overview of all project information, and <strong>choose the best project</strong>.
+        <li>You will have a <strong>{% block discussion_mode %}7-minute chat discussion{% endblock %}</strong> before the project selection phase. Use this time wisely to share, discuss and strategize with your team.</li>
+        At the end of the discussion you will have to vote for your preferred project. <strong>The project with the highest number of votes will be your team's choice.</strong></li>
+    </ul>
+</div>
+<br/><br/>
+
+{{ next_button }}
+{% endblock %}
