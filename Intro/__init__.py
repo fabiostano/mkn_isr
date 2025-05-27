@@ -44,6 +44,11 @@ class Player(BasePlayer):
         choices=["Apprentice", "Student", "Employee", "Self-Employed", "Unemployed", "Other"]
     )
 
+    field_of_study = models.StringField(
+        label='What is/was your field of study?',
+        choices=['Engineering','Computer Science','Economics','Social Sciences','Natural Sciences','Education','Other','Not Specified']
+    )
+
     dominant_hand = models.StringField(
         label='What is your dominant hand?',
         choices=["Left", "Right", "Both"]
@@ -79,7 +84,7 @@ class StudyExplanation(Page):
 
 class IntroQuestionnaire(Page):
     form_model = 'player'
-    form_fields = ['gender', 'age', 'english', 'occupation', 'mr2', 'mr3']
+    form_fields = ['gender', 'age', 'english', 'occupation', 'field_of_study', 'dominant_hand', 'mr2', 'mr3']
 
 class StateQuestionnaire(Page):
     form_model = 'player'

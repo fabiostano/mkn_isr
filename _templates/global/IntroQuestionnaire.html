@@ -2,7 +2,7 @@
 
 {% block title%}
     <div class="d-flex justify-content-center" style="margin-top: -50px">
-        <h2 style="margin-bottom:20px">DEMOGRAPHIC SURVEY</h2>
+        <h2 style="margin-bottom:20px">Demographic Survey</h2>
     </div>
 {% endblock %}
 
@@ -37,6 +37,7 @@
         <div style="clear:both">
             {% formfield player.english %}
             {% formfield player.occupation %}
+            {% formfield player.field_of_study %}
             {% formfield player.dominant_hand %}
         </div>
     </div>
