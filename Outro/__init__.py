@@ -381,4 +381,4 @@ class MusicType(Page):
 
 
 
-page_sequence = [TraitQuestionnaire, MusicType, ThankYou, Goodbye]
+page_sequence = [TraitQuestionnaire, ThankYou, Goodbye]

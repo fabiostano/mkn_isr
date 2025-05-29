@@ -46,7 +46,7 @@ class Player(BasePlayer):
 
     field_of_study = models.StringField(
         label='What is/was your field of study?',
-        choices=['Engineering','Computer Science','Economics','Social Sciences','Natural Sciences','Education','Other','Not Specified']
+        choices=['Natural Sciences (e.g. Mathematics, Computer Science)','Engineering and Technology (e.g. Civil Engineering, Mechanical Engineering)', 'Medial and Health Sciences (e.g. Medicine, Pharmacology)', 'Agricultural Science (e.g. Forestry, Veterinary Science)', 'Social Sciences (e.g. Economics, Educational Sciences)', 'Humanities (e.g. History, Languages)', 'Not Specified']
     )
 
     dominant_hand = models.StringField(
@@ -101,4 +101,4 @@ class MusicSelection(Page):
         random.shuffle(treat_order)
         player.participant.treat_order = treat_order
 
-page_sequence = [Welcome, IntroQuestionnaire, StateQuestionnaire, MusicSelection]
+page_sequence = [Welcome, IntroQuestionnaire, StateQuestionnaire]
