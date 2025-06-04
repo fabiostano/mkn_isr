@@ -106,13 +106,16 @@ class Player(BasePlayer):
                                 choices=[[1, '1'], [2, '2'], [3, '3'], [4, '4'], [5, '5']],
                                 widget=widgets.RadioSelectHorizontal)
 
-    # ----- Familiarity ----- #
+    # ----- Recognition ----- #
 
-    familiarity = models.IntegerField(label='Before the study, how familiar were you with the people in your group?',
-                                     choices=[[1, '1'], [2, '2'], [3, '3'], [4, '4'], [5, '5']],
+    rec1 = models.IntegerField(label='Before the study, how well did you know the people in your group?',
+                                     choices=[[1, '1'], [2, '2'], [3, '3'], [4, '4'], [5, '5'], [6, '6'], [7, '7']],
+                                     widget=widgets.RadioSelectHorizontal)
+    rec2 = models.IntegerField(label='Before the study, how much have you worked together with the people in your group?',
+                                     choices=[[1, '1'], [2, '2'], [3, '3'], [4, '4'], [5, '5'], [6, '6'], [7, '7']],
                                      widget=widgets.RadioSelectHorizontal)
 
-    familiar_members = models.IntegerField(label='How many of your group members did you know before the study?',
+    known_members = models.IntegerField(label='How many of your group members did you know before the study?',
                                            choices=[[0, '0'], [1, '1'], [2, '2']])
 
     # ----- SDFS-2 ----- #
@@ -316,8 +319,8 @@ class TraitQuestionnaire(Page):
         proneness_leisure_fields = ['fpl1', 'fpl2', 'fpl3', 'fpl4', 'fpl5', 'fpl6', 'fpl7']
         all_fields += proneness_leisure_fields
 
-        familiarity_fields = ['familiarity', 'familiar_members']
-        all_fields += familiarity_fields
+        recognition_fields = ['rec1', 'rec2', 'known_members']
+        all_fields += recognition_fields
 
         flow_fields = ['sdfs1', 'sdfs2', 'sdfs3', 'sdfs4', 'sdfs5', 'sdfs6', 'sdfs7', 'sdfs8', 'sdfs9']
         random.shuffle(flow_fields)

@@ -64,37 +64,29 @@
 <table>
     <thead>
         <tr>
-            <th>Project Name</th>
-            {% if role == 'Chief Sustainability Officer' %}
-                <th>Environmental Impact (tonnes of CO2/year)</th>
-            {% endif %}
-            {% if role == 'Chief Marketing Officer' %}
-                <th>Market Demand (expected users in Germany)</th>
-            {% endif %}
+           <th>Project Name</th>
             {% if role == 'Chief Human Resources Officer' %}
                 <th>Salary Cost (€ per year)</th>
+            {% elif role == 'Chief Marketing Officer' %}
+                <th>Market Demand (expected users in Germany)</th>
+            {% elif role == 'Chief Financial Officer' %}
+                 <th>Profit (million €/year)</th>
             {% endif %}
-            {% if role == 'Chief Financial Officer' %}
-                <th>Profit (million €/year)</th>
-            {% endif %}
+            <th>Environmental Impact (tonnes of CO2/year)</th>
         </tr>
     </thead>
     <tbody>
         {% for project in project_info %}
         <tr>
             <td>{{ project.name }}</td>
-            {% if role == 'Chief Sustainability Officer' %}
-                <td>{{ project.env_impact }}</td>
-            {% endif %}
-            {% if role == 'Chief Marketing Officer' %}
-                <td>{{ project.market_demand }}</td>
-            {% endif %}
             {% if role == 'Chief Human Resources Officer' %}
                 <td>{{ project.salary_cost }}</td>
-            {% endif %}
-            {% if role == 'Chief Financial Officer' %}
+            {% elif role == 'Chief Marketing Officer' %}
+                 <td>{{ project.market_demand }}</td>
+            {% elif role == 'Chief Financial Officer' %}
                 <td>{{ project.profit }}</td>
             {% endif %}
+            <td>{{ project.env_impact }}</td>
         </tr>
         {% endfor %}
     </tbody>

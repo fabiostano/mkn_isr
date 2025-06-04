@@ -70,6 +70,10 @@ class Player(BasePlayer):
     fi2 = make_7p_likert_field('I was thrilled.')
     fi3 = make_7p_likert_field('The task demands were well matched to my ability.')
 
+    sfss1 = make_7p_likert_field('I felt I was competent enough to meet the demands of the situation.')
+    sfss2 = make_7p_likert_field('I had a strong sense of what I wanted to do.')
+    sfss3 = make_7p_likert_field('I had a good idea about how well I was doing while I was involved in the task/activity.')
+
     # ----- Challenge Skill Balance ----- #
     csb1 = make_7p_likert_field('Compared to all other activities which I partake in, the difficulty of this one is ...')
     csb2 = make_7p_likert_field('I think that my competence in this area is ...')
@@ -231,6 +235,9 @@ class Player(BasePlayer):
     psp4 = make_7p_likert_field('There was a sense of human warmth during the group work.')
     psp5 = make_7p_likert_field('There was a sense of human sensitivity during the group work.')
 
+    # ----- Familiarity ----- #
+    fam1 = make_7p_likert_field('After this task, how well do you know the people in your group?')
+    fam2 = make_7p_likert_field('During the task, how closely did you work together with your group members?')
 
 class Explanation(Page):
     form_model = 'player'
@@ -276,6 +283,9 @@ class TaskSurvey(Page):
         fi_fields = ['fi1', 'fi2', 'fi3']
         random.shuffle(fi_fields)
         all_fields += fi_fields
+        sfss_fields = ['sfss1', 'sfss2', 'sfss3']
+        random.shuffle(sfss_fields)
+        all_fields += sfss_fields
         csb_fields = ['csb1', 'csb2', 'csb3']
         random.shuffle(csb_fields)
         all_fields += csb_fields
@@ -372,6 +382,9 @@ class TaskPhaseSurvey(Page):
         psp_fields = ['psp1', 'psp2', 'psp3', 'psp4', 'psp5']
         random.shuffle(psp_fields)
         all_fields += psp_fields
+        fam_fields = ['fam1', 'fam2']
+        random.shuffle(fam_fields)
+        all_fields += fam_fields
         fusion_fields = ['fusion']
         all_fields += fusion_fields
         return all_fields

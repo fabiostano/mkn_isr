@@ -508,6 +508,34 @@
         </table>
     </div>
 
+    <div id="fam" class="jumbotron" style="padding-top: 5%">
+        <p>Please indicate how familiar you are with your group members.</p>
+        <table class="table mytable" frame="void" style="width:100%; ">
+            <tr>
+                <th></th>
+                <th style="text-align:center"> Very little </th>
+                <th>  </th>
+                <th>  </th>
+                <th>  </th>
+                <th>  </th>
+                <th>  </th>
+                <th style="text-align:center"> Very much </th>
+            </tr>
+
+             {% for field in form %}
+            {% if field.id.startswith("id_fam") %}
+                <tr>
+                    <td align="left" style="width:33%">{{ field.label }}</td>
+
+                    {% for choice in field %}
+                        <td align="center" >{{ choice }}</td>
+                    {% endfor %}
+                </tr>
+            {% endif %}
+        {% endfor %}
+        </table>
+    </div>
+
     <div class="survey-container">
         <div class="row">
             <h3><b>Please choose the diagram that best describes the relationship between you and the other participants.</b></h3>
@@ -544,6 +572,10 @@
         </div>
 
         <hr/>
+
+    <div class="d-flex justify-content-center" style="clear:both">
+    <button class="otree-btn-next btn btn-primary next-button otree-next-button">Next</button>
+    </div>
 
     <script>
         // Reset the selections

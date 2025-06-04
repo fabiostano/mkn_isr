@@ -56,7 +56,7 @@ class Player(BasePlayer):
 
     ### --- STATE Q --- ###
     # ----- Mental Readiness ----- #
-    mr2 = models.IntegerField(label="How sleepy are you feeling right now?.",
+    mr2 = models.IntegerField(label="How sleepy are you feeling right now?",
                               choices=[[1, '1'], [2, '2'], [3, '3'], [4, '4'], [5, '5']], widget=widgets.RadioSelectHorizontal)
     mr3 = models.IntegerField(label="How motivated are you feeling right now?",
                               choices=[[1, '1'], [2, '2'], [3, '3'], [4, '4'], [5, '5']], widget=widgets.RadioSelectHorizontal)

@@ -111,18 +111,20 @@
 
     <div class="survey-container">
         <div class="row">
-            <p>Please indicate your familiarity with your group.</p>
+            <p>Please indicate if you recognize your group members from before the study.</p>
         <table class="table mytable" frame="void" style="width:100%; ">
             <tr>
                 <th>                                          </th>
                 <th style="text-align:center"> Very Little </th>
                 <th>  </th>
-                <th style="text-align:center"> Neutral </th>
+                <th>  </th>
+                <th>  </th>
+                <th>  </th>
                 <th>  </th>
                 <th style="text-align:center"> Very Much </th>
             </tr>
         {% for field in form %}
-            {% if field.id.startswith("id_familiarity") %}
+            {% if field.id.startswith("id_rec") %}
                 <tr>
                     <td align="left" style="width:33%">{{ field.label }}</td>
 
@@ -134,8 +136,12 @@
         {% endfor %}
         </table>
             <div style="clear:both">
-            {% formfield player.familiar_members %}
+            {% formfield player.known_members %}
         </div>
+    </div>
+
+    <div class="d-flex justify-content-center" style="clear:both">
+    <button class="otree-btn-next btn btn-primary next-button otree-next-button">Next</button>
     </div>
 
     {{ endblock }}

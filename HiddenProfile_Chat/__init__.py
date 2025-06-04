@@ -2,7 +2,7 @@ from otree.api import *
 
 class C(BaseConstants):
     NAME_IN_URL = 'HiddenProfile_Chat'
-    PLAYERS_PER_GROUP = 3  # CSO, CHRO, CMO, CFO
+    PLAYERS_PER_GROUP = 3  # CHRO, CMO, CFO
     NUM_ROUNDS = 1
     BASE_PAYOUT = 200
     TEAM_BONUS = 30
@@ -21,8 +21,7 @@ class C(BaseConstants):
          'criteria': 'market'}
     ]
 
-    ROLES = ['Chief Sustainability Officer', 'Chief Human Resources Officer', 'Chief Marketing Officer',
-             'Chief Financial Officer']
+    ROLES = ['Chief Human Resources Officer', 'Chief Marketing Officer','Chief Financial Officer']
     TIMEOUT_SECONDS = 7 * 60  # 7 minutes in seconds
 
 class Subsession(BaseSubsession):
@@ -73,6 +72,10 @@ class Player(BasePlayer):
     fi1 = make_7p_likert_field('I would love to do this task again.')
     fi2 = make_7p_likert_field('I was thrilled.')
     fi3 = make_7p_likert_field('The task demands were well matched to my ability.')
+
+    sfss1 = make_7p_likert_field('I felt I was competent enough to meet the demands of the situation.')
+    sfss2 = make_7p_likert_field('I had a strong sense of what I wanted to do.')
+    sfss3 = make_7p_likert_field('I had a good idea about how well I was doing while I was involved in the task/activity.')
 
     # ----- Challenge Skill Balance ----- #
     csb1 = make_7p_likert_field('Compared to all other activities which I partake in, the difficulty of this one is ...')
@@ -234,6 +237,10 @@ class Player(BasePlayer):
     psp4 = make_7p_likert_field('There was a sense of human warmth during the group work.')
     psp5 = make_7p_likert_field('There was a sense of human sensitivity during the group work.')
 
+    # ----- Familiarity ----- #
+    fam1 = make_7p_likert_field('After this task, how well do you know the people in your group?')
+    fam2 = make_7p_likert_field('During the task, how closely did you work together with your group members?')
+
 def creating_session(subsession: Subsession):
     import random
     roles = C.ROLES[:]
@@ -242,18 +249,15 @@ def creating_session(subsession: Subsession):
     for p in subsession.get_players():
         p.player_role = roles.pop()
 
-        if p.player_role == 'Chief Sustainability Officer':
-            p.personal_interest = 'Env Impact'
-            p.shared_info = 'Market Demand'
-        elif p.player_role == 'Chief Human Resources Officer':
-            p.personal_interest = 'Salary Cost'
-            p.shared_info = 'None'
+        if p.player_role == 'Chief Human Resources Officer':
+            p.personal_interest = 'salary_cost'
+            p.shared_info = 'env_impact'
         elif p.player_role == 'Chief Marketing Officer':
-            p.personal_interest = 'Market Demand'
-            p.shared_info = 'Env Impact'
+            p.personal_interest = 'market_demand'
+            p.shared_info = 'env_impact'
         elif p.player_role == 'Chief Financial Officer':
-            p.personal_interest = 'Profit'
-            p.shared_info = 'None'
+            p.personal_interest = 'profit'
+            p.shared_info = 'env_impact'
 
 class RoleAssignment(Page):
     def vars_for_template(player: Player):
@@ -261,27 +265,23 @@ class RoleAssignment(Page):
         project_info = []  # TODO make this general and use it in project information page!!!
 
         for project in C.PROJECTS:
-            if player.player_role == 'Chief Sustainability Officer':
+            if player.player_role == 'Chief Human Resources Officer':
                 project_info.append({
                     'name': project['name'],
-                    'market_demand': project['market_demand'],
-                    'env_impact': project['env_impact']
-                })
-            elif player.player_role == 'Chief Human Resources Officer':
-                project_info.append({
-                    'name': project['name'],
-                    'salary_cost': project['salary_cost']
+                    'salary_cost': project['salary_cost'],
+                    'env_impact': project['env_impact'],
                 })
             elif player.player_role == 'Chief Marketing Officer':
                 project_info.append({
                     'name': project['name'],
                     'market_demand': project['market_demand'],
-                    'env_impact': project['env_impact']
+                    'env_impact': project['env_impact'],
                 })
             elif player.player_role == 'Chief Financial Officer':
                 project_info.append({
                     'name': project['name'],
-                    'profit': project['profit']
+                    'profit': project['profit'],
+                    'env_impact': project['env_impact'],
                 })
 
         return {
@@ -501,6 +501,9 @@ class TaskSurvey(Page):
         fi_fields = ['fi1', 'fi2', 'fi3']
         random.shuffle(fi_fields)
         all_fields += fi_fields
+        sfss_fields = ['sfss1', 'sfss2', 'sfss3']
+        random.shuffle(sfss_fields)
+        all_fields += sfss_fields
         csb_fields = ['csb1', 'csb2', 'csb3']
         random.shuffle(csb_fields)
         all_fields += csb_fields
@@ -596,6 +599,9 @@ class TaskPhaseSurvey(Page):
         psp_fields = ['psp1', 'psp2', 'psp3', 'psp4', 'psp5']
         random.shuffle(psp_fields)
         all_fields += psp_fields
+        fam_fields = ['fam1', 'fam2']
+        random.shuffle(fam_fields)
+        all_fields += fam_fields
         fusion_fields = ['fusion']
         all_fields += fusion_fields
         return all_fields
