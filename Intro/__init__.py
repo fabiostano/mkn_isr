@@ -18,7 +18,6 @@ class Group(BaseGroup):
 class Player(BasePlayer):
     selected_playlist = models.StringField()
 
-
     # ----- DEMOGRAPHICS ----- #
     english = models.StringField(
         label='Please indicate the level of your English language proficiency.',
@@ -79,9 +78,6 @@ class Player(BasePlayer):
 class Welcome(Page):
     form_model = 'player'
 
-class StudyExplanation(Page):
-    form_model = 'player'
-
 class IntroQuestionnaire(Page):
     form_model = 'player'
     form_fields = ['gender', 'age', 'english', 'occupation', 'field_of_study', 'dominant_hand', 'mr2', 'mr3']
@@ -90,15 +86,22 @@ class StateQuestionnaire(Page):
     form_model = 'player'
     form_fields = ['pleasure', 'arousal', 'mf1', 'mf2', 'mf3', 'mf4']
 
-class MusicSelection(Page):
-    form_model = 'player'
-    form_fields = ['selected_playlist']
+    @staticmethod
+    def app_after_this_page(player, upcoming_apps):
+        sequence = player.participant.vars.get('selected_sequence', [])
+        return sequence[0] if sequence else upcoming_apps[0]
 
-    def before_next_page(player, timeout_happened):
-        player.participant.playlist = player.selected_playlist
+def creating_session(subsession: Subsession):
+    sequences = [
+        ['HiddenProfile_Chat', 'mathChat', 'Outro'],
+        ['mathChat', 'HiddenProfile_Chat', 'Outro'],
+        ['HiddenProfile_Jitsi', 'mathJitsi', 'Outro'],
+        ['mathJitsi', 'HiddenProfile_Jitsi', 'Outro'],
+    ]
 
-        treat_order = ['music', 'control']
-        random.shuffle(treat_order)
-        player.participant.treat_order = treat_order
+    for group in subsession.get_groups():
+        selected_sequence = random.choice(sequences)
+        for p in group.get_players():
+            p.participant.vars['selected_sequence'] = selected_sequence
 
 page_sequence = [Welcome, IntroQuestionnaire, StateQuestionnaire]
