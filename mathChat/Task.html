@@ -302,41 +302,35 @@
 
     // Focus the chat on load
     window.addEventListener("DOMContentLoaded", () => {
-      chatInput.focus();
+        chatInput.focus();
     });
 
     // Handle tabbing behavior for controlled inputs
     [ownFinalSolutionInput, chatInput].forEach(input => {
-      input.addEventListener("keydown", function(e) {
-        if (e.key === "Tab") {
-          e.preventDefault(); // Prevent default tab behavior
-          if (e.shiftKey) {
-            // Shift + Tab: go backward
-            if (document.activeElement === ownFinalSolutionInput) {
-              chatInput.focus();
-            } else {
-              ownFinalSolutionInput.focus();
+        input.addEventListener("keydown", function(e) {
+            if (e.key === "Tab") {
+                e.preventDefault(); // Prevent default tab behavior
+                if (e.shiftKey) {
+                    // Shift + Tab: go backward
+                    if (document.activeElement === ownFinalSolutionInput) {
+                        chatInput.focus();
+                    } else {
+                        ownFinalSolutionInput.focus();
+                    }
+                } else {
+                    // Tab: go forward
+                    if (document.activeElement === ownFinalSolutionInput) {
+                        chatInput.focus();
+                    } else {
+                        ownFinalSolutionInput.focus();
+                    }
+                }
             }
-          } else {
-            // Tab: go forward
-            if (document.activeElement === ownFinalSolutionInput) {
-              chatInput.focus();
-            } else {
-              ownFinalSolutionInput.focus();
-            }
-          }
-        }
-      });
+        });
     });
 </script>
 
 <script>
-    function enterFinalAnswer(event) {
-        if (event.key === "Enter") {
-
-        }
-    }
-
     function sendMessage(event) {
         if (event.key === "Enter") {
             let message = document.getElementById("chat-input").value;
@@ -627,7 +621,7 @@
             resetForNewEquations("timeUp");
         }
 
-       else if (data.info_type === "chat_message") {
+        else if (data.info_type === "chat_message") {
             let chatBox = document.getElementById("chat-box");
             let senderColor = data.color || "#ccc"; // Default to light gray if no color provided
 
@@ -653,45 +647,46 @@
             chatBox.appendChild(messageWrapper);
             chatBox.scrollTop = chatBox.scrollHeight; // Auto-scroll to latest message
         }
-       /* =========================================================
-   SPIELER HAT ABGEGEBEN
-   ========================================================= */
-else if (data.info_type === "player_submitted") {
-    // fremde Final-Antwort eintragen
-    if (data.player !== "{{color}}") {
-        if (data.player === "lightcoral") {
-            document.querySelector(".lightcoral-b").value = data.answer;
-        } else if (data.player === "lightblue") {
-            document.querySelector(".lightblue-b").value = data.answer;
-        } else if (data.player === "lightgreen") {
-            document.querySelector(".lightgreen-b").value = data.answer;
+
+        /* =========================================================
+        SPIELER HAT ABGEGEBEN
+        ========================================================= */
+        else if (data.info_type === "player_submitted") {
+            // fremde Final-Antwort eintragen
+            if (data.player !== "{{color}}") {
+                if (data.player === "lightcoral") {
+                    document.querySelector(".lightcoral-b").value = data.answer;
+                } else if (data.player === "lightblue") {
+                    document.querySelector(".lightblue-b").value = data.answer;
+                } else if (data.player === "lightgreen") {
+                    document.querySelector(".lightgreen-b").value = data.answer;
+                }
+            }
         }
-    }
-}
 
-/* =========================================================
-   ALLE 3 HABEN ABGEGEBEN  ->  Trial sofort beenden
-   ========================================================= */
-else if (data.info_type === "all_submitted") {
-    // sicherstellen, dass alle Endergebnisse sichtbar sind
-    Object.entries(data.submissions).forEach(([col, val]) => {
-        if (col === "lightcoral")      document.querySelector(".lightcoral-b").value = val;
-        else if (col === "lightblue")  document.querySelector(".lightblue-b").value  = val;
-        else if (col === "lightgreen") document.querySelector(".lightgreen-b").value = val;
-    });
+        /* =========================================================
+           ALLE 3 HABEN ABGEGEBEN  ->  Trial sofort beenden
+           ========================================================= */
+        else if (data.info_type === "all_submitted") {
+            // sicherstellen, dass alle Endergebnisse sichtbar sind
+            Object.entries(data.submissions).forEach(([col, val]) => {
+                if (col === "lightcoral")      document.querySelector(".lightcoral-b").value = val;
+                else if (col === "lightblue")  document.querySelector(".lightblue-b").value  = val;
+                else if (col === "lightgreen") document.querySelector(".lightgreen-b").value = val;
+            });
 
-    // Trial als „submit“ loggen & Felder leeren
-    resetForNewEquations("submit");
+            // Trial als „submit“ loggen & Felder leeren
+            resetForNewEquations("submit");
 
-    // Nur der rote Spieler startet die nächste Runde + Timer-Reset
-    if ("{{color}}" === "lightcoral") {
-        clearExistingTimers();
-        breakTimeout = setTimeout(() => {
-            updateEquations();
-            startEquationCycle();
-        }, breakDuration);
-    }
-}
+            // Nur der rote Spieler startet die nächste Runde + Timer-Reset
+            if ("{{color}}" === "lightcoral") {
+                clearExistingTimers();
+                breakTimeout = setTimeout(() => {
+                    updateEquations();
+                    startEquationCycle();
+                }, breakDuration);
+            }
+        }
     }
 
     // Function to convert HEX or named colors to RGBA
