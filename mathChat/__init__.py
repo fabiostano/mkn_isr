@@ -384,15 +384,6 @@ class TaskPhaseSurvey(Page):
     def is_displayed(player: Player):
         return player.round_number == C.NUM_ROUNDS
 
-    @staticmethod
-    def app_after_this_page(player, upcoming_apps):
-        seq = player.participant.vars['selected_sequence']
-        current_app = __name__.split('.')[-1]
-        idx = seq.index(current_app)
-        if idx + 1 < len(seq):
-            return seq[idx + 1]
-        return None
-
 class Task(Page):
     form_model = 'player'
     form_fields = ['action_log', 'task_load_time', 'level_history', 'chat_log']

@@ -86,22 +86,4 @@ class StateQuestionnaire(Page):
     form_model = 'player'
     form_fields = ['pleasure', 'arousal', 'mf1', 'mf2', 'mf3', 'mf4']
 
-    @staticmethod
-    def app_after_this_page(player, upcoming_apps):
-        sequence = player.participant.vars.get('selected_sequence', [])
-        return sequence[0] if sequence else upcoming_apps[0]
-
-def creating_session(subsession: Subsession):
-    sequences = [
-        ['HiddenProfile_Chat', 'mathChat', 'Outro'],
-        ['mathChat', 'HiddenProfile_Chat', 'Outro'],
-        ['HiddenProfile_Jitsi', 'mathJitsi', 'Outro'],
-        ['mathJitsi', 'HiddenProfile_Jitsi', 'Outro'],
-    ]
-
-    for group in subsession.get_groups():
-        selected_sequence = random.choice(sequences)
-        for p in group.get_players():
-            p.participant.vars['selected_sequence'] = selected_sequence
-
 page_sequence = [Welcome, IntroQuestionnaire, StateQuestionnaire]
