@@ -7,6 +7,7 @@ SESSION_CONFIGS = [
                    dict(name='Chat1', num_demo_participants=3, app_sequence=['Intro','mathChat', 'HiddenProfile_Chat', 'Outro']),
                    dict(name='Jitsi2', num_demo_participants=3, app_sequence=['Intro', 'HiddenProfile_Jitsi', 'mathJitsi', 'Outro']),
                    dict(name='Chat2', num_demo_participants=3, app_sequence=['Intro', 'HiddenProfile_Chat', 'mathChat', 'Outro']),
+                   dict(name='MathTest', num_demo_participants=3, app_sequence=['mathChat']),
                    ]
 
 LANGUAGE_CODE = 'en'

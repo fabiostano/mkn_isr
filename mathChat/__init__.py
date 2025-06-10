@@ -485,6 +485,29 @@ class Task(Page):
         elif data["info_type"] == "chat_message":
             return {p.id_in_group: data for p in group.get_players()}
 
+        elif info_type == "final_answer_submitted":
+            player_color = data.get("player")
+            answer = data.get("answer")
+
+            # Sammelbecken für abgegebene Antworten
+            submissions = group.session.vars.setdefault("final_submissions", {})
+            submissions[player_color] = answer
+
+            # Noch nicht alle fertig → nur diese Abgabe broadcasten
+            if len(submissions) < len(group.get_players()):
+                return {p.id_in_group: {
+                    "info_type": "player_submitted",
+                    "player": player_color,
+                    "answer": answer
+                } for p in group.get_players()}
+
+            # Alle drei haben abgegeben → Broadcast & Speicher leeren
+            group.session.vars["final_submissions"] = {}
+            return {p.id_in_group: {
+                "info_type": "all_submitted",
+                "submissions": submissions
+            } for p in group.get_players()}
+
         return {}
 
 page_sequence = [BeforeTask, Task, TaskSurvey, TaskPhaseSurvey]

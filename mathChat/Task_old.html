@@ -245,15 +245,6 @@
 {% block scripts %}
 
 <script>
-    // Globale Handles, damit wir Timer sauber abbrechen können
-    let trialTimeout = null;
-    let breakTimeout = null;
-
-    function clearExistingTimers() {
-        if (trialTimeout) { clearTimeout(trialTimeout); trialTimeout = null; }
-        if (breakTimeout) { clearTimeout(breakTimeout); breakTimeout = null; }
-    }
-
     // Block refresh
     document.addEventListener('keydown', function(event) {
         if (event.key === 'F5' || (event.ctrlKey && event.key === 'r') ||
@@ -271,34 +262,6 @@
     // Toggle only between own final answer and chat
     const ownFinalSolutionInput = document.getElementById("fin_sol_own");
     const chatInput = document.getElementById("chat-input");
-
-    // ENTER im eigenen Final-Feld => Antwort abgeben
-    const finInput = document.getElementById("fin_sol_own");
-    finInput.addEventListener("keydown", e => {
-        if (e.key === "Enter") submitFinalAnswer();
-    });
-
-    function submitFinalAnswer() {
-        const answer = finInput.value.trim();
-        if (answer === "") return;      // leere Eingaben ignorieren
-
-        liveSend({
-            info_type: "final_answer_submitted",
-            player: "{{color}}",
-            answer: answer
-        });
-        lockOwnInputs();
-    }
-
-    // nach Abgabe keine Änderungen mehr zulassen
-    function lockOwnInputs() {
-        document.querySelectorAll(".answer-box.editable").forEach(el => {
-            el.readOnly = true;
-            el.classList.remove("editable");
-            el.classList.add("readonly");
-        });
-    }
-
 
     // Focus the chat on load
     window.addEventListener("DOMContentLoaded", () => {
@@ -499,12 +462,14 @@
     }
 
     function startEquationCycle() {
-        trialTimeout = setTimeout(() => {                       // 28 s Arbeitsphase
-            liveSend({info_type: "timeUp"});
+        // Allow participants to work for 28 seconds
+        setTimeout(() => {
+            liveSend({"info_type": "timeUp"}); // Broadcast to all players
 
-            breakTimeout = setTimeout(() => {                   // 4 s Pause
+            // Wait 4 seconds (break), then restart the cycle
+            setTimeout(() => {
                 updateEquations();
-                startEquationCycle();
+                startEquationCycle(); // Step 3: Start new round after the break
             }, breakDuration);
 
         }, trialDuration);
@@ -653,45 +618,6 @@
             chatBox.appendChild(messageWrapper);
             chatBox.scrollTop = chatBox.scrollHeight; // Auto-scroll to latest message
         }
-       /* =========================================================
-   SPIELER HAT ABGEGEBEN
-   ========================================================= */
-else if (data.info_type === "player_submitted") {
-    // fremde Final-Antwort eintragen
-    if (data.player !== "{{color}}") {
-        if (data.player === "lightcoral") {
-            document.querySelector(".lightcoral-b").value = data.answer;
-        } else if (data.player === "lightblue") {
-            document.querySelector(".lightblue-b").value = data.answer;
-        } else if (data.player === "lightgreen") {
-            document.querySelector(".lightgreen-b").value = data.answer;
-        }
-    }
-}
-
-/* =========================================================
-   ALLE 3 HABEN ABGEGEBEN  ->  Trial sofort beenden
-   ========================================================= */
-else if (data.info_type === "all_submitted") {
-    // sicherstellen, dass alle Endergebnisse sichtbar sind
-    Object.entries(data.submissions).forEach(([col, val]) => {
-        if (col === "lightcoral")      document.querySelector(".lightcoral-b").value = val;
-        else if (col === "lightblue")  document.querySelector(".lightblue-b").value  = val;
-        else if (col === "lightgreen") document.querySelector(".lightgreen-b").value = val;
-    });
-
-    // Trial als „submit“ loggen & Felder leeren
-    resetForNewEquations("submit");
-
-    // Nur der rote Spieler startet die nächste Runde + Timer-Reset
-    if ("{{color}}" === "lightcoral") {
-        clearExistingTimers();
-        breakTimeout = setTimeout(() => {
-            updateEquations();
-            startEquationCycle();
-        }, breakDuration);
-    }
-}
     }
 
     // Function to convert HEX or named colors to RGBA
