@@ -8,7 +8,7 @@ class C(BaseConstants):
     TEAM_BONUS = 30
     DEPT_BONUS = 50
     MAX_INFO_SHARING_BONUS = 70
-    TASK_TIME_LIMIT = 10  # 3 * 60  # Task Time
+    TASK_TIME_LIMIT = 10*60  # 3 * 60  # Task Time
 
     COLORMAP = ['lightcoral', 'lightgreen', 'lightblue']
 
