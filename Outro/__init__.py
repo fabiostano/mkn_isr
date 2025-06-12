@@ -30,10 +30,10 @@ class Player(BasePlayer):
     ta1 = models.IntegerField(label="How much do you like performing mental arithmetic?",
                                 choices=[[1, '1'], [2, '2'], [3, '3'], [4, '4'], [5, '5']],
                                 widget=widgets.RadioSelectHorizontal)
-    ta2 = models.IntegerField(label="How much do you like writing?",
+    ta2 = models.IntegerField(label="How much do you like decision making tasks?",
                                 choices=[[1, '1'], [2, '2'], [3, '3'], [4, '4'], [5, '5']],
                                 widget=widgets.RadioSelectHorizontal)
-    ta3 = models.IntegerField(label="To what extent do you prefer writing over mental arithmetic?",
+    ta3 = models.IntegerField(label="To what extent do you prefer decision making tasks over mental arithmetic?",
                                 choices=[[1, '1'], [2, '2'], [3, '3'], [4, '4'], [5, '5']],
                                 widget=widgets.RadioSelectHorizontal)
 

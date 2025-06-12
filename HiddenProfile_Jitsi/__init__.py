@@ -8,16 +8,16 @@ class C(BaseConstants):
     TEAM_BONUS = 30
     DEPT_BONUS = 50
     MAX_INFO_SHARING_BONUS = 70
-    TASK_TIME_LIMIT = 10*60  # 3 * 60  # Task Time
+    TASK_TIME_LIMIT = 7*60  # 3 * 60  # Task Time
 
     COLORMAP = ['lightcoral', 'lightgreen', 'lightblue']
 
     PROJECTS = [
-        {'name': 'Project A: E-Track', 'profit': 4, 'env_impact': 60, 'market_demand': 70000, 'salary_cost': 50000,
+        {'name': 'Project A: EcoTrack', 'profit': 4, 'env_impact': 60, 'market_demand': 70000, 'salary_cost': 50000,
          'criteria': 'environmental'},
-        {'name': 'Project B: T-Sphere', 'profit': 3, 'env_impact': 95, 'market_demand': 80000, 'salary_cost': 60000,
+        {'name': 'Project B: TalentSphere', 'profit': 3, 'env_impact': 95, 'market_demand': 80000, 'salary_cost': 60000,
          'criteria': 'salary'},
-        {'name': 'Project C: M-Pulse', 'profit': 2, 'env_impact': 40, 'market_demand': 60000, 'salary_cost': 55000,
+        {'name': 'Project C: MarketPulse', 'profit': 2, 'env_impact': 40, 'market_demand': 60000, 'salary_cost': 55000,
          'criteria': 'market'}
     ]
 
@@ -601,7 +601,7 @@ page_sequence = [Introduction,
                  RoleAssignment, ProjectInformation,
                  WaitForRoleAssignment,
                  Discussion,
-                 Decision, WaitForDecision, Results,
+                 Decision, WaitForDecision,
                  TaskSurvey, TaskPhaseSurvey]
 
 
