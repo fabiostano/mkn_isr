@@ -32,7 +32,7 @@
         }
     </style>
 
-    <div class="survey-container">
+  <div class="survey-container">
         <div class="row">
             <h3><b>Select the figure that best represents your level of pleasure.</b></h3>
         </div>
@@ -44,15 +44,19 @@
             <div class="col d-flex justify-content-center">
                 <img src="{% static 'maniA1.png' %}" alt="1">
             </div>
+             <div class="col text-center"> </div>
              <div class="col d-flex justify-content-center">
                 <img src="{% static 'maniA2.png' %}" alt="2">
             </div>
+             <div class="col text-center"> </div>
              <div class="col d-flex justify-content-center">
                 <img src="{% static 'maniA3.png' %}" alt="3">
             </div>
+             <div class="col text-center"> </div>
              <div class="col d-flex justify-content-center">
                 <img src="{% static 'maniA4.png' %}" alt="4">
             </div>
+             <div class="col text-center"> </div>
              <div class="col d-flex justify-content-center">
                 <img src="{% static 'maniA5.png' %}" alt="5">
             </div>
@@ -82,15 +86,19 @@
             <div class="col d-flex justify-content-center">
                 <img src="{% static 'maniB1.png' %}" alt="1">
             </div>
+             <div class="col text-center"> </div>
              <div class="col d-flex justify-content-center">
                 <img src="{% static 'maniB2.png' %}" alt="2">
             </div>
+             <div class="col text-center"> </div>
              <div class="col d-flex justify-content-center">
                 <img src="{% static 'maniB3.png' %}" alt="3">
             </div>
+             <div class="col text-center"> </div>
              <div class="col d-flex justify-content-center">
                 <img src="{% static 'maniB4.png' %}" alt="4">
             </div>
+             <div class="col text-center"> </div>
              <div class="col d-flex justify-content-center">
                 <img src="{% static 'maniB5.png' %}" alt="5">
             </div>
@@ -125,34 +133,6 @@
 
             {% for field in form %}
             {% if field.id.startswith("id_fss") %}
-                <tr>
-                    <td align="left" style="width:33%">{{ field.label }}</td>
-
-                    {% for choice in field %}
-                        <td align="center" >{{ choice }}</td>
-                    {% endfor %}
-                </tr>
-            {% endif %}
-        {% endfor %}
-        </table>
-    </div>
-
-    <div id="fi" class="jumbotron" style="padding-top: 5%">
-        <p>How much do you agree with the following statements?</p>
-        <table class="table mytable" frame="void" style="width:100%; ">
-            <tr>
-                <th></th>
-                <th style="text-align:center"> Not At All </th>
-                <th>  </th>
-                <th>  </th>
-                <th style="text-align:center"> Partly </th>
-                <th>  </th>
-                <th>  </th>
-                <th style="text-align:center"> Very Much </th>
-            </tr>
-
-           {% for field in form %}
-            {% if field.id.startswith("id_fi") %}
                 <tr>
                     <td align="left" style="width:33%">{{ field.label }}</td>
 
@@ -265,62 +245,6 @@
 
              {% for field in form %}
             {% if field.id.startswith("id_ptp") %}
-                <tr>
-                    <td align="left" style="width:33%">{{ field.label }}</td>
-
-                    {% for choice in field %}
-                        <td align="center" >{{ choice }}</td>
-                    {% endfor %}
-                </tr>
-            {% endif %}
-        {% endfor %}
-        </table>
-    </div>
-
-     <div id="sc" class="jumbotron" style="padding-top: 5%">
-        <p>Please indicate the extent to which the following applies to your experience.</p>
-        <table class="table mytable" frame="void" style="width:100%; ">
-            <tr>
-                <th></th>
-                <th style="text-align:center"> Very Little </th>
-                <th>  </th>
-                <th>  </th>
-                <th>  </th>
-                <th>  </th>
-                <th>  </th>
-                <th style="text-align:center"> Very Much </th>
-            </tr>
-
-             {% for field in form %}
-            {% if field.id.startswith("id_sc") %}
-                <tr>
-                    <td align="left" style="width:33%">{{ field.label }}</td>
-
-                    {% for choice in field %}
-                        <td align="center" >{{ choice }}</td>
-                    {% endfor %}
-                </tr>
-            {% endif %}
-        {% endfor %}
-        </table>
-    </div>
-
-    <div id="set" class="jumbotron" style="padding-top: 5%">
-        <p>How much do you agree with the following statements?</p>
-        <table class="table mytable" frame="void" style="width:100%; ">
-            <tr>
-                <th></th>
-                <th style="text-align:center"> Very Little </th>
-                <th>  </th>
-                <th>  </th>
-                <th>  </th>
-                <th>  </th>
-                <th>  </th>
-                <th style="text-align:center"> Very Much </th>
-            </tr>
-
-             {% for field in form %}
-            {% if field.id.startswith("id_set") %}
                 <tr>
                     <td align="left" style="width:33%">{{ field.label }}</td>
 

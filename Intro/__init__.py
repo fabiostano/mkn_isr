@@ -54,36 +54,20 @@ class Player(BasePlayer):
     )
 
     ### --- STATE Q --- ###
-    # ----- Mental Readiness ----- #
-    mr2 = models.IntegerField(label="How sleepy are you feeling right now?",
-                              choices=[[1, '1'], [2, '2'], [3, '3'], [4, '4'], [5, '5']], widget=widgets.RadioSelectHorizontal)
-    mr3 = models.IntegerField(label="How motivated are you feeling right now?",
-                              choices=[[1, '1'], [2, '2'], [3, '3'], [4, '4'], [5, '5']], widget=widgets.RadioSelectHorizontal)
 
     # ----- Pleasure & Arousal ----- #
-    pleasure = models.IntegerField(label="test", choices=[[1, '1'], [2, '2'], [3, '3'], [4, '4'], [5, '5']], widget=widgets.RadioSelectHorizontal)
-    arousal = models.IntegerField(label="test", choices=[[1, '1'], [2, '2'], [3, '3'], [4, '4'], [5, '5']], widget=widgets.RadioSelectHorizontal)
-
-    # ----- Mental Fatigue ----- #
-    mf1 = models.IntegerField(label="If I were to do something right now, I could keep my thoughts focused on it.",
-                              choices=[[1, '1'], [2, '2'], [3, '3'], [4, '4'], [5, '5']], widget=widgets.RadioSelectHorizontal)
-    mf2 = models.IntegerField(label="Right now, I could concentrate well.",
-                              choices=[[1, '1'], [2, '2'], [3, '3'], [4, '4'], [5, '5']], widget=widgets.RadioSelectHorizontal)
-    mf3 = models.IntegerField(label="Currently, it would take a lot of effort to concentrate on something.",
-                              choices=[[1, '1'], [2, '2'], [3, '3'], [4, '4'], [5, '5']], widget=widgets.RadioSelectHorizontal)
-    mf4 = models.IntegerField(label="My thoughts would easily wander off at the moment.",
-                              choices=[[1, '1'], [2, '2'], [3, '3'], [4, '4'], [5, '5']], widget=widgets.RadioSelectHorizontal)
-
+    pleasure = models.IntegerField(label="test", choices=[[1, '1'], [2, '2'], [3, '3'], [4, '4'], [5, '5'], [6, '6'], [7, '7'], [8, '8'], [9, '9']], widget=widgets.RadioSelectHorizontal)
+    arousal = models.IntegerField(label="test", choices=[[1, '1'], [2, '2'], [3, '3'], [4, '4'], [5, '5'], [6, '6'], [7, '7'], [8, '8'], [9, '9']], widget=widgets.RadioSelectHorizontal)
 
 class Welcome(Page):
     form_model = 'player'
 
 class IntroQuestionnaire(Page):
     form_model = 'player'
-    form_fields = ['gender', 'age', 'english', 'occupation', 'field_of_study', 'dominant_hand', 'mr2', 'mr3']
+    form_fields = ['gender', 'age', 'english', 'occupation', 'field_of_study', 'dominant_hand']
 
 class StateQuestionnaire(Page):
     form_model = 'player'
-    form_fields = ['pleasure', 'arousal', 'mf1', 'mf2', 'mf3', 'mf4']
+    form_fields = ['pleasure', 'arousal']
 
 page_sequence = [Welcome, IntroQuestionnaire, StateQuestionnaire]

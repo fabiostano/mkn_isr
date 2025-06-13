@@ -32,34 +32,6 @@
         }
     </style>
 
-    <div id="ti" class="jumbotron" style="padding-top: 5%">
-        <p>In general, during this whole task...</p>
-        <table class="table mytable" frame="void" style="width:100%; ">
-            <tr>
-                <th></th>
-                <th style="text-align:center"> Strongly disagree </th>
-                <th>  </th>
-                <th>  </th>
-                <th>  </th>
-                <th>  </th>
-                <th>  </th>
-                <th style="text-align:center"> Strongly agree </th>
-            </tr>
-
-             {% for field in form %}
-            {% if field.id.startswith("id_ti") %}
-                <tr>
-                    <td align="left" style="width:33%">{{ field.label }}</td>
-
-                    {% for choice in field %}
-                        <td align="center" >{{ choice }}</td>
-                    {% endfor %}
-                </tr>
-            {% endif %}
-        {% endfor %}
-        </table>
-    </div>
-
     <div id="ptc" class="jumbotron" style="padding-top: 5%">
         <p>How much do you agree with the following statements?</p>
         <table class="table mytable" frame="void" style="width:100%; ">

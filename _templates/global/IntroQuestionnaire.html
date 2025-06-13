@@ -27,7 +27,7 @@
 </style>
 
     <div class="survey-container" style="padding-top: 5%">
-        <p>Before we can start, we need some information from you.</p>
+        <p style="font-size: 20px" >Before we can start, we need some information from you.</p>
         <div class="age" style="float:left; margin-right:10%">
             {% formfield player.age %}
         </div>
@@ -42,31 +42,6 @@
         </div>
     </div>
 
-    <div class="survey-container">
-        <table class="table mytable" frame="void" style="width:100%; ">
-            <tr>
-                <th></th>
-                <th style="text-align:center"> Not at all </th>
-                <th>  </th>
-                <th style="text-align:center"> </th>
-                <th>  </th>
-                <th style="text-align:center"> Very much </th>
-            </tr>
-        {% for field in form %}
-            {% if field.id.startswith("id_mr") %}
-                <tr>
-                    <td align="left" style="width:33%">{{ field.label }}</td>
-
-                    {% for choice in field %}
-                        <td align="center" >{{ choice }}</td>
-                    {% endfor %}
-                </tr>
-            {% endif %}
-        {% endfor %}
-
-        </table>
-    </div>
-
 <div class="d-flex justify-content-center" style="clear:both">
     <button class="otree-btn-next btn btn-primary next-button otree-next-button">Next</button>
 </div>
@@ -78,5 +53,16 @@
     })
 </script>
 
+    {% block style %}
+<style>
+    select {
+        font-size: 20px !important;
+    }
+
+    label {
+        font-size: 20px !important;
+    }
+</style>
+{% endblock %}
 
 {% endblock %}

@@ -33,9 +33,6 @@ class Player(BasePlayer):
     ta2 = models.IntegerField(label="How much do you like decision making tasks?",
                                 choices=[[1, '1'], [2, '2'], [3, '3'], [4, '4'], [5, '5']],
                                 widget=widgets.RadioSelectHorizontal)
-    ta3 = models.IntegerField(label="To what extent do you prefer decision making tasks over mental arithmetic?",
-                                choices=[[1, '1'], [2, '2'], [3, '3'], [4, '4'], [5, '5']],
-                                widget=widgets.RadioSelectHorizontal)
 
     # ----- Flow Disposition Work ----- #
     fpw1 = models.IntegerField(label="... you feel bored?",
@@ -130,7 +127,7 @@ class TraitQuestionnaire(Page):
     @staticmethod
     def get_form_fields(player: Player):
         import random
-        task_fields = ['ta1', 'ta2', 'ta3']
+        task_fields = ['ta1', 'ta2']
         random.shuffle(task_fields)
         all_fields=task_fields
 

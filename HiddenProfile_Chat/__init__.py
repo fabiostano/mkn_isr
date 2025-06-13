@@ -54,8 +54,12 @@ class Player(BasePlayer):
     ### Task Round Survey
 
      # ----- Pleasure & Arousal ----- #
-    pleasure = models.IntegerField(label="test", choices=[[1, '1'], [2, '2'], [3, '3'], [4, '4'], [5, '5']], widget=widgets.RadioSelectHorizontal)
-    arousal = models.IntegerField(label="test", choices=[[1, '1'], [2, '2'], [3, '3'], [4, '4'], [5, '5']], widget=widgets.RadioSelectHorizontal)
+    pleasure = models.IntegerField(label="test",
+                                   choices=[[1, '1'], [2, '2'], [3, '3'], [4, '4'], [5, '5'], [6, '6'], [7, '7'],
+                                            [8, '8'], [9, '9']], widget=widgets.RadioSelectHorizontal)
+    arousal = models.IntegerField(label="test",
+                                  choices=[[1, '1'], [2, '2'], [3, '3'], [4, '4'], [5, '5'], [6, '6'], [7, '7'],
+                                           [8, '8'], [9, '9']], widget=widgets.RadioSelectHorizontal)
 
     # ----- Flow ----- #
     fss01 = make_7p_likert_field('I felt just the right amount of challenge.')
@@ -69,18 +73,13 @@ class Player(BasePlayer):
     fss09 = make_7p_likert_field('I felt that I had everything under control.')
     fss10 = make_7p_likert_field('I was completely involved in the task.')
 
-    fi1 = make_7p_likert_field('I would love to do this task again.')
-    fi2 = make_7p_likert_field('I was thrilled.')
-    fi3 = make_7p_likert_field('The task demands were well matched to my ability.')
-
     sfss1 = make_7p_likert_field('I felt I was competent enough to meet the demands of the situation.')
     sfss2 = make_7p_likert_field('I had a strong sense of what I wanted to do.')
     sfss3 = make_7p_likert_field('I had a good idea about how well I was doing while I was involved in the task/activity.')
 
     # ----- Challenge Skill Balance ----- #
     csb1 = make_7p_likert_field('Compared to all other activities which I partake in, the difficulty of this one is ...')
-    csb2 = make_7p_likert_field('I think that my competence in this area is ...')
-    csb3 = make_7p_likert_field('For me personally, the task demands were ...')
+    csb2 = make_7p_likert_field('For me personally, the task demands were ...')
 
     # ----- Individual Stress ----- #
     is1 = make_7p_likert_field('... I felt strain due to the task demands.')
@@ -94,14 +93,6 @@ class Player(BasePlayer):
     ptp2 = make_7p_likert_field('How satisfied were you with your performance in accomplishing these goals?')
     ptp3 = make_7p_likert_field('How hard did you work to accomplish your level of performance?')
 
-    # ----- Subjective Concentration ----- #
-    sc1 = make_7p_likert_field('How well were you concentrating during the task?')
-    sc2 = make_7p_likert_field('How hard was it to concentrate during the task?')
-
-    # ----- Social Evaluative Threat ----- #
-    set1 = make_7p_likert_field('I was afraid that my performance on the task was being evaluated by others.')
-    set2 = make_7p_likert_field('I was afraid that my task performance will be assessed by others at a later time.')
-
     # ----- Satisfaction of Autonomy Need ----- #
     san1 = make_7p_likert_field('I was free to do things my own way.')
     san2 = make_7p_likert_field('My choices expressed my "true self".')
@@ -114,19 +105,13 @@ class Player(BasePlayer):
 
     # ----- Collective Challenge Skill Balance ----- #
     ccsb1 = make_7p_likert_field('The difficulty of this activity for our team is ...')
-    ccsb2 = make_7p_likert_field('I think that our team’s competence in this area is ...')
-    ccsb3 = make_7p_likert_field('For us as a team, the task demands were ...')
+    ccsb2 = make_7p_likert_field('For us as a team, the task demands were ...')
 
     # ----- Emotional Contagion ----- #
     ec1 = make_7p_likert_field('How much were you on the same wavelength with your team?')
 
     # ----- Emotional Synchrony ----- #
-    es1 = make_7p_likert_field('We felt stronger emotions than those we normally feel.')
-    es2 = make_7p_likert_field('We felt that we were one.')
-    es3 = make_7p_likert_field('We felt a strong shared emotion.')
-    es4 = make_7p_likert_field('We felt really united, almost melted into one.')
-    es5 = make_7p_likert_field('What we were as a group was more important than what we were as individuals.')
-    es6 = make_7p_likert_field('We felt more intense emotions because we all went through the same experience.')
+    es1 = make_7p_likert_field('We felt a strong shared emotion.')
 
     # ----- Perceived Group Performance ----- #
     pgp1 = make_7p_likert_field('How successful do you think your team was in accomplishing the goals of the task set by the experimenter (or yourself)?')
@@ -227,8 +212,9 @@ class Player(BasePlayer):
     ce2 = make_7p_likert_field('Our team is more efficiently prepared to complete such tasks.')
     ce3 = make_7p_likert_field('Our team has the ability to overcome problems.')
 
-     # ----- Identity Fusion ----- #
-    fusion = models.IntegerField(label="test", choices=[[1, '1'], [2, '2'], [3, '3'], [4, '4'], [5, '5']], widget=widgets.RadioSelectHorizontal)
+    # ----- Skill Level ----- #
+    sl1 = make_7p_likert_field('I think that my competence in this area is ...')
+    sl2 = make_7p_likert_field('I think that our team’s competence in this area is ...')
 
     # ----- Perceived Social Presence ----- #
     psp1 = make_7p_likert_field('There was a sense of human contact during the group work.')
@@ -236,6 +222,9 @@ class Player(BasePlayer):
     psp3 = make_7p_likert_field('There was a sense of sociability during the group work.')
     psp4 = make_7p_likert_field('There was a sense of human warmth during the group work.')
     psp5 = make_7p_likert_field('There was a sense of human sensitivity during the group work.')
+
+     # ----- Identity Fusion ----- #
+    fusion = models.IntegerField(label="test", choices=[[1, '1'], [2, '2'], [3, '3'], [4, '4'], [5, '5']], widget=widgets.RadioSelectHorizontal)
 
     # ----- Familiarity ----- #
     fam1 = make_7p_likert_field('After this task, how well do you know the people in your group?')
@@ -498,13 +487,10 @@ class TaskSurvey(Page):
         fss_fields = ['fss01', 'fss02', 'fss03', 'fss04', 'fss05', 'fss06', 'fss07', 'fss08', 'fss09', 'fss10']
         random.shuffle(fss_fields)
         all_fields += fss_fields
-        fi_fields = ['fi1', 'fi2', 'fi3']
-        random.shuffle(fi_fields)
-        all_fields += fi_fields
         sfss_fields = ['sfss1', 'sfss2', 'sfss3']
         random.shuffle(sfss_fields)
         all_fields += sfss_fields
-        csb_fields = ['csb1', 'csb2', 'csb3']
+        csb_fields = ['csb1', 'csb2']
         random.shuffle(csb_fields)
         all_fields += csb_fields
         is_fields = ['is1', 'is2', 'is3', 'is4', 'is5']
@@ -513,24 +499,18 @@ class TaskSurvey(Page):
         ptp_fields = ['ptp1', 'ptp2', 'ptp3']
         random.shuffle(ptp_fields)
         all_fields += ptp_fields
-        sc_fields = ['sc1', 'sc2']
-        random.shuffle(sc_fields)
-        all_fields += sc_fields
-        set_fields = ['set1', 'set2']
-        random.shuffle(set_fields)
-        all_fields += set_fields
         san_fields = ['san1', 'san2', 'san3']
         random.shuffle(san_fields)
         all_fields += san_fields
         tm_fields = ['tm1', 'tm2', 'tm3']
         random.shuffle(tm_fields)
         all_fields += tm_fields
-        ccsb_fields = ['ccsb1', 'ccsb2', 'ccsb3']
+        ccsb_fields = ['ccsb1', 'ccsb2']
         random.shuffle(ccsb_fields)
         all_fields += ccsb_fields
         ec_fields = ['ec1']
         all_fields += ec_fields
-        es_fields = ['es1', 'es2', 'es3', 'es4', 'es5', 'es6']
+        es_fields = ['es1']
         random.shuffle(es_fields)
         all_fields += es_fields
         pgp_fields = ['pgp1', 'pgp2', 'pgp3']
@@ -548,9 +528,6 @@ class TaskPhaseSurvey(Page):
     def get_form_fields(player: Player):
         import random
         all_fields = []
-        ti_fields = ['ti1', 'ti2', 'ti3']
-        random.shuffle(ti_fields)
-        all_fields += ti_fields
         ptc_fields = ['ptc1', 'ptc2', 'ptc3', 'ptc4']
         random.shuffle(ptc_fields)
         all_fields += ptc_fields
@@ -596,6 +573,9 @@ class TaskPhaseSurvey(Page):
         ce_fields = ['ce1', 'ce2', 'ce3']
         random.shuffle(ce_fields)
         all_fields += ce_fields
+        sl_fields = ['sl1', 'sl2']
+        random.shuffle(sl_fields)
+        all_fields += sl_fields
         psp_fields = ['psp1', 'psp2', 'psp3', 'psp4', 'psp5']
         random.shuffle(psp_fields)
         all_fields += psp_fields
