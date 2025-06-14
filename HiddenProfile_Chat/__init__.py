@@ -240,44 +240,16 @@ def creating_session(subsession: Subsession):
 
         if p.player_role == 'Chief Human Resources Officer':
             p.personal_interest = 'salary_cost'
-            p.shared_info = 'env_impact'
         elif p.player_role == 'Chief Marketing Officer':
             p.personal_interest = 'market_demand'
-            p.shared_info = 'env_impact'
         elif p.player_role == 'Chief Financial Officer':
             p.personal_interest = 'profit'
-            p.shared_info = 'env_impact'
 
 class RoleAssignment(Page):
     def vars_for_template(player: Player):
-        # Get the project information based on the player's role
-        project_info = []  # TODO make this general and use it in project information page!!!
-
-        for project in C.PROJECTS:
-            if player.player_role == 'Chief Human Resources Officer':
-                project_info.append({
-                    'name': project['name'],
-                    'salary_cost': project['salary_cost'],
-                    'env_impact': project['env_impact'],
-                })
-            elif player.player_role == 'Chief Marketing Officer':
-                project_info.append({
-                    'name': project['name'],
-                    'market_demand': project['market_demand'],
-                    'env_impact': project['env_impact'],
-                })
-            elif player.player_role == 'Chief Financial Officer':
-                project_info.append({
-                    'name': project['name'],
-                    'profit': project['profit'],
-                    'env_impact': project['env_impact'],
-                })
-
-        return {
+         return {
             'role': player.player_role,
             'personal_interest': player.personal_interest,
-            'shared_info': player.shared_info,
-            'project_info': project_info  # Pass the project info to the template
         }
 
 class WaitForRoleAssignment(WaitPage):
@@ -386,7 +358,6 @@ class ProjectInformation(Page):
     def vars_for_template(player: Player):
         return {
             'role': player.player_role,
-            'project_info': C.PROJECTS
         }
 
 def normalize(value, min_value, max_value, higher_is_better=True):
