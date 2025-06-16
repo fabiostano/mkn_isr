@@ -228,8 +228,12 @@ class Player(BasePlayer):
     fusion = models.IntegerField(label="test", choices=[[1, '1'], [2, '2'], [3, '3'], [4, '4'], [5, '5']], widget=widgets.RadioSelectHorizontal)
 
     # ----- Familiarity ----- #
-    fam1 = make_7p_likert_field('After this task, how well do you know the people in your group?')
-    fam2 = make_7p_likert_field('During the task, how closely did you work together with your group members?')
+    fam1_lightcoral = make_7p_likert_field('After this task, how well do you know the player labeled lightcoral?')
+    fam2_lightcoral = make_7p_likert_field('During the task, how closely did you work together with the player labeled lightcoral?')
+    fam1_lightgreen = make_7p_likert_field('After this task, how well do you know the player labeled lightgreen?')
+    fam2_lightgreen = make_7p_likert_field('During the task, how closely did you work together with the player labeled lightgreen?')
+    fam1_lightblue = make_7p_likert_field('After this task, how well do you know the player labeled lightblue?')
+    fam2_lightblue = make_7p_likert_field('During the task, how closely did you work together with the player labeled lightblue?')
 
 def creating_session(subsession: Subsession):
     import random
@@ -237,6 +241,7 @@ def creating_session(subsession: Subsession):
     random.shuffle(roles)
 
     for p in subsession.get_players():
+        p.color = C.COLORMAP[p.id_in_group - 1]
         p.player_role = roles.pop()
 
         if p.player_role == 'Chief Human Resources Officer':
@@ -510,6 +515,9 @@ class TaskSurvey(Page):
 class TaskPhaseSurvey(Page):
     form_model = 'player'
 
+    def vars_for_template(player):
+        return dict(my_color=player.color)
+
     @staticmethod
     def get_form_fields(player: Player):
         import random
@@ -565,8 +573,7 @@ class TaskPhaseSurvey(Page):
         psp_fields = ['psp1', 'psp2', 'psp3', 'psp4', 'psp5']
         random.shuffle(psp_fields)
         all_fields += psp_fields
-        fam_fields = ['fam1', 'fam2']
-        random.shuffle(fam_fields)
+        fam_fields = ['fam1_lightcoral', 'fam2_lightcoral', 'fam1_lightgreen', 'fam2_lightgreen', 'fam1_lightblue', 'fam2_lightblue']
         all_fields += fam_fields
         fusion_fields = ['fusion']
         all_fields += fusion_fields

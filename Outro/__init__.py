@@ -10,6 +10,7 @@ class C(BaseConstants):
     PLAYERS_PER_GROUP = None
     NUM_ROUNDS = 1
 
+    COLORMAP = ['lightcoral', 'lightgreen', 'lightblue']
 
 class Subsession(BaseSubsession):
     pass
@@ -23,6 +24,7 @@ class Player(BasePlayer):
     name = models.StringField(blank=True)
     IBAN = models.StringField(blank=True)
     BIC = models.StringField(blank=True)
+    color = models.StringField()
 
     ### --- TRAIT Q --- ###
 
@@ -105,15 +107,19 @@ class Player(BasePlayer):
 
     # ----- Recognition ----- #
 
-    rec1 = models.IntegerField(label='Before the study, how well did you know the people in your group?',
+    rec_lightcoral = models.IntegerField(label='Before the study, how well did you know the player labeled lightcoral?',
                                      choices=[[1, '1'], [2, '2'], [3, '3'], [4, '4'], [5, '5'], [6, '6'], [7, '7']],
                                      widget=widgets.RadioSelectHorizontal)
-    rec2 = models.IntegerField(label='Before the study, how much have you worked together with the people in your group?',
+    rec_lightgreen = models.IntegerField(label='Before the study, how well did you know the player labeled lightgreen?',
+                                     choices=[[1, '1'], [2, '2'], [3, '3'], [4, '4'], [5, '5'], [6, '6'], [7, '7']],
+                                     widget=widgets.RadioSelectHorizontal)
+    rec_lightblue = models.IntegerField(label='Before the study, how well did you know the player labeled lightblue?',
                                      choices=[[1, '1'], [2, '2'], [3, '3'], [4, '4'], [5, '5'], [6, '6'], [7, '7']],
                                      widget=widgets.RadioSelectHorizontal)
 
-    known_members = models.IntegerField(label='How many of your group members did you know before the study?',
-                                           choices=[[0, '0'], [1, '1'], [2, '2']])
+def creating_session(subsession: Subsession):
+    for p in subsession.get_players():
+         p.color = C.COLORMAP[p.id_in_group - 1]
 
 class ThankYou(Page):
     form_model = 'player'
@@ -124,6 +130,10 @@ class Goodbye(Page):
 
 class TraitQuestionnaire(Page):
     form_model = 'player'
+
+    def vars_for_template(player):
+        return dict(my_color=player.color)
+
     @staticmethod
     def get_form_fields(player: Player):
         import random
@@ -140,7 +150,7 @@ class TraitQuestionnaire(Page):
         proneness_leisure_fields = ['fpl1', 'fpl2', 'fpl3', 'fpl4', 'fpl5', 'fpl6', 'fpl7']
         all_fields += proneness_leisure_fields
 
-        recognition_fields = ['rec1', 'rec2', 'known_members']
+        recognition_fields = ['rec_lightcoral', 'rec_lightgreen', 'rec_lightblue']
         all_fields += recognition_fields
 
         return all_fields

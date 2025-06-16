@@ -494,17 +494,53 @@
                 <th style="text-align:center"> Very much </th>
             </tr>
 
-             {% for field in form %}
-            {% if field.id.startswith("id_fam") %}
-                <tr>
-                    <td align="left" style="width:33%">{{ field.label }}</td>
-
-                    {% for choice in field %}
-                        <td align="center" >{{ choice }}</td>
-                    {% endfor %}
-                </tr>
-            {% endif %}
-        {% endfor %}
+            {% for field in form %}
+                {% if field.id == "id_fam1_lightcoral" and my_color != "lightcoral" %}
+                    <tr>
+                        <td align="left" style="width:33%">{{ field.label }}</td>
+                        {% for choice in field %}
+                            <td align="center">{{ choice }}</td>
+                        {% endfor %}
+                    </tr>
+                {% elif field.id == "id_fam2_lightcoral" and my_color != "lightcoral" %}
+                    <tr>
+                        <td align="left" style="width:33%">{{ field.label }}</td>
+                        {% for choice in field %}
+                            <td align="center">{{ choice }}</td>
+                        {% endfor %}
+                    </tr>
+                {% elif field.id == "id_fam1_lightblue" and my_color != "lightblue" %}
+                    <tr>
+                        <td align="left" style="width:33%">{{ field.label }}</td>
+                        {% for choice in field %}
+                            <td align="center">{{ choice }}</td>
+                        {% endfor %}
+                    </tr>
+                {% elif field.id == "id_fam2_lightblue" and my_color != "lightblue" %}
+                    <tr>
+                        <td align="left" style="width:33%">{{ field.label }}</td>
+                        {% for choice in field %}
+                            <td align="center">{{ choice }}</td>
+                        {% endfor %}
+                    </tr>
+                {% elif field.id == "id_fam1_lightgreen" and my_color != "lightgreen" %}
+                    <tr>
+                        <td align="left" style="width:33%">{{ field.label }}</td>
+                        {% for choice in field %}
+                            <td align="center">{{ choice }}</td>
+                        {% endfor %}
+                    </tr>
+                {% elif field.id == "id_fam2_lightgreen" and my_color != "lightgreen" %}
+                    <tr>
+                        <td align="left" style="width:33%">{{ field.label }}</td>
+                        {% for choice in field %}
+                            <td align="center">{{ choice }}</td>
+                        {% endfor %}
+                    </tr>
+                {% endif %}
+            {% endfor %}
+        </table>
+    </div>
         </table>
     </div>
 
