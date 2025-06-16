@@ -39,6 +39,7 @@ class Player(BasePlayer):
     shared_info = models.StringField()
     project_choice = models.StringField()
     player_payoff = models.CurrencyField(initial=C.BASE_PAYOUT)
+    next_ready = models.BooleanField(initial=False)
 
     # ----- Timestamps ----- #
     task_load_time = models.StringField(blank=True)
@@ -258,7 +259,8 @@ class WaitForRoleAssignment(WaitPage):
         return True
 
     def before_next_page(self):
-        pass
+        for p in self.group.get_players():
+            p.next_ready = False
 
 class DiscussionPreface(Page):
     @staticmethod
@@ -290,6 +292,19 @@ class Discussion(Page):
         # Handle incoming chat messages
         if data["info_type"] == "chat_message":
             return {p.id_in_group: data for p in group.get_players()}
+
+        return {}
+
+    @staticmethod
+    def live_method(player, data):
+        if data.get("type") == "next_clicked":
+            player.next_ready = True
+
+            all_ready = all(p.next_ready for p in player.group.get_players())
+            if all_ready:
+                return {p.id_in_group: {"type": "go_to_next"} for p in player.group.get_players()}
+            else:
+                return {player.id_in_group: {"type": "waiting"}}
 
         return {}
 
