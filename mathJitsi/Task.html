@@ -400,8 +400,6 @@
 
         if ('{{color}}' === 'lightcoral') {
             document.getElementById("fin_sol_own").classList.add("lightcoral-b");
-            document.getElementById("fin_sol_a").classList.add("lightblue-b");
-            document.getElementById("fin_sol_b").classList.add("lightgreen-b");
 
             setTimeout(() => {
                 updateEquations("start");
@@ -409,12 +407,10 @@
 
         } else if ('{{color}}' === 'lightgreen') {
             document.getElementById("fin_sol_own").classList.add("lightgreen-b");
-            document.getElementById("fin_sol_a").classList.add("lightblue-b");
-            document.getElementById("fin_sol_b").classList.add("lightcoral-b");
+
         } else if ('{{color}}' === 'lightblue') {
             document.getElementById("fin_sol_own").classList.add("lightblue-b");
-            document.getElementById("fin_sol_a").classList.add("lightgreen-b");
-            document.getElementById("fin_sol_b").classList.add("lightcoral-b");
+
         }
 
         document.getElementById("task_load_time").value = Date.now();

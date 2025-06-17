@@ -5,8 +5,8 @@ SESSION_CONFIGS = [
                    dict(name='all', num_demo_participants=3, app_sequence=['Intro', 'HiddenProfile_Jitsi', 'HiddenProfile_Chat', 'mathJitsi', 'mathChat', 'Outro']),
                    dict(name='Jitsi1', num_demo_participants=3, app_sequence=['Intro','mathJitsi', 'HiddenProfile_Jitsi', 'Outro']),
                    dict(name='Chat1', num_demo_participants=3, app_sequence=['Intro','mathChat', 'HiddenProfile_Chat', 'Outro']),
-                   dict(name='Jitsi2', num_demo_participants=3, app_sequence=['Outro', 'HiddenProfile_Jitsi', 'mathJitsi', 'Intro']),
-                   dict(name='Chat2', num_demo_participants=3, app_sequence=['HiddenProfile_Chat', 'mathChat', 'Outro']),
+                   dict(name='Jitsi2', num_demo_participants=3, app_sequence=['Intro', 'HiddenProfile_Jitsi', 'mathJitsi', 'Outro']),
+                   dict(name='Chat2', num_demo_participants=3, app_sequence=['Intro', 'HiddenProfile_Chat', 'mathChat', 'Outro']),
                    dict(name='MathTest', num_demo_participants=3, app_sequence=['mathChat']),
                    ]
 
