@@ -192,73 +192,55 @@
 
 <script>
     function liveRecv(data) {
-        if (data.info_type === "chat_message") {
+        if (data.type === "go_to_next") {
+            form.submit();
+        } else if (data.type === "waiting") {
+            alert("Waiting for others...");
+        } else if (data.info_type === "chat_message") {
             let chatBox = document.getElementById("chat-box");
-            let senderColor = data.color || "#ccc"; // Default to light gray if no color provided
+            let senderColor = data.color || "#ccc";
 
             let messageDiv = document.createElement("div");
             messageDiv.classList.add("chat-message");
 
-            // Convert the color to a semi-transparent RGBA value
-            messageDiv.style.backgroundColor = convertToRGBA(senderColor, 0.5); // 50% transparency
-
+            messageDiv.style.backgroundColor = convertToRGBA(senderColor, 0.5);
             messageDiv.innerHTML = `<b>${data.color}:</b> ${data.message}`;
 
             let messageWrapper = document.createElement("div");
             messageWrapper.classList.add("message-row");
 
-            // Check if the message was sent by the current player
             if (data.color === "{{color}}") {
-                messageWrapper.classList.add("my-message"); // Apply special class for own messages
+                messageWrapper.classList.add("my-message");
             } else {
                 messageWrapper.classList.add("other-message");
             }
 
             messageWrapper.appendChild(messageDiv);
             chatBox.appendChild(messageWrapper);
-            chatBox.scrollTop = chatBox.scrollHeight; // Auto-scroll to latest message
+            chatBox.scrollTop = chatBox.scrollHeight;
         }
     }
 </script>
 
- <script>
+<script>
     const taskDuration = {{ taskDuration }} * 1000;
 
-    function liveRecv (data) {
-        if (data.type === "go_to_next") {
-            form.submit();
-        } else if (data.type === "waiting") {
-            alert("Waiting for others...");
-        }
-    }
-
     document.addEventListener("DOMContentLoaded", function () {
-        function waitForLiveRecv(callback) {
-            if (typeof liveRecv !== "undefined") {
-                callback();
-            } else {
-                setTimeout(() => waitForLiveRecv(callback), 50);
-            }
-        }
+        const form = document.querySelector("form");
+        document.getElementById("task_load_time").value = Date.now();
 
-        waitForLiveRecv(function () {
-            const form = document.querySelector("form");
-
-            document.getElementById("task_load_time").value = Date.now();
-
-            const button = document.getElementById("nextbtn");
-
-            button.addEventListener("click", function (e) {
-                e.preventDefault();
-                liveSend({ type: "next_clicked" });
-            });
-
-            setTimeout(() => {
-                liveSend({ type: "next_clicked" });
-            }, taskDuration);
+        const button = document.getElementById("nextbtn");
+        button.addEventListener("click", function (e) {
+            e.preventDefault();
+            liveSend({ type: "next_clicked" });
         });
+
+        setTimeout(() => {
+            liveSend({ type: "next_clicked" });
+        }, taskDuration);
     });
 </script>
+
 
 <script>
     // Function to convert HEX or named colors to RGBA

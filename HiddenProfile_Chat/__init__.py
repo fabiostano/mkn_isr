@@ -278,7 +278,7 @@ class Discussion(Page):
 
     def vars_for_template(player):
         return dict(
-            id = player.id_in_group,
+            id=player.id_in_group,
             color=C.COLORMAP[player.id_in_group - 1],
             taskDuration=C.TASK_TIME_LIMIT
         )
@@ -286,28 +286,17 @@ class Discussion(Page):
     @staticmethod
     def live_method(player, data):
         group = player.group
-        info_type = data.get("info_type")
 
-        # Get the group-level shared dict to track selections
-        if not group.session.vars.get("active_selections"):
-            group.session.vars["active_selections"] = {}  # { "sol_1": "lightblue", "sol_2": "lightgreen", ... }
-
-        active_selections = group.session.vars["active_selections"]
-
-        # Handle incoming chat messages
-        if data["info_type"] == "chat_message":
+        # Fall 1: Chatnachricht
+        if data.get("info_type") == "chat_message":
             return {p.id_in_group: data for p in group.get_players()}
 
-        return {}
-
-    @staticmethod
-    def live_method(player, data):
+        # Fall 2: "Next"-Button wurde gedrückt
         if data.get("type") == "next_clicked":
             player.next_ready = True
-
-            all_ready = all(p.next_ready for p in player.group.get_players())
+            all_ready = all(p.next_ready for p in group.get_players())
             if all_ready:
-                return {p.id_in_group: {"type": "go_to_next"} for p in player.group.get_players()}
+                return {p.id_in_group: {"type": "go_to_next"} for p in group.get_players()}
             else:
                 return {player.id_in_group: {"type": "waiting"}}
 
