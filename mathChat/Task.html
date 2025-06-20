@@ -177,7 +177,6 @@
         height: 50px;
     }
 
-
     .fit-image {
         max-width: 100%;  /* Ensures it doesn't overflow the column width */
         max-height: 60%; /* Ensures it doesn't overflow the column height */
@@ -237,6 +236,26 @@
         background-color: lightgreen !important;
     }
 
+    .lightcoral-other-final {
+        border: none; !important;
+        border-radius: 0px; !important;
+        background-color: lightcoral; !important;
+        color: white;
+    }
+
+    .lightblue-other-final {
+        border: none; !important;
+        border-radius: 0px; !important;
+        background-color: lightblue; !important;
+        color: white;
+    }
+
+    .lightgreen-other-final {
+        border: none; !important;
+        border-radius: 0px; !important;
+        background-color: lightgreen; !important;
+        color: white;
+    }
 
 </style>
 
@@ -254,7 +273,7 @@
         if (breakTimeout) { clearTimeout(breakTimeout); breakTimeout = null; }
     }
 
-    // Block refresh
+    // Block broswer page refresh
     document.addEventListener('keydown', function(event) {
         if (event.key === 'F5' || (event.ctrlKey && event.key === 'r') ||
             (event.ctrlKey && event.key === 'F5') || (event.shiftKey && event.key === 'F5') ||
@@ -287,18 +306,14 @@
             player: "{{color}}",
             answer: answer
         });
-        lockOwnInputs();
-    }
 
-    // nach Abgabe keine Änderungen mehr zulassen
-    function lockOwnInputs() {
+        // nach Abgabe keine Änderungen mehr zulassen
         document.querySelectorAll(".answer-box.editable").forEach(el => {
             el.readOnly = true;
             el.classList.remove("editable");
             el.classList.add("readonly");
         });
     }
-
 
     // Focus the chat on load
     window.addEventListener("DOMContentLoaded", () => {
@@ -331,6 +346,7 @@
 </script>
 
 <script>
+    // Chat functionality
     function sendMessage(event) {
         if (event.key === "Enter") {
             let message = document.getElementById("chat-input").value;
@@ -342,6 +358,13 @@
 </script>
 
 <script>
+    const taskDuration = {{taskDuration}} * 1000;
+    const trialDuration = {{trialDuration}} * 1000;
+    const breakDuration = {{breakDuration}} * 1000;
+
+    let equationObject = [];
+    let difficulty = "{{difficulty}}";
+
     function generateEquations(difficulty) {
         // Load level from hidden input
         let level = parseInt(document.getElementById("level_storage").value) || 0;
@@ -451,33 +474,45 @@
         document.getElementById("answer_history").value = answer_history;
 
         // Clear all input fields
-        document.getElementById("sol_1").value = "";
-        document.getElementById("sol_2").value = "";
-        document.getElementById("sol_3").value = "";
-        document.getElementById("fin_sol_own").value = "";
-        document.getElementById("fin_sol_a").value = "";
-        document.getElementById("fin_sol_b").value = "";
-
-        document.getElementById("eq_1").textContent = "loading ...";
-        document.getElementById("eq_2").textContent = "loading ...";
-        document.getElementById("eq_3").textContent = "loading ...";
+        clearInputFields();
 
         // Ensure inputs are not focused or selected
         document.activeElement.blur();
     }
-</script>
 
-<script>
-    const taskDuration = {{taskDuration}} * 1000;
-    const trialDuration = {{trialDuration}} * 1000;
-    const breakDuration = {{breakDuration}} * 1000;
+    function clearInputFields() {
+        ["sol_1", "sol_2", "sol_3", "fin_sol_own", "fin_sol_a", "fin_sol_b"].forEach(id => {
+            const input = document.getElementById(id);
+            if (input) {
+                input.value = "";
+                input.readOnly = true;
+                input.classList.remove("editable");
+                input.classList.add("readonly");
+                }
+        });
 
-    let equationObject = [];
-    let difficulty = "{{difficulty}}";
+        // Reset text of equations to "loading" or "xxx"
+        document.getElementById("eq_1").textContent = "loading ...";
+        document.getElementById("eq_2").textContent = "loading ...";
+        document.getElementById("eq_3").textContent = "loading ...";
+    }
+
+    function unlockAnswerFields() {
+        ["sol_1", "sol_2", "sol_3"].forEach(id => {
+            const input = document.getElementById(id);
+            if (input) {
+                input.readOnly = false;
+                input.classList.add("editable");
+                input.classList.remove("readonly");
+                }
+        });
+    }
 
     function updateEquations() {
         if ('{{color}}' === 'lightcoral') {
+            // Generate new equations
             equationObject = generateEquations("Optimal");
+
             // Send the generated equations to all players
             liveSend({
                 "info_type": "Equations",
@@ -485,14 +520,15 @@
                 "solutions": equationObject.solutions,
                 "finalSolution": equationObject.finalSolution
             });
-
-            document.getElementById("eq_1").textContent = equationObject.equations[0];
-            document.getElementById("eq_2").textContent = equationObject.equations[1];
-            document.getElementById("eq_3").textContent = equationObject.equations[2];
         }
     }
 
     function startEquationCycle() {
+        // Unlock final answer field after 10 seconds (blocked initially)
+        setTimeout(() => {
+            liveSend({info_type: "openFinalInput"});
+        }, 10* 1000); // 10 seconds
+
         trialTimeout = setTimeout(() => {                       // 28 s Arbeitsphase
             liveSend({info_type: "timeUp"});
 
@@ -504,32 +540,42 @@
         }, trialDuration);
     }
 
-    /// Start Time Log
     document.addEventListener("DOMContentLoaded", function() {
-        if ('{{color}}' === 'lightcoral') {
+        if ('{{color}}' === 'lightcoral') { // This is executed for the first player ("red")
             document.getElementById("fin_sol_own").classList.add("lightcoral-b");
+            document.getElementById("fin_sol_a").classList.add("lightgreen-b");
+            document.getElementById("fin_sol_b").classList.add("lightblue-b");
+            document.getElementById("fin_sol_a").classList.add("lightgreen-other-final");
+            document.getElementById("fin_sol_b").classList.add("lightblue-other-final");
 
+            // So basically, the task is started after X seconds when the red player is ready
+            // When I comment this out, the task does not start...
             setTimeout(() => {
-                updateEquations("start");
-            }, 1000);
-
+                updateEquations();
+                startEquationCycle();
+            }, 5000); // This sets how long the wait is before the task starts for everyone
         } else if ('{{color}}' === 'lightgreen') {
             document.getElementById("fin_sol_own").classList.add("lightgreen-b");
-
+            document.getElementById("fin_sol_a").classList.add("lightcoral-b");
+            document.getElementById("fin_sol_b").classList.add("lightblue-b");
+            document.getElementById("fin_sol_a").classList.add("lightcoral-other-final");
+            document.getElementById("fin_sol_b").classList.add("lightblue-other-final");
         } else if ('{{color}}' === 'lightblue') {
             document.getElementById("fin_sol_own").classList.add("lightblue-b");
-
+            document.getElementById("fin_sol_a").classList.add("lightcoral-b");
+            document.getElementById("fin_sol_b").classList.add("lightgreen-b");
+            document.getElementById("fin_sol_a").classList.add("lightcoral-other-final");
+            document.getElementById("fin_sol_b").classList.add("lightgreen-other-final");
         }
+
+        // Block the input fields initially
+        clearInputFields();
 
         document.getElementById("task_load_time").value = Date.now();
 
         setTimeout(() => {
             document.getElementById("nextbtn").click();
         }, taskDuration);
-
-        if ('{{color}}' === 'lightcoral') {
-            startEquationCycle();
-        }
     });
 
     function selectSol(element) {
@@ -557,9 +603,13 @@
 <script>
     function liveRecv(data) {
         if (data.info_type === "Equations") {
+            // Update equations
             document.getElementById("eq_1").innerText = data.equations[0];
             document.getElementById("eq_2").innerText = data.equations[1];
             document.getElementById("eq_3").innerText = data.equations[2];
+
+            // Unlock answer fields
+            unlockAnswerFields();
 
             // Ensure all players store the equationObject properly
             equationObject = {
@@ -615,6 +665,13 @@
 
         else if (data.info_type === "timeUp") {
             resetForNewEquations("timeUp");
+        }
+
+        else if (data.info_type === "openFinalInput") {
+            let input = document.getElementById("fin_sol_own")
+            input.readOnly = false;
+            input.classList.remove("readonly");
+            input.classList.add("editable");
         }
 
         else if (data.info_type === "chat_message") {

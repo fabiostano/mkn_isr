@@ -7,7 +7,7 @@ class C(BaseConstants):
     NAME_IN_URL = 'mathChat'
     PLAYERS_PER_GROUP = 3
     NUM_ROUNDS = 4
-    TASK_TIME_LIMIT = 3 * 60 # Task Time
+    TASK_TIME_LIMIT = 2 * 60 # Task Time
     TRIAL_TIME = 28
     BREAK_TIME = 4
     MIN_DIFFICULTY = 1  # Start difficulty level
@@ -431,7 +431,6 @@ class Task(Page):
             return {p.id_in_group: {"info_type": "selected", "player": player_color, "selected": selected_id,
                                     "previous": previous_selection} for p in group.get_players()}
 
-
         # Handle deselection
         elif info_type == "deselect":
             player_color = data.get("player")
@@ -466,11 +465,10 @@ class Task(Page):
         elif info_type == "Equations":
             return {p.id_in_group: data for p in group.get_players()}
 
-        elif info_type == "timeUp":
+        elif info_type == "openFinalInput":
             return {p.id_in_group: data for p in group.get_players()}
 
-        # Handle incoming chat messages
-        elif data["info_type"] == "chat_message":
+        elif info_type == "timeUp":
             return {p.id_in_group: data for p in group.get_players()}
 
         elif info_type == "final_answer_submitted":
@@ -496,7 +494,11 @@ class Task(Page):
                 "submissions": submissions
             } for p in group.get_players()}
 
+        # Handle incoming chat messages
+        elif data["info_type"] == "chat_message":
+            return {p.id_in_group: data for p in group.get_players()}
+
         return {}
 
-page_sequence = [BeforeTask, Task, TaskSurvey, TaskPhaseSurvey]
+page_sequence = [BeforeTask, Wait_Page, Task, TaskSurvey, TaskPhaseSurvey]
 
