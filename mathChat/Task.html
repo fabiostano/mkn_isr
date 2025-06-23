@@ -67,7 +67,7 @@
                         <td><b>Final <br> Answer</b></td>
                     </tr>
                     <tr>
-                        <td><input id="fin_sol_a" type="number" pattern="[0-9]*" maxlength="3" class="form-control answer-box readonly" placeholder="" readonly></td>
+                        <td><input id="fin_sol_a" type="number" pattern="[0-9]*" maxlength="3" class="form-control answer-box readonly invisible" placeholder="" readonly></td>
                     </tr>
                     <tr>
                         <td></td>
@@ -75,7 +75,7 @@
                         <td></td>
                     </tr>
                     <tr>
-                        <td><input id="fin_sol_own" type="number" pattern="[0-9]*" maxlength="3" class="form-control answer-box editable" placeholder="" onclick="selectFinSol()" oninput="finalInputChanged(this)"></td>
+                        <td><input id="fin_sol_own" type="number" pattern="[0-9]*" maxlength="3" class="form-control answer-box editable" placeholder="" onclick="selectFinSol()" onblur="deselectFinSol()" oninput="finalInputChanged(this)"></td>
                     </tr>
                     <tr>
                         <td></td>
@@ -83,7 +83,7 @@
                         <td></td>
                     </tr>
                     <tr>
-                        <td><input id="fin_sol_b" type="number" pattern="[0-9]*" maxlength="3" class="form-control answer-box readonly" placeholder="" readonly></td>
+                        <td><input id="fin_sol_b" type="number" pattern="[0-9]*" maxlength="3" class="form-control answer-box readonly invisible" placeholder="" readonly></td>
                     </tr>
                 </table>
             </div>
@@ -236,25 +236,32 @@
         background-color: lightgreen !important;
     }
 
-    .lightcoral-other-final {
-        border: none; !important;
-        border-radius: 0px; !important;
+    .lightcoral-other-final[readonly] {
+        border: none !important;
+        outline: none !important;
+        box-shadow: none !important;
         background-color: lightcoral; !important;
         color: white;
     }
 
-    .lightblue-other-final {
-        border: none; !important;
-        border-radius: 0px; !important;
+    .lightblue-other-final[readonly] {
+        border: none !important;
+        outline: none !important;
+        box-shadow: none !important;
         background-color: lightblue; !important;
         color: white;
     }
 
-    .lightgreen-other-final {
-        border: none; !important;
-        border-radius: 0px; !important;
+    .lightgreen-other-final[readonly] {
+        border: none !important;
+        outline: none !important;
+        box-shadow: none !important;
         background-color: lightgreen; !important;
         color: white;
+    }
+
+    .invisible {
+        visibility: hidden;
     }
 
 </style>
@@ -309,16 +316,9 @@
 
         // nach Abgabe keine Änderungen mehr zulassen
         document.querySelectorAll(".answer-box.editable").forEach(el => {
-            el.readOnly = true;
-            el.classList.remove("editable");
-            el.classList.add("readonly");
+            el.disabled = true;
         });
     }
-
-    // Focus the chat on load
-    window.addEventListener("DOMContentLoaded", () => {
-        chatInput.focus();
-    });
 
     // Handle tabbing behavior for controlled inputs
     [ownFinalSolutionInput, chatInput].forEach(input => {
@@ -361,6 +361,8 @@
     const taskDuration = {{taskDuration}} * 1000;
     const trialDuration = {{trialDuration}} * 1000;
     const breakDuration = {{breakDuration}} * 1000;
+    const finalInputBlockDuration = 10 * 1000;
+    const startWaitDuration = 5 * 1000;
 
     let equationObject = [];
     let difficulty = "{{difficulty}}";
@@ -435,6 +437,24 @@
         };
     }
 
+    function generateEquationDistribution() {
+        const eq = (a, b) => a[0] === b[0] && a[1] === b[1];
+
+        let one, two, three;
+        do {
+            const randPair = () => [1, 2, 3].sort(() => Math.random() - 0.5).slice(0, 2).sort((a, b) => a - b);
+            one = randPair();
+            two = randPair();
+            three = randPair();
+        } while (eq(one, two) && eq(two, three));
+
+        return {
+            "lightcoral": one,
+            "lightgreen": two,
+            "lightblue": three
+        };
+    }
+
     function resetForNewEquations(reason="submit") {
         // Get the current input values (default to "NA" if empty)
         let sol1 = document.getElementById("sol_1").value || "NA";
@@ -483,12 +503,15 @@
     function clearInputFields() {
         ["sol_1", "sol_2", "sol_3", "fin_sol_own", "fin_sol_a", "fin_sol_b"].forEach(id => {
             const input = document.getElementById(id);
-            if (input) {
-                input.value = "";
-                input.readOnly = true;
-                input.classList.remove("editable");
-                input.classList.add("readonly");
-                }
+            input.value = "";
+            input.disabled = true;
+        });
+
+        // Hide the others final answers again
+        // (should only show up when something is entered for each trial)
+        ["fin_sol_a", "fin_sol_b"].forEach(id => {
+            const input = document.getElementById(id);
+            input.classList.add("invisible");
         });
 
         // Reset text of equations to "loading" or "xxx"
@@ -500,11 +523,7 @@
     function unlockAnswerFields() {
         ["sol_1", "sol_2", "sol_3"].forEach(id => {
             const input = document.getElementById(id);
-            if (input) {
-                input.readOnly = false;
-                input.classList.add("editable");
-                input.classList.remove("readonly");
-                }
+            input.disabled = false;
         });
     }
 
@@ -513,12 +532,16 @@
             // Generate new equations
             equationObject = generateEquations("Optimal");
 
+            // Generate distributions
+            disributionObject = generateEquationDistribution();
+
             // Send the generated equations to all players
             liveSend({
                 "info_type": "Equations",
                 "equations": equationObject.equations,
                 "solutions": equationObject.solutions,
-                "finalSolution": equationObject.finalSolution
+                "finalSolution": equationObject.finalSolution,
+                "distribution": disributionObject
             });
         }
     }
@@ -527,12 +550,14 @@
         // Unlock final answer field after 10 seconds (blocked initially)
         setTimeout(() => {
             liveSend({info_type: "openFinalInput"});
-        }, 10* 1000); // 10 seconds
+        }, finalInputBlockDuration);
 
-        trialTimeout = setTimeout(() => {                       // 28 s Arbeitsphase
+        // Start a 28 sec trial
+        trialTimeout = setTimeout(() => {
             liveSend({info_type: "timeUp"});
 
-            breakTimeout = setTimeout(() => {                   // 4 s Pause
+            // 4 sec break between trials
+            breakTimeout = setTimeout(() => {
                 updateEquations();
                 startEquationCycle();
             }, breakDuration);
@@ -540,7 +565,36 @@
         }, trialDuration);
     }
 
+    // Action Signaling Methods
+    function selectSol(element) {
+        liveSend({"info_type": "selected", "player": "{{color}}", "selected": element.id});
+    }
+
+    function selectFinSol() {
+        liveSend({"info_type": "selected", "player": "{{color}}", "selected": "final"});
+    }
+
+    function deselectSol(element) {
+        liveSend({"info_type": "deselect", "player": "{{color}}", "deselected": element.id});
+    }
+
+    function deselectFinSol() {
+        liveSend({"info_type": "deselect", "player": "{{color}}", "deselected": "final"});
+    }
+
+    // Solution Input Display Methods
+    function inputChanged(element) {
+        liveSend({"info_type": "input_changed", "player": "{{color}}", "selected": element.id, "content": element.value});
+    }
+
+    function finalInputChanged(element) {
+        liveSend({"info_type": "final_input_changed", "player": "{{color}}", "selected": "final", "content": element.value});
+    }
+
     document.addEventListener("DOMContentLoaded", function() {
+        // Focus the chat on load
+        chatInput.focus();
+
         if ('{{color}}' === 'lightcoral') { // This is executed for the first player ("red")
             document.getElementById("fin_sol_own").classList.add("lightcoral-b");
             document.getElementById("fin_sol_a").classList.add("lightgreen-b");
@@ -553,13 +607,15 @@
             setTimeout(() => {
                 updateEquations();
                 startEquationCycle();
-            }, 5000); // This sets how long the wait is before the task starts for everyone
+            }, startWaitDuration); // This sets how long the wait is before the task starts for everyone
+
         } else if ('{{color}}' === 'lightgreen') {
             document.getElementById("fin_sol_own").classList.add("lightgreen-b");
             document.getElementById("fin_sol_a").classList.add("lightcoral-b");
             document.getElementById("fin_sol_b").classList.add("lightblue-b");
             document.getElementById("fin_sol_a").classList.add("lightcoral-other-final");
             document.getElementById("fin_sol_b").classList.add("lightblue-other-final");
+
         } else if ('{{color}}' === 'lightblue') {
             document.getElementById("fin_sol_own").classList.add("lightblue-b");
             document.getElementById("fin_sol_a").classList.add("lightcoral-b");
@@ -573,30 +629,11 @@
 
         document.getElementById("task_load_time").value = Date.now();
 
+        // Final task timer - i.e. when to move on to next stage in experiment
         setTimeout(() => {
             document.getElementById("nextbtn").click();
         }, taskDuration);
     });
-
-    function selectSol(element) {
-        liveSend({"info_type": "selected", "player": "{{color}}", "selected": element.id});
-    }
-
-    function selectFinSol(element) {
-        liveSend({"info_type": "selected", "player": "{{color}}", "selected": "final"});
-    }
-
-    function deselectSol(element) {
-        liveSend({"info_type": "deselect", "player": "{{color}}", "deselected": element.id});
-    }
-
-    function inputChanged(element) {
-        liveSend({"info_type": "input_changed", "player": "{{color}}", "selected": element.id, "content": element.value});
-    }
-
-    function finalInputChanged(element) {
-        liveSend({"info_type": "final_input_changed", "player": "{{color}}", "selected": "final", "content": element.value});
-    }
 
 </script>
 
@@ -604,9 +641,23 @@
     function liveRecv(data) {
         if (data.info_type === "Equations") {
             // Update equations
+            /**
+            // Showing all for every participant
             document.getElementById("eq_1").innerText = data.equations[0];
             document.getElementById("eq_2").innerText = data.equations[1];
             document.getElementById("eq_3").innerText = data.equations[2];
+             **/
+
+            // Using the distribution information
+            const visibleIndices = data.distribution["{{color}}"];
+            for (let i = 1; i < 4; i++) {
+                const element = document.getElementById(`eq_${i}`);
+                if (visibleIndices.includes(i)) {
+                    element.innerText = data.equations[i-1];
+                } else {
+                    element.innerText = "?";
+                }
+            }
 
             // Unlock answer fields
             unlockAnswerFields();
@@ -619,7 +670,7 @@
             };
         }
 
-        if (data.info_type === "selected") {
+        else if (data.info_type === "selected") {
             // Remove highlight from the player's previous selection
             if (data.previous && data.previous.length > 0) {
                 data.previous.forEach(prevId => {
@@ -629,9 +680,19 @@
                     }
                 });
             }
+
+            // If the selected element is a final solution, unhide it for others
+            if (data.selected === "final") {
+                if (data.player !== "{{color}}") {
+                    document.querySelector(`.${data.player}-b`).classList.remove("invisible");
+                }
+            }
+
+            // Add new highlight to the selected element
             document.getElementById(data.selected).classList.add(data.player);
 
-            if ("{{color}}" == data.player) {
+            // Block the element from editing from other users at the same time
+            if ("{{color}}" === data.player) {
                 document.getElementById(data.field).classList.remove("readonly");
                 document.getElementById(data.selected).classList.add("editable");
             } else {
@@ -641,10 +702,22 @@
         }
 
         else if (data.info_type === "deselected") {
-            document.getElementById(data.field).classList.remove(data.player);
-
-            document.getElementById(data.field).classList.remove("readonly");
-            document.getElementById(data.field).classList.add("editable");
+            if (data.field === "final") {
+                console.log("And should be for a final field...");
+                // If the selected element is a final solution, but no values were added, hide it again for others
+                if (data.player !== "{{color}}") {
+                    console.log("Should hide other final input field now...")
+                    const inputField = document.querySelector(`.${data.player}-b`);
+                    if (inputField && inputField.value.trim() === "") {
+                        inputField.classList.add("invisible");
+                    }
+                }
+            }
+            else {
+                document.getElementById(data.field).classList.remove(data.player);
+                document.getElementById(data.field).classList.remove("readonly");
+                document.getElementById(data.field).classList.add("editable");
+            }
         }
 
         else if (data.info_type === "input_changed") {
@@ -669,9 +742,44 @@
 
         else if (data.info_type === "openFinalInput") {
             let input = document.getElementById("fin_sol_own")
-            input.readOnly = false;
-            input.classList.remove("readonly");
-            input.classList.add("editable");
+            input.disabled = false;
+        }
+
+        else if (data.info_type === "player_submitted") {
+            // fremde Final-Antwort eintragen
+            if (data.player !== "{{color}}") {
+                if (data.player === "lightcoral") {
+                    document.querySelector(".lightcoral-b").classList.remove("invisible");
+                    document.querySelector(".lightcoral-b").value = data.answer;
+                } else if (data.player === "lightblue") {
+                    document.querySelector(".lightblue-b").classList.remove("invisible");
+                    document.querySelector(".lightblue-b").value = data.answer;
+                } else if (data.player === "lightgreen") {
+                    document.querySelector(".lightgreen-b").classList.remove("invisible");
+                    document.querySelector(".lightgreen-b").value = data.answer;
+                }
+            }
+        }
+
+        else if (data.info_type === "all_submitted") {
+            // sicherstellen, dass alle Endergebnisse sichtbar sind
+            Object.entries(data.submissions).forEach(([col, val]) => {
+                if (col === "lightcoral")      document.querySelector(".lightcoral-b").value = val;
+                else if (col === "lightblue")  document.querySelector(".lightblue-b").value  = val;
+                else if (col === "lightgreen") document.querySelector(".lightgreen-b").value = val;
+            });
+
+            // Trial als „submit“ loggen & Felder leeren
+            resetForNewEquations("submit");
+
+            // Nur der rote Spieler startet die nächste Runde + Timer-Reset
+            if ("{{color}}" === "lightcoral") {
+                clearExistingTimers();
+                breakTimeout = setTimeout(() => {
+                    updateEquations();
+                    startEquationCycle();
+                }, breakDuration);
+            }
         }
 
         else if (data.info_type === "chat_message") {
@@ -699,46 +807,6 @@
             messageWrapper.appendChild(messageDiv);
             chatBox.appendChild(messageWrapper);
             chatBox.scrollTop = chatBox.scrollHeight; // Auto-scroll to latest message
-        }
-
-        /* =========================================================
-        SPIELER HAT ABGEGEBEN
-        ========================================================= */
-        else if (data.info_type === "player_submitted") {
-            // fremde Final-Antwort eintragen
-            if (data.player !== "{{color}}") {
-                if (data.player === "lightcoral") {
-                    document.querySelector(".lightcoral-b").value = data.answer;
-                } else if (data.player === "lightblue") {
-                    document.querySelector(".lightblue-b").value = data.answer;
-                } else if (data.player === "lightgreen") {
-                    document.querySelector(".lightgreen-b").value = data.answer;
-                }
-            }
-        }
-
-        /* =========================================================
-           ALLE 3 HABEN ABGEGEBEN  ->  Trial sofort beenden
-           ========================================================= */
-        else if (data.info_type === "all_submitted") {
-            // sicherstellen, dass alle Endergebnisse sichtbar sind
-            Object.entries(data.submissions).forEach(([col, val]) => {
-                if (col === "lightcoral")      document.querySelector(".lightcoral-b").value = val;
-                else if (col === "lightblue")  document.querySelector(".lightblue-b").value  = val;
-                else if (col === "lightgreen") document.querySelector(".lightgreen-b").value = val;
-            });
-
-            // Trial als „submit“ loggen & Felder leeren
-            resetForNewEquations("submit");
-
-            // Nur der rote Spieler startet die nächste Runde + Timer-Reset
-            if ("{{color}}" === "lightcoral") {
-                clearExistingTimers();
-                breakTimeout = setTimeout(() => {
-                    updateEquations();
-                    startEquationCycle();
-                }, breakDuration);
-            }
         }
     }
 
