@@ -29,6 +29,9 @@
         <button class="btn-primary btn-lg" id="nextbtn">Next</button>
     </div>
 </div>
+<div id="waiting-message" style="margin-top: 10px; text-align: center; color: gray; display: none;">
+    Waiting for others...
+</div>
 
 <!-- Logging fields -->
 <input type="hidden" name="task_load_time" id="task_load_time" value=""/>
@@ -192,7 +195,6 @@
         if (data.type === "go_to_next") {
             form.submit();
         } else if (data.type === "waiting") {
-            alert("Waiting for others...");
         } else if (data.info_type === "chat_message") {
             let chatBox = document.getElementById("chat-box");
             let senderColor = data.color || "#ccc";
@@ -227,17 +229,28 @@
         document.getElementById("task_load_time").value = Date.now();
 
         const button = document.getElementById("nextbtn");
+        const waitingMessage = document.getElementById("waiting-message");
+
+        function handleNextClick() {
+            button.disabled = true;
+            button.style.backgroundColor = "#ccc";
+            button.style.borderColor = "#ccc";
+            button.style.color = "#666";
+            button.style.cursor = "not-allowed";
+            waitingMessage.style.display = "block";
+            liveSend({ type: "next_clicked" });
+        }
+
         button.addEventListener("click", function (e) {
             e.preventDefault();
-            liveSend({ type: "next_clicked" });
+            handleNextClick();
         });
 
         setTimeout(() => {
-            liveSend({ type: "next_clicked" });
+            handleNextClick();
         }, taskDuration);
     });
 </script>
-
 
 <script>
     // Function to convert HEX or named colors to RGBA
