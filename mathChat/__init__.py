@@ -1,4 +1,5 @@
 import random
+from random import choice
 import statistics
 from otree.api import *
 c = cu
@@ -15,6 +16,12 @@ class C(BaseConstants):
     MAX_DIFFICULTY = 50  # Highest difficulty level; As in brownie autonomy selection screen;
 
     COLORMAP = ['lightcoral', 'lightgreen', 'lightblue']
+    LATIN_SQUARE_ORDERS = [
+        ["B", "F", "O", "A"],
+        ["F", "A", "B", "O"],
+        ["O", "B", "A", "F"],
+        ["A", "O", "F", "B"]
+    ]
 
 class Subsession(BaseSubsession):
     pass
@@ -227,6 +234,14 @@ class Player(BasePlayer):
     fam2_lightblue = make_7p_likert_field('During the task, how closely did you work together with the player labeled lightblue?')
 
 def creating_session(subsession):
+    if subsession.round_number == 1:
+        # Draw once and store at the session level
+        condition_order = choice(C.LATIN_SQUARE_ORDERS)
+        print("Chosen Latin square:", condition_order)
+
+        for p in subsession.get_players():
+            p.participant.condition_order = condition_order
+
     for p in subsession.get_players():
         p.color = C.COLORMAP[p.id_in_group - 1]
 
@@ -440,36 +455,46 @@ class Task(Page):
             level = 1
             difficulty = "Optimal"
             min_level = C.MIN_DIFFICULTY
+
         # Now start the "real" task rounds (after practice and calibration)
-        # TODO: I need to add the latin square randomization here somehow!
-        elif player.round_number == 3:
-            level = 1
-            difficulty = "Easy"
-            min_level = C.MIN_DIFFICULTY
-        elif player.round_number == 4:
-            level = player.participant.calibrated_difficulty
-            # print("Level: " + str(level))
-            difficulty = "Optimal"
-            min_level = C.MIN_DIFFICULTY
-        elif player.round_number == 5:
-            # Check all difficulty selections and calculate the median
-            selected_difficulties = []
-            for p in player.subsession.get_players():
-                selected_difficulties.append(p.participant.selected_difficulty)
-            median_difficulty = statistics.median(selected_difficulties)
-            # Set the parameters
-            level = median_difficulty
-            difficulty = "Optimal"
-            min_level = C.MIN_DIFFICULTY
-        elif player.round_number == 6:
-            # "In the Hard condition, the difficulty level could not fall more than
-            # three levels below the calibrated starting level. This starting level
-            # was set to be twelve levels higher than the level calibrated as optimal
-            # for the participant(s) in a calibration stage before the main task."
-            level = player.participant.calibrated_difficulty + 12
-            # print("Level: " + str(level))
-            difficulty = "Hard"
-            min_level = level-3
+        else: # Rounds 3–6: Experimental rounds
+            # Get current condition letter from the Latin square
+            index = player.round_number - 3  # 0 for round 3, up to 3 for round 6
+            condition = player.participant.condition_order[index]
+
+            if condition == "B":
+                level = 1
+                difficulty = "Easy"
+                min_level = C.MIN_DIFFICULTY
+
+            elif condition == "F":
+                level = player.participant.calibrated_difficulty
+                difficulty = "Optimal"
+                min_level = C.MIN_DIFFICULTY
+
+            elif condition == "A":
+                # Check all difficulty selections and calculate the median
+                selected_difficulties = []
+                for p in player.subsession.get_players():
+                    selected_difficulties.append(p.participant.selected_difficulty)
+                median_difficulty = statistics.median(selected_difficulties)
+                # Set the parameters
+                level = median_difficulty
+                difficulty = "Optimal"
+                min_level = C.MIN_DIFFICULTY
+
+            elif condition == "O":
+                # "In the Hard condition, the difficulty level could not fall more than
+                # three levels below the calibrated starting level. This starting level
+                # was set to be twelve levels higher than the level calibrated as optimal
+                # for the participant(s) in a calibration stage before the main task."
+                level = player.participant.calibrated_difficulty + 12
+                # print("Level: " + str(level))
+                difficulty = "Hard"
+                min_level = level-3
+
+            else:
+                raise ValueError(f"Unknown condition: {condition}")
 
         return dict(
             level = level,
@@ -618,7 +643,12 @@ class DifficultySelection(Page):
         player.participant.selected_difficulty = player.level_storage
 
     def is_displayed(player: Player):
-        return player.round_number == 5 # TODO: Needs to be adjusted dynamically
+        # Only applicable for rounds 3–6
+        if player.round_number < 3:
+            return False
+
+        index = player.round_number - 3  # Index 0–3 for condition_order
+        return player.participant.condition_order[index] == "A"
 
 page_sequence = [BeforeTask, # Only shown once
                  PracticeBefore, CalibrationBefore, DifficultySelection,

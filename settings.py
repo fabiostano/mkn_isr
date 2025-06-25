@@ -14,7 +14,7 @@ LANGUAGE_CODE = 'en'
 REAL_WORLD_CURRENCY_CODE = 'EUR'
 USE_POINTS = False
 DEMO_PAGE_INTRO_HTML = ''
-PARTICIPANT_FIELDS = ["calibrated_difficulty", "selected_difficulty"]
+PARTICIPANT_FIELDS = ["condition_order", "calibrated_difficulty", "selected_difficulty"]
 SESSION_FIELDS = []
 ROOMS = [dict(name='my_room', display_name='my_room')]
 
