@@ -2,15 +2,17 @@
 
 {% block title %}
     <div class="d-flex justify-content-center" style="margin-top: -50px">
-        <h2 style="margin-bottom:20px">ROUND 1 DONE</h2>
+        <h2 id="heading" style="margin-bottom:20px">MATH TASK</h2>
     </div>
 {% endblock %}
 
 {% block content %}
     <div class="jumbotron">
-        <p>You are done with the first round.</p>
+        <h3>CALIBRATION ROUND DONE!</h3>
         <p>In the following round, please solve the equations as quickly as you can.</p>
-        <p>Please avoid unnecessary movements, and please do not speak (i.e. please stay silent).</p>
+            {% block speak_instruction %}
+            <p>Please avoid unnecessary movements.</p>
+        {% endblock %}
         <p>Click on "Next" to proceed.</p>
     </div>
 
@@ -19,3 +21,4 @@
     </div>
 
 {% endblock %}
+

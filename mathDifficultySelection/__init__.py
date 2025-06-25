@@ -247,34 +247,6 @@ class Player(BasePlayer):
         max=12
     )
 
-class BetweenRounds_fss(Page):
-    form_model = 'player'
-
-    @staticmethod
-    def get_form_fields(player: Player):
-        import random
-
-        fss_fields = ['fss01', 'fss02', 'fss03', 'fss04', 'fss05', 'fss06', 'fss07', 'fss08', 'fss09', 'fss10']
-        aut_fields = ['aut01', 'aut02', 'aut03']
-        rsme_fields = ['rsme']
-        fatigue_fields = ['fatigue_state']
-
-        random.shuffle(fss_fields)
-        random.shuffle(aut_fields)
-
-        form_fields = fss_fields + aut_fields + rsme_fields + fatigue_fields
-        return form_fields
-
-class BetweenRounds_rsme(Page):
-    form_model = 'player'
-
-    form_fields = ['rsme']
-
-class BetweenRounds_pna(Page):
-    form_model = 'player'
-
-    form_fields = ['pleasure', 'arousal']
-
 class MathInstructions(Page):
     form_model = 'player'
 
@@ -307,6 +279,17 @@ class MathEasy(Page):
             "breakDuration": 4 * 1000
         }
 
+class MathCalibration(Page):
+    form_model = 'player'
+    form_fields = ['math_actions']
+
+    @staticmethod
+    def vars_for_template(player: Player):
+        return {
+            "taskDuration": 60 * 1000,
+            "trialDuration": 18 * 1000,
+            "breakDuration": 4 * 1000
+        }
 
 class MathDifficultySelection(Page):
     form_model = 'player'
