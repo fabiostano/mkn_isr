@@ -1,4 +1,6 @@
 import random
+from random import choice
+import statistics
 from otree.api import *
 c = cu
 doc = ''
