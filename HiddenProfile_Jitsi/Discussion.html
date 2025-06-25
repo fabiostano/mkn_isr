@@ -23,6 +23,9 @@
         <button class="btn-primary btn-lg" id="nextbtn">Next</button>
     </div>
 </div>
+<div id="waiting-message" style="margin-top: 10px; text-align: center; color: gray; display: none;">
+    Waiting for others...
+</div>
 
 <!-- Logging fields -->
 <input type="hidden" name="task_load_time" id="task_load_time" value=""/>
@@ -179,7 +182,7 @@
     });
 
 
-    // particiapnt joined
+    // participant joined
     api.on("participantJoined", function (parjoin) {
         console.log("partjoined_id_" + parjoin.id);
         //console.log(      new Date().toString() + ": " + "partjoinedvarname",      parjoin.id    );
@@ -244,7 +247,6 @@
         if (data.type === "go_to_next") {
             form.submit();
         } else if (data.type === "waiting") {
-            alert("Waiting for others...");
         }
     }
 
@@ -263,10 +265,21 @@
             document.getElementById("task_load_time").value = Date.now();
 
             const button = document.getElementById("nextbtn");
+            const waitingMessage = document.getElementById("waiting-message");
+
+            function handleNextClick() {
+                button.disabled = true;
+                button.style.backgroundColor = "#ccc";
+                button.style.borderColor = "#ccc";
+                button.style.color = "#666";
+                button.style.cursor = "not-allowed";
+                waitingMessage.style.display = "block";
+                liveSend({ type: "next_clicked" });
+            }
 
             button.addEventListener("click", function (e) {
                 e.preventDefault();
-                liveSend({ type: "next_clicked" });
+                handleNextClick();
             });
 
             setTimeout(() => {
