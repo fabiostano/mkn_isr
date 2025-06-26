@@ -59,6 +59,9 @@ class Player(BasePlayer):
     pleasure = models.IntegerField(label="test", choices=[[1, '1'], [2, '2'], [3, '3'], [4, '4'], [5, '5'], [6, '6'], [7, '7'], [8, '8'], [9, '9']], widget=widgets.RadioSelectHorizontal)
     arousal = models.IntegerField(label="test", choices=[[1, '1'], [2, '2'], [3, '3'], [4, '4'], [5, '5'], [6, '6'], [7, '7'], [8, '8'], [9, '9']], widget=widgets.RadioSelectHorizontal)
 
+class Vorbereitung(Page):
+    form_model = 'player'
+
 class Welcome(Page):
     form_model = 'player'
 
@@ -70,4 +73,4 @@ class StateQuestionnaire(Page):
     form_model = 'player'
     form_fields = ['pleasure', 'arousal']
 
-page_sequence = [Welcome, IntroQuestionnaire, StateQuestionnaire]
+page_sequence = [Vorbereitung, Welcome, IntroQuestionnaire, StateQuestionnaire]
