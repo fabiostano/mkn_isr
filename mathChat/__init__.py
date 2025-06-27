@@ -1,4 +1,6 @@
 import random
+from random import choice
+import statistics
 from otree.api import *
 c = cu
 doc = ''
@@ -6,14 +8,20 @@ doc = ''
 class C(BaseConstants):
     NAME_IN_URL = 'mathChat'
     PLAYERS_PER_GROUP = 3
-    NUM_ROUNDS = 4
-    TASK_TIME_LIMIT = 2 * 60 # Task Time
+    NUM_ROUNDS = 6
+    TASK_TIME_LIMIT = 1 * 60 # Task Time
     TRIAL_TIME = 28
     BREAK_TIME = 4
     MIN_DIFFICULTY = 1  # Start difficulty level
-    MAX_DIFFICULTY = 16  # Highest difficulty level
+    MAX_DIFFICULTY = 50  # Highest difficulty level; As in brownie autonomy selection screen;
 
     COLORMAP = ['lightcoral', 'lightgreen', 'lightblue']
+    LATIN_SQUARE_ORDERS = [
+        ["B", "F", "O", "A"],
+        ["F", "A", "B", "O"],
+        ["O", "B", "A", "F"],
+        ["A", "O", "F", "B"]
+    ]
 
 class Subsession(BaseSubsession):
     pass
@@ -25,12 +33,14 @@ class Player(BasePlayer):
     color = models.StringField(initial="none")
     action_log = models.LongStringField(initial="")
     answer_history = models.StringField(initial="")
-    level_history = models.StringField(initial="")
+    level_history = models.StringField(initial="", blank=True)
+    level_storage = models.IntegerField() # This is for the self-selected difficulty
     chat_log = models.LongStringField(initial="")
 
     # ----- Timestamps ----- #
     task_load_time = models.StringField(blank=True)
     # rest_load_time = models.StringField(blank=True)
+    rest_actions_eo = models.StringField(label="")
 
     def make_7p_likert_field(label):
         return models.IntegerField(
@@ -224,17 +234,53 @@ class Player(BasePlayer):
     fam2_lightblue = make_7p_likert_field('During the task, how closely did you work together with the player labeled lightblue?')
 
 def creating_session(subsession):
+    if subsession.round_number == 1:
+        # Draw once and store at the session level
+        condition_order = choice(C.LATIN_SQUARE_ORDERS)
+        print("Chosen Latin square:", condition_order)
+
+        for p in subsession.get_players():
+            p.participant.condition_order = condition_order
+
     for p in subsession.get_players():
         p.color = C.COLORMAP[p.id_in_group - 1]
 
 class Explanation(Page):
     form_model = 'player'
+
+    def is_displayed(player: Player):
+        return player.round_number > 2
+
+class PracticeBefore(Page):
+    form_model = 'player'
+
     def is_displayed(player: Player):
         return player.round_number == 1
 
+class PracticeAfter(Page):
+    form_model = 'player'
+
+    def is_displayed(player: Player):
+        return player.round_number == 1
+
+class CalibrationBefore(Page):
+    form_model = 'player'
+
+    def is_displayed(player: Player):
+        return player.round_number == 2
+
+class CalibrationAfter(Page):
+    form_model = 'player'
+
+    def is_displayed(player: Player):
+        return player.round_number == 2
+
 class RestEyesOpen(Page):
     form_model = 'player'
-    form_fields = ['rest_actions']
+    form_fields = ['rest_actions_eo']
+
+    def is_displayed(player: Player):
+        return player.round_number > 2
 
 class BeforeTask(Page):
     form_model = 'player'
@@ -301,6 +347,9 @@ class TaskSurvey(Page):
         random.shuffle(info_fields)
         all_fields += info_fields
         return all_fields
+
+    def is_displayed(player: Player):
+        return player.round_number > 2
 
 class TaskPhaseSurvey(Page):
     form_model = 'player'
@@ -372,28 +421,104 @@ class TaskPhaseSurvey(Page):
     def is_displayed(player: Player):
         return player.round_number == C.NUM_ROUNDS
 
+# A function to calculate the optimal difficulty from the calibration stage
+def calculate_baseline_level(level_history_str):
+    # Convert the comma-separated string into a list of integers
+    levels = list(map(int, level_history_str.strip().split(',')))
+    n = len(levels)
+
+    # If there are no levels, return the default baseline level of 1
+    if n == 0:
+        return 1
+
+    # Compute the number of values to consider: last 25% of the list
+    # Add 1 if there's a remainder to match the Java behavior
+    quartile_len = n // 4 + (1 if n % 4 > 0 else 0)
+
+    # Slice the last 'quartile_len' values from the list
+    recent_levels = levels[-quartile_len:]
+
+    # Compute and return the integer average (rounded down)
+    return sum(recent_levels) // quartile_len
+
 class Task(Page):
     form_model = 'player'
     form_fields = ['action_log', 'task_load_time', 'level_history', 'chat_log']
-    # timeout_seconds = 5
-
-    # @staticmethod
-    # def before_next_page(player, timeout_happened):
-    #     if timeout_happened:
-    #         print("Timeout should have happened now...")
 
     def vars_for_template(player):
+        # Configure parameters for different task round (difficulty treatments)
+        if player.round_number == 1: # This is the practice round!
+            level = 1
+            difficulty = "Easy"
+            min_level = C.MIN_DIFFICULTY
+        elif player.round_number == 2: # This is the calibration round!
+            level = 1
+            difficulty = "Optimal"
+            min_level = C.MIN_DIFFICULTY
+
+        # Now start the "real" task rounds (after practice and calibration)
+        else: # Rounds 3–6: Experimental rounds
+            # Get current condition letter from the Latin square
+            index = player.round_number - 3  # 0 for round 3, up to 3 for round 6
+            condition = player.participant.condition_order[index]
+
+            if condition == "B":
+                level = 1
+                difficulty = "Easy"
+                min_level = C.MIN_DIFFICULTY
+
+            elif condition == "F":
+                level = player.participant.calibrated_difficulty
+                difficulty = "Optimal"
+                min_level = C.MIN_DIFFICULTY
+
+            elif condition == "A":
+                # Check all difficulty selections and calculate the median
+                selected_difficulties = []
+                for p in player.subsession.get_players():
+                    selected_difficulties.append(p.participant.selected_difficulty)
+                median_difficulty = statistics.median(selected_difficulties)
+                # Set the parameters
+                level = median_difficulty
+                difficulty = "Optimal"
+                min_level = C.MIN_DIFFICULTY
+
+            elif condition == "O":
+                # "In the Hard condition, the difficulty level could not fall more than
+                # three levels below the calibrated starting level. This starting level
+                # was set to be twelve levels higher than the level calibrated as optimal
+                # for the participant(s) in a calibration stage before the main task."
+                level = player.participant.calibrated_difficulty + 12
+                # print("Level: " + str(level))
+                difficulty = "Hard"
+                min_level = level-3
+
+            else:
+                raise ValueError(f"Unknown condition: {condition}")
+
         return dict(
-            level = 10,
-            min_level = C.MIN_DIFFICULTY,
+            level = level,
+            min_level = min_level,
             max_level = C.MAX_DIFFICULTY,
-            difficulty = "Optimal",
+            difficulty = difficulty,
             id = player.id_in_group,
             taskDuration = C.TASK_TIME_LIMIT,
             trialDuration=C.TRIAL_TIME,
             breakDuration=C.BREAK_TIME,
             color = C.COLORMAP[player.id_in_group-1]
         )
+
+    def before_next_page(player, timeout_happened):
+        if player.round_number == 2:  # This is the calibration round!
+            # print(player.level_history)  # This will provide a list of all the shown levels
+            # Check if the level_history object is not empty
+            if player.level_history and player.level_history.strip():
+                calibrated_difficulty = calculate_baseline_level(player.level_history)
+                print("Calibrated difficulty: " + str(calibrated_difficulty))
+
+                # Set this level for all participants
+                for p in player.subsession.get_players():
+                    p.participant.calibrated_difficulty = calibrated_difficulty
 
     @staticmethod
     def live_method(player, data):
@@ -500,5 +625,36 @@ class Task(Page):
 
         return {}
 
-page_sequence = [BeforeTask, Wait_Page, Task, TaskSurvey, TaskPhaseSurvey]
+class DifficultySelection(Page):
+    form_model = 'player'
+    form_fields = ['level_storage']
+
+    def vars_for_template(player):
+        return dict(
+            level = 1,
+            min_level = 1,
+            max_level = C.MAX_DIFFICULTY,
+            id = player.id_in_group,
+            color = C.COLORMAP[player.id_in_group-1]
+        )
+
+    def before_next_page(player, timeout_happened):
+        # Set this level for this participant
+        player.participant.selected_difficulty = player.level_storage
+
+    def is_displayed(player: Player):
+        # Only applicable for rounds 3–6
+        if player.round_number < 3:
+            return False
+
+        index = player.round_number - 3  # Index 0–3 for condition_order
+        return player.participant.condition_order[index] == "A"
+
+page_sequence = [BeforeTask, # Only shown once
+                 PracticeBefore, CalibrationBefore, DifficultySelection,
+                 Explanation, Wait_Page, Task, # All repeated (incl. practice and calibration)
+                 PracticeAfter, CalibrationAfter,
+                 TaskSurvey, RestEyesOpen, # All repeated (only after calibration)
+                 TaskPhaseSurvey # Only shown once
+                 ]
 
