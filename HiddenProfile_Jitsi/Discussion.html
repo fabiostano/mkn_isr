@@ -28,7 +28,8 @@
 </div>
 
 <!-- Logging fields -->
-<input type="hidden" name="task_load_time" id="task_load_time" value=""/>
+<input type="hidden" name="task_load_time_discussion" id="task_load_time_discussion" value=""/>
+<input type="hidden" name="task_end_time_discussion" id="task_end_time_discussion" value=""/>
 <input type="hidden" name="speech_time" id="speech_time" value=""/>
 {{ formfield_errors 'speech_time' }}
 
@@ -262,12 +263,13 @@
         waitForLiveRecv(function () {
             const form = document.querySelector("form");
 
-            document.getElementById("task_load_time").value = Date.now();
+            document.getElementById("task_load_time_discussion").value = Date.now();
 
             const button = document.getElementById("nextbtn");
             const waitingMessage = document.getElementById("waiting-message");
 
             function handleNextClick() {
+                document.getElementById("task_end_time_discussion").value = Date.now();
                 button.disabled = true;
                 button.style.backgroundColor = "#ccc";
                 button.style.borderColor = "#ccc";

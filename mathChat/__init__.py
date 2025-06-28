@@ -9,7 +9,7 @@ class C(BaseConstants):
     NAME_IN_URL = 'mathChat'
     PLAYERS_PER_GROUP = 3
     NUM_ROUNDS = 6
-    TASK_TIME_LIMIT = 1 * 60 # Task Time
+    TASK_TIME_LIMIT = 3 * 60 # Task Time
     TRIAL_TIME = 28
     BREAK_TIME = 4
     MIN_DIFFICULTY = 1  # Start difficulty level
@@ -35,7 +35,7 @@ class Player(BasePlayer):
     answer_history = models.StringField(initial="")
     level_history = models.StringField(initial="", blank=True)
     level_storage = models.IntegerField() # This is for the self-selected difficulty
-    chat_log = models.LongStringField(initial="")
+    chat_log = models.LongStringField(initial="", blank=True)
 
     # ----- Timestamps ----- #
     task_load_time = models.StringField(blank=True)
@@ -510,7 +510,6 @@ class Task(Page):
 
     def before_next_page(player, timeout_happened):
         if player.round_number == 2:  # This is the calibration round!
-            # print(player.level_history)  # This will provide a list of all the shown levels
             # Check if the level_history object is not empty
             if player.level_history and player.level_history.strip():
                 calibrated_difficulty = calculate_baseline_level(player.level_history)
@@ -519,6 +518,9 @@ class Task(Page):
                 # Set this level for all participants
                 for p in player.subsession.get_players():
                     p.participant.calibrated_difficulty = calibrated_difficulty
+
+            # else: # This would be the case if I auto-advance (even just one player...)
+            #    player.participant.calibrated_difficulty = -1
 
     @staticmethod
     def live_method(player, data):
@@ -543,8 +545,11 @@ class Task(Page):
                 del active_selections[key]  # Remove old selection
 
             # Check if the new field is already taken
-            if selected_id in active_selections:
-                return {}  # Prevent overriding someone else's selection
+            if selected_id.startswith("final"):
+                # Allow overlapping selections on final input fields
+                pass
+            elif selected_id in active_selections:
+                return {} # Prevent overriding someone else's selection
 
             # Assign the new selection to this player
             active_selections[selected_id] = player_color

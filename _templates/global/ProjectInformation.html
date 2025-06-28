@@ -83,5 +83,21 @@
 
 <br/><br/>
 
-{{ next_button }}
+<!-- Logging fields -->
+<input type="hidden" name="task_load_time_project" id="task_load_time_project" value=""/>
+<input type="hidden" name="task_end_time_project" id="task_end_time_project" value=""/>
+
+<div class="d-flex justify-content-center">
+    <button class="otree-btn-next btn btn-primary next-button otree-next-button" onclick="logNextTime()">Next</button>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        document.getElementById("task_load_time_project").value = Date.now();
+    });
+    function logNextTime() {
+        document.getElementById("task_end_time_project").value = Date.now();
+    }
+</script>
+
 {% endblock %}

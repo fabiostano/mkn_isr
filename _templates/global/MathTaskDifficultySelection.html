@@ -88,19 +88,21 @@
                 </table>
             </div>
         </div>
+        <div class="row" style="padding-left:50px; padding-right: 50px; margin-left:40px;">
+            <div class="spinner-wrapper">
+                <p>Select your optimal level here:</p>
+                <button type="button" onclick="decrement()">-</button>
+                <input type="number" id="difficultySpinner" name="difficulty" min="{{ min_level }}" max="{{ max_level }}" value="{{ level }}" step="1" oninput="handleSpinnerChange(this.value)" style="width: 80px;"/>
+                <button type="button" onclick="increment()">+</button>
+            </div>
+        </div>
     </div>
-    <div>
-        <p>Select your optimal level here:</p>
-        <input type="number" id="difficultySpinner" name="difficulty" min="{{ min_level }}" max="{{ max_level }}"
-        value="{{ level }}" step="1" oninput="handleSpinnerChange(this.value)" style="width: 80px;"/>
-    </div>
-
 </div>
 
 <!-- NEXT BUTTON -->
 <div>
     <div class="d-flex justify-content-center" style="display:none">
-        <button class="btn-primary btn-lg" id="nextbtn">Submit Level Selection</button>
+        <button class="otree-btn-next btn btn-primary next-button otree-next-button" id="nextbtn">Submit Level Selection</button>
     </div>
 </div>
 
@@ -268,6 +270,18 @@
 
         // Do something with the new value
         generateEquations(intValue);
+    }
+
+    function increment() {
+        let input = document.getElementById('difficultySpinner');
+        input.stepUp();
+        handleSpinnerChange(input.value);
+    }
+
+    function decrement() {
+        let input = document.getElementById('difficultySpinner');
+        input.stepDown();
+        handleSpinnerChange(input.value);
     }
 
     document.addEventListener("DOMContentLoaded", function() {

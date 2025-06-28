@@ -2,6 +2,8 @@ from os import environ
 SESSION_CONFIG_DEFAULTS = dict(real_world_currency_per_point=1, participation_fee=15)
 
 SESSION_CONFIGS = [
+                   dict(name='LabTest', num_demo_participants=3, app_sequence=['HiddenProfile_Chat', 'HiddenProfile_Jitsi']),
+                   dict(name='HPTest', num_demo_participants=3, app_sequence=['HiddenProfile_Chat']),
                    dict(name='MathTest', num_demo_participants=3, app_sequence=['mathChat']),
                    dict(name='all', num_demo_participants=3, app_sequence=['Intro', 'HiddenProfile_Jitsi', 'HiddenProfile_Chat', 'mathJitsi', 'mathChat', 'Outro']),
                    dict(name='Jitsi1', num_demo_participants=3, app_sequence=['Intro','mathJitsi', 'HiddenProfile_Jitsi', 'Outro']),

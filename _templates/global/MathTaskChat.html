@@ -115,7 +115,7 @@
     <input type="hidden" name="level_history" id="level_history" value="">
     <input type="hidden" id="level_storage" value="{{level}}">
 
-    <input type="hidden" name="chat_log" id="chat_log" value="TODO"/>
+    <input type="hidden" name="chat_log" id="chat_log" value=""/>
 </div>
 
 {% endblock %}
@@ -350,8 +350,8 @@
     const taskDuration = {{taskDuration}} * 1000;
     const trialDuration = {{trialDuration}} * 1000;
     const breakDuration = {{breakDuration}} * 1000;
-    const finalInputBlockDuration = 1 * 1000; // 10 * 1000;
-    const startWaitDuration = 5 * 1000;
+    const finalInputBlockDuration = 1 * 1000; // TODO: 10 * 1000;
+    const startWaitDuration = 5 * 1000; // TODO: 10 * 1000;
 
     let equationObject = [];
     let difficulty = "{{difficulty}}";
@@ -498,11 +498,9 @@
         let actionLog = document.getElementById("action_log").value;
 
         if (reason === "timeUp"){
-            actionLog += `,[timeUp,${isCorrect1},${isCorrect2},${isCorrect3},${isCorrectFinSolOwn},${isCorrectFinSolA},${isCorrectFinSolB},${timestamp}]`;
-        } else if (reason === "start"){
-            actionLog += `[start,${isCorrect1},${isCorrect2},${isCorrect3},${isCorrectFinSolOwn},${isCorrectFinSolA},${isCorrectFinSolB},${timestamp}]`;
+            actionLog += `;[${timestamp},timeUp,${sol1},${isCorrect1},${sol2},${isCorrect2},${sol3},${isCorrect3},${finSolOwn},${isCorrectFinSolOwn},${finSolA},${isCorrectFinSolA},${finSolB},${isCorrectFinSolB}]`;
         } else {
-            actionLog += `,[submit,${isCorrect1},${isCorrect2},${isCorrect3},${isCorrectFinSolOwn},${isCorrectFinSolA},${isCorrectFinSolB},${timestamp}]`;
+            actionLog += `;[${timestamp},submit,${sol1},${isCorrect1},${sol2},${isCorrect2},${sol3},${isCorrect3},${finSolOwn},${isCorrectFinSolOwn},${finSolA},${isCorrectFinSolA},${finSolB},${isCorrectFinSolB}]`;
         }
         document.getElementById("action_log").value = actionLog;
 
@@ -523,6 +521,7 @@
         ["sol_1", "sol_2", "sol_3", "fin_sol_own", "fin_sol_a", "fin_sol_b"].forEach(id => {
             const input = document.getElementById(id);
             input.value = "";
+            input.blur();
             input.disabled = true;
         });
 
@@ -553,6 +552,11 @@
 
             // Generate distributions
             disributionObject = generateEquationDistribution();
+
+            // Log the start of the trial
+            let actionLog = document.getElementById("action_log").value;
+            actionLog += `;[${Date.now()},trialStart,(${equationObject.equations.join("&")}), ${JSON.stringify(disributionObject)}]`;
+            document.getElementById("action_log").value = actionLog;
 
             // Send the generated equations to all players
             liveSend({
@@ -586,7 +590,9 @@
 
     // Action Signaling Methods
     function selectSol(element) {
-        liveSend({"info_type": "selected", "player": "{{color}}", "selected": element.id});
+        if(!element.disabled) { // TODO: If it helps, add to selectFinSol() too?
+            liveSend({"info_type": "selected", "player": "{{color}}", "selected": element.id});
+        }
     }
 
     function selectFinSol() {
@@ -594,7 +600,9 @@
     }
 
     function deselectSol(element) {
-        liveSend({"info_type": "deselect", "player": "{{color}}", "deselected": element.id});
+        if(!element.disabled) {
+            liveSend({"info_type": "deselect", "player": "{{color}}", "deselected": element.id});
+        }
     }
 
     function deselectFinSol() {
@@ -603,11 +611,25 @@
 
     // Solution Input Display Methods
     function inputChanged(element) {
-        liveSend({"info_type": "input_changed", "player": "{{color}}", "selected": element.id, "content": element.value});
+        if(!element.disabled) {
+            liveSend({
+                "info_type": "input_changed",
+                "player": "{{color}}",
+                "selected": element.id,
+                "content": element.value
+            });
+        }
     }
 
     function finalInputChanged(element) {
-        liveSend({"info_type": "final_input_changed", "player": "{{color}}", "selected": "final", "content": element.value});
+        if(!element.disabled) {
+            liveSend({
+                "info_type": "final_input_changed",
+                "player": "{{color}}",
+                "selected": "final",
+                "content": element.value
+            });
+        }
     }
 
     document.addEventListener("DOMContentLoaded", function() {
@@ -704,20 +726,18 @@
             // If the selected element is a final solution, unhide it for others
             if (data.selected === "final") {
                 if (data.player !== "{{color}}") {
-                    document.querySelector(`.${data.player}-b`).classList.remove("invisible");
+                    let element = document.querySelector(`.${data.player}-other-final`)
+                    element.classList.remove("invisible");
                 }
-            }
-
-            // Add new highlight to the selected element
-            document.getElementById(data.selected).classList.add(data.player);
-
-            // Block the element from editing from other users at the same time
-            if ("{{color}}" === data.player) {
-                document.getElementById(data.field).classList.remove("readonly");
-                document.getElementById(data.selected).classList.add("editable");
+            // Otherwise highlight and block the selected field
             } else {
-                document.getElementById(data.selected).classList.remove("editable");
-                document.getElementById(data.selected).classList.add("readonly");
+                // Add new highlight to the selected element
+                document.getElementById(data.selected).classList.add(data.player);
+
+                // Block the element from editing from other users at the same time
+                if (data.player !== "{{color}}") {
+                    document.getElementById(data.selected).disabled = true;
+                }
             }
         }
 
@@ -725,7 +745,9 @@
             if (data.field === "final") {
                 // If the selected element is a final solution, but no values were added, hide it again for others
                 if (data.player !== "{{color}}") {
-                    const inputField = document.querySelector(`.${data.player}-b`);
+                    console.log("Should hide final input for {{color}}");
+                    let inputField = document.querySelector(`.${data.player}-other-final`);
+                    console.log(inputField);
                     if (inputField && inputField.value.trim() === "") {
                         inputField.classList.add("invisible");
                     }
@@ -733,8 +755,7 @@
             }
             else {
                 document.getElementById(data.field).classList.remove(data.player);
-                document.getElementById(data.field).classList.remove("readonly");
-                document.getElementById(data.field).classList.add("editable");
+                document.getElementById(data.field).disabled = false;
             }
         }
 
@@ -846,10 +867,11 @@
 <script>
     function sendMessage(event) {
         if (event.key === "Enter") {
+            let timestamp = Date.now();
             let message = document.getElementById("chat-input").value;
             liveSend({"info_type": "chat_message", "message": message, "color": "{{color}}"});
             document.getElementById("chat-input").value = "";  // Clear input field
-            document.getElementById("chat_log").value += "[" + date.getDate() + "," + message + "],"
+            document.getElementById("chat_log").value += "[" + timestamp + "," + message + "];"
         }
     }
 </script>

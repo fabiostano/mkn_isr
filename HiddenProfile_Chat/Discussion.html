@@ -34,8 +34,9 @@
 </div>
 
 <!-- Logging fields -->
-<input type="hidden" name="task_load_time" id="task_load_time" value=""/>
-<input type="hidden" name="chat_log" id="chat_log" value="TODO"/>
+<input type="hidden" name="task_load_time_discussion" id="task_load_time_discussion" value=""/>
+<input type="hidden" name="task_end_time_discussion" id="task_end_time_discussion" value=""/>
+<input type="hidden" name="chat_log" id="chat_log" value=""/>
 {{ formfield_errors 'chat_log' }}
 
 {% endblock %}
@@ -182,10 +183,11 @@
 <script>
     function sendMessage(event) {
         if (event.key === "Enter") {
+            let timestamp = Date.now();
             let message = document.getElementById("chat-input").value;
             liveSend({"info_type": "chat_message", "message": message, "color": "{{color}}"});
             document.getElementById("chat-input").value = "";  // Clear input field
-            document.getElementById("chat_log").value += "[" + date.getDate() + "," + message + "],"
+            document.getElementById("chat_log").value += "[" + timestamp + "," + message + "];"
         }
     }
 </script>
@@ -226,12 +228,13 @@
 
     document.addEventListener("DOMContentLoaded", function () {
         const form = document.querySelector("form");
-        document.getElementById("task_load_time").value = Date.now();
+        document.getElementById("task_load_time_discussion").value = Date.now();
 
         const button = document.getElementById("nextbtn");
         const waitingMessage = document.getElementById("waiting-message");
 
         function handleNextClick() {
+            document.getElementById("task_end_time_discussion").value = Date.now();
             button.disabled = true;
             button.style.backgroundColor = "#ccc";
             button.style.borderColor = "#ccc";

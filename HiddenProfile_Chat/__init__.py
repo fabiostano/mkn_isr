@@ -33,7 +33,7 @@ class Group(BaseGroup):
 
 class Player(BasePlayer):
     color = models.StringField(initial="none")
-    chat_log = models.LongStringField(initial="")
+    chat_log = models.LongStringField(initial="", blank=True)
     player_role = models.StringField()
     personal_interest = models.StringField()
     shared_info = models.StringField()
@@ -42,7 +42,10 @@ class Player(BasePlayer):
     next_ready = models.BooleanField(initial=False)
 
     # ----- Timestamps ----- #
-    task_load_time = models.StringField(blank=True)
+    task_load_time_project = models.StringField(blank=True)
+    task_end_time_project = models.StringField(blank=True)
+    task_load_time_discussion = models.StringField(blank=True)
+    task_end_time_discussion = models.StringField(blank=True)
     # rest_load_time = models.StringField(blank=True)
 
     def make_7p_likert_field(label):
@@ -274,7 +277,7 @@ class DiscussionPreface(Page):
 
 class Discussion(Page):
     form_model = 'player'
-    form_fields = ['task_load_time', 'chat_log']
+    form_fields = ['task_load_time_discussion', 'task_end_time_discussion', 'chat_log']
 
     def vars_for_template(player):
         return dict(
@@ -319,6 +322,11 @@ class Decision(Page):
             'group_id': player.group.id_in_subsession,
         }
 
+class WaitForProjectInfo(WaitPage):
+    form_model = 'player'
+    title_text = "Please wait until all other team members are ready."
+    body_text = "You will be redirected automatically."
+
 class WaitForDecision(WaitPage):
     after_all_players_arrive = 'set_winning_project'
 
@@ -360,6 +368,9 @@ class GameGoal(Page):
         return True
 
 class ProjectInformation(Page):
+    form_model = 'player'
+    form_fields = ['task_load_time_project', 'task_end_time_project']
+
     @staticmethod
     def is_displayed(player: Player):
         return True
@@ -573,7 +584,8 @@ class TaskPhaseSurvey(Page):
 
 page_sequence = [Introduction,
                  Overview_1, Overview_2, Overview_3,
-                 RoleAssignment, ProjectInformation,
+                 RoleAssignment,
+                 WaitForProjectInfo, ProjectInformation,
                  WaitForRoleAssignment,
                  Discussion,
                  Decision, WaitForDecision,
