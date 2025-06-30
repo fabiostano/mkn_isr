@@ -48,7 +48,7 @@ class Player(BasePlayer):
     task_end_time_project = models.StringField(blank=True)
     task_load_time_discussion = models.StringField(blank=True)
     task_end_time_discussion = models.StringField(blank=True)
-    # rest_load_time = models.StringField(blank=True)
+    rest_actions_eo = models.StringField(label="")
 
     def make_7p_likert_field(label):
         return models.IntegerField(
@@ -577,6 +577,10 @@ class TaskPhaseSurvey(Page):
     def is_displayed(player: Player):
             return player.round_number == C.NUM_ROUNDS
 
+class RestEyesOpen(Page):
+    form_model = 'player'
+    form_fields = ['rest_actions_eo']
+
 page_sequence = [Introduction,
                  Overview_1, Overview_2, Overview_3,
                  RoleAssignment,
@@ -584,7 +588,7 @@ page_sequence = [Introduction,
                  WaitForRoleAssignment,
                  Discussion,
                  Decision, WaitForDecision,
-                 TaskSurvey, TaskPhaseSurvey]
+                 TaskSurvey, RestEyesOpen, TaskPhaseSurvey]
 
 
 

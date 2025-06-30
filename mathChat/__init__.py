@@ -9,7 +9,7 @@ class C(BaseConstants):
     NAME_IN_URL = 'mathChat'
     PLAYERS_PER_GROUP = 3
     NUM_ROUNDS = 6
-    TASK_TIME_LIMIT = 3 * 60 # Task Time
+    TASK_TIME_LIMIT = 2 * 60 # Task Time
     TRIAL_TIME = 28
     BREAK_TIME = 4
     MIN_DIFFICULTY = 1  # Start difficulty level
@@ -248,8 +248,14 @@ def creating_session(subsession):
 class Explanation(Page):
     form_model = 'player'
 
+    @staticmethod
+    def vars_for_template(player: Player):
+        return {
+            "round_nr": player.round_number-1
+        }
+
     def is_displayed(player: Player):
-        return player.round_number > 2
+        return player.round_number > 1
 
 class PracticeBefore(Page):
     form_model = 'player'
@@ -662,9 +668,9 @@ class DifficultySelection(Page):
         return player.participant.condition_order[index] == "A"
 
 page_sequence = [BeforeTask, # Only shown once
-                 PracticeBefore, CalibrationBefore, DifficultySelection,
+                 DifficultySelection, # Only shown once
                  Explanation, Wait_Page, Task, # All repeated (incl. practice and calibration)
-                 PracticeAfter, CalibrationAfter,
+                 PracticeAfter,
                  TaskSurvey, RestEyesOpen, # All repeated (only after calibration)
                  TaskPhaseSurvey # Only shown once
                  ]

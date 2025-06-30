@@ -8,11 +8,9 @@
 
 {% block content %}
     <div class="jumbotron">
-        <p>In the following round, please solve the equations as quickly as you can.</p>
-            {% block speak_instruction %}
-            <p>Please avoid unnecessary movements.</p>
-        {% endblock %}
-        <p>Click on "Next" to proceed.</p>
+        <p><b style="color:red;">Round {{ round_nr }}</b> <b>of 5</b> will be next.</p>
+        <p>Please solve the equations as quickly as you can.</p>
+        <p>Please avoid unnecessary movements.</p>
     </div>
 
     <div class="d-flex justify-content-center">

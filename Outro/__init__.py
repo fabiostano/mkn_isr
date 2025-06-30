@@ -15,17 +15,10 @@ class C(BaseConstants):
 class Subsession(BaseSubsession):
     pass
 
-
 class Group(BaseGroup):
     pass
 
-
 class Player(BasePlayer):
-    name = models.StringField(blank=True)
-    IBAN = models.StringField(blank=True)
-    BIC = models.StringField(blank=True)
-    color = models.StringField()
-
     ### --- TRAIT Q --- ###
 
     # ----- Task Attitudes ----- #
@@ -106,7 +99,6 @@ class Player(BasePlayer):
                                 widget=widgets.RadioSelectHorizontal)
 
     # ----- Recognition ----- #
-
     rec_lightcoral = models.IntegerField(label='Before the study, how well did you know the player labeled lightcoral?',
                                      choices=[[1, '1'], [2, '2'], [3, '3'], [4, '4'], [5, '5'], [6, '6'], [7, '7']],
                                      widget=widgets.RadioSelectHorizontal)
@@ -123,7 +115,6 @@ def creating_session(subsession: Subsession):
 
 class ThankYou(Page):
     form_model = 'player'
-    form_fields = ['name', 'IBAN', 'BIC']
 
 class Goodbye(Page):
     form_model = 'player'

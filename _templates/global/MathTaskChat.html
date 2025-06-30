@@ -350,8 +350,8 @@
     const taskDuration = {{taskDuration}} * 1000;
     const trialDuration = {{trialDuration}} * 1000;
     const breakDuration = {{breakDuration}} * 1000;
-    const finalInputBlockDuration = 1 * 1000; // TODO: 10 * 1000;
-    const startWaitDuration = 5 * 1000; // TODO: 10 * 1000;
+    const finalInputBlockDuration = 10 * 1000;
+    const startWaitDuration = 10 * 1000;
 
     let equationObject = [];
     let difficulty = "{{difficulty}}";
@@ -361,11 +361,10 @@
     function generateEquations(difficulty) {
         let equations = [];
         if(difficulty==="Easy") {
-            console.log("Should make an easy problem...");
             const playerCount = 3;
             const firstSummands = [100, 100, 100];
             const secondSummands = [1, 1, Math.floor(Math.random() * 2) + 1].sort(() => Math.random() - 0.5);
-            console.log(secondSummands);
+            // console.log(secondSummands);
 
             for (let i = 0; i < playerCount; i++) {
                 equations.push(`${firstSummands[i]} + ${secondSummands[i]}`);
@@ -377,11 +376,11 @@
 
             // Get the answer history to potentially adapt the level
             let answer_history = document.getElementById("answer_history").value || "";
-            console.log(answer_history);
+            // console.log(answer_history);
 
             // Check if the level should be adjusted
             if (answer_history.split("").length >= 3) {
-                console.log("Checking if level change should happen...");
+                // console.log("Checking if level change should happen...");
                 // Get the last 3 answers
                 let lastThree = answer_history.slice(-3);
                 // let correctCount = answer_history.split("").filter(char => char === "1").length;
@@ -390,11 +389,11 @@
 
                 if (difficulty === "Optimal"){
                     if (correctCount === 3) {
-                        console.log("3 correct!");
+                        // console.log("3 correct!");
                         level += 1; // Level up if last 3 were correct
                         levelChanged = true;
                     } else if (correctCount <= 1) {
-                        console.log("Level down!");
+                        // console.log("Level down!");
                         level = Math.max(min_level, level - 1); // Level down if 2 or more incorrect
                         levelChanged = true;
                     }
@@ -447,7 +446,7 @@
 
         // Compute final solution as the sum of all individual solutions
         let finalSolution = solutions.reduce((acc, val) => acc + val, 0);
-        console.log(finalSolution);
+        // console.log(finalSolution);
 
         return {
             equations: equations,
@@ -590,7 +589,7 @@
 
     // Action Signaling Methods
     function selectSol(element) {
-        if(!element.disabled) { // TODO: If it helps, add to selectFinSol() too?
+        if(!element.disabled) {
             liveSend({"info_type": "selected", "player": "{{color}}", "selected": element.id});
         }
     }
@@ -745,9 +744,7 @@
             if (data.field === "final") {
                 // If the selected element is a final solution, but no values were added, hide it again for others
                 if (data.player !== "{{color}}") {
-                    console.log("Should hide final input for {{color}}");
                     let inputField = document.querySelector(`.${data.player}-other-final`);
-                    console.log(inputField);
                     if (inputField && inputField.value.trim() === "") {
                         inputField.classList.add("invisible");
                     }

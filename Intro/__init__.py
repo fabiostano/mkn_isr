@@ -59,6 +59,10 @@ class Player(BasePlayer):
     pleasure = models.IntegerField(label="test", choices=[[1, '1'], [2, '2'], [3, '3'], [4, '4'], [5, '5'], [6, '6'], [7, '7'], [8, '8'], [9, '9']], widget=widgets.RadioSelectHorizontal)
     arousal = models.IntegerField(label="test", choices=[[1, '1'], [2, '2'], [3, '3'], [4, '4'], [5, '5'], [6, '6'], [7, '7'], [8, '8'], [9, '9']], widget=widgets.RadioSelectHorizontal)
 
+    # ----- REST ACTIONS ----- #
+    rest_actions_eo = models.StringField(label="")
+    rest_actions_ec = models.StringField(label="")
+
 class Vorbereitung(Page):
     form_model = 'player'
 
@@ -73,4 +77,12 @@ class StateQuestionnaire(Page):
     form_model = 'player'
     form_fields = ['pleasure', 'arousal']
 
-page_sequence = [Vorbereitung, Welcome, IntroQuestionnaire, StateQuestionnaire]
+class RestEyesOpen(Page):
+    form_model = 'player'
+    form_fields = ['rest_actions_eo']
+
+class RestEyesClosed(Page):
+    form_model = 'player'
+    form_fields = ['rest_actions_ec']
+
+page_sequence = [Vorbereitung, Welcome, IntroQuestionnaire, StateQuestionnaire, RestEyesOpen, RestEyesClosed]
