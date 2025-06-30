@@ -275,12 +275,18 @@ class CalibrationAfter(Page):
     def is_displayed(player: Player):
         return player.round_number == 2
 
+class BeforeSurvey(Page):
+    form_model = 'player'
+
+    def is_displayed(player: Player):
+        return player.round_number > 2
+
 class RestEyesOpen(Page):
     form_model = 'player'
     form_fields = ['rest_actions_eo']
 
     def is_displayed(player: Player):
-        return player.round_number > 2
+        return player.round_number > 1
 
 class BeforeTask(Page):
     form_model = 'player'
