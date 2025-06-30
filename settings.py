@@ -2,14 +2,13 @@ from os import environ
 SESSION_CONFIG_DEFAULTS = dict(real_world_currency_per_point=1, participation_fee=15)
 
 SESSION_CONFIGS = [
-                   dict(name='LabTest', num_demo_participants=3, app_sequence=['HiddenProfile_Chat', 'HiddenProfile_Jitsi']),
+                   # dict(name='all', num_demo_participants=3, app_sequence=['Intro', 'HiddenProfile_Jitsi', 'HiddenProfile_Chat', 'mathJitsi', 'mathChat', 'Outro']),
+                   # dict(name='Jitsi1', num_demo_participants=3, app_sequence=['Intro','mathJitsi', 'HiddenProfile_Jitsi', 'Outro']),
+                   # dict(name='Jitsi2', num_demo_participants=3, app_sequence=['Intro', 'HiddenProfile_Jitsi', 'mathJitsi', 'Outro']),
+                   dict(name='Chat_Math_HP', num_demo_participants=3, app_sequence=['Intro','mathChat', 'HiddenProfile_Chat', 'Outro']),
+                   dict(name='Chat_HP_Math', num_demo_participants=3, app_sequence=['Intro', 'HiddenProfile_Chat', 'mathChat', 'Outro']),
                    dict(name='HPTest', num_demo_participants=3, app_sequence=['HiddenProfile_Chat']),
-                   dict(name='MathTest', num_demo_participants=3, app_sequence=['mathChat']),
-                   dict(name='all', num_demo_participants=3, app_sequence=['Intro', 'HiddenProfile_Jitsi', 'HiddenProfile_Chat', 'mathJitsi', 'mathChat', 'Outro']),
-                   dict(name='Jitsi1', num_demo_participants=3, app_sequence=['Intro','mathJitsi', 'HiddenProfile_Jitsi', 'Outro']),
-                   dict(name='Chat1', num_demo_participants=3, app_sequence=['Intro','mathChat', 'HiddenProfile_Chat', 'Outro']),
-                   dict(name='Jitsi2', num_demo_participants=3, app_sequence=['Intro', 'HiddenProfile_Jitsi', 'mathJitsi', 'Outro']),
-                   dict(name='Chat2', num_demo_participants=3, app_sequence=['Intro', 'HiddenProfile_Chat', 'mathChat', 'Outro']),
+                   dict(name='MathTest', num_demo_participants=3, app_sequence=['mathChat'])
                    ]
 
 LANGUAGE_CODE = 'en'
