@@ -35,12 +35,13 @@ class Player(BasePlayer):
     answer_history = models.StringField(initial="")
     level_history = models.StringField(initial="", blank=True)
     level_storage = models.IntegerField() # This is for the self-selected difficulty
-    chat_log = models.LongStringField(initial="", blank=True)
 
     # ----- Timestamps ----- #
     task_load_time = models.StringField(blank=True)
-    # rest_load_time = models.StringField(blank=True)
     rest_actions_eo = models.StringField(label="")
+
+    # ----- Communication Logs ----- #
+    chat_log = models.LongStringField(initial="", blank=True)
 
     def make_7p_likert_field(label):
         return models.IntegerField(
@@ -257,35 +258,11 @@ class Explanation(Page):
     def is_displayed(player: Player):
         return player.round_number > 1
 
-class PracticeBefore(Page):
-    form_model = 'player'
-
-    def is_displayed(player: Player):
-        return player.round_number == 1
-
 class PracticeAfter(Page):
     form_model = 'player'
 
     def is_displayed(player: Player):
         return player.round_number == 1
-
-class CalibrationBefore(Page):
-    form_model = 'player'
-
-    def is_displayed(player: Player):
-        return player.round_number == 2
-
-class CalibrationAfter(Page):
-    form_model = 'player'
-
-    def is_displayed(player: Player):
-        return player.round_number == 2
-
-class BeforeSurvey(Page):
-    form_model = 'player'
-
-    def is_displayed(player: Player):
-        return player.round_number > 2
 
 class RestEyesOpen(Page):
     form_model = 'player'

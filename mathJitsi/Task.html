@@ -11,7 +11,8 @@
 <div class="row">
     <div class="container">
         <p>
-            <i>Press <b>"Enter"</b> to submit a task answer.</i><br>
+            <i>Press <b>"Enter"</b> to submit a task answer or chat message.</i><br>
+            <i>Press <b>"Tab"</b> to toggle final answer field.</i>
         </p>
     </div>
 </div>
@@ -66,7 +67,7 @@
                         <td><b>Final <br> Answer</b></td>
                     </tr>
                     <tr>
-                        <td><input id="fin_sol_a" type="number" pattern="[0-9]*" maxlength="3" class="form-control answer-box readonly" placeholder="" readonly></td>
+                        <td><input id="fin_sol_a" type="number" pattern="[0-9]*" maxlength="3" class="form-control answer-box readonly invisible" placeholder="" readonly></td>
                     </tr>
                     <tr>
                         <td></td>
@@ -74,7 +75,7 @@
                         <td></td>
                     </tr>
                     <tr>
-                        <td><input id="fin_sol_own" type="number" pattern="[0-9]*" maxlength="3" class="form-control answer-box editable" placeholder="" onclick="selectFinSol()" oninput="finalInputChanged(this)"></td>
+                        <td><input id="fin_sol_own" type="number" pattern="[0-9]*" maxlength="3" class="form-control answer-box editable" placeholder="" onclick="selectFinSol()" onblur="deselectFinSol()" oninput="finalInputChanged(this)"></td>
                     </tr>
                     <tr>
                         <td></td>
@@ -82,7 +83,7 @@
                         <td></td>
                     </tr>
                     <tr>
-                        <td><input id="fin_sol_b" type="number" pattern="[0-9]*" maxlength="3" class="form-control answer-box readonly" placeholder="" readonly></td>
+                        <td><input id="fin_sol_b" type="number" pattern="[0-9]*" maxlength="3" class="form-control answer-box readonly invisible" placeholder="" readonly></td>
                     </tr>
                 </table>
             </div>
@@ -106,19 +107,13 @@
 <!-- Logging fields -->
 <div>
     <input type="hidden" name="task_load_time" id="task_load_time" value=""/>
-    {{ formfield_errors 'task_load_time' }}
+    <input type="hidden" name="action_log" id="action_log" value=""/>
+    <input type="hidden" name="answer_history" id="answer_history" value=""/>
 
-    <input type="hidden" name="action_log" id="action_log" value="TODO"/>
-    {{ formfield_errors 'action_log' }}
-
-    <input type="hidden" name="answer_history" id="answer_history" value="TODO"/>
-
-    <input type="hidden" name="level_history" id="level_history" value="{{level}}">
-    {{ formfield_errors 'level_history' }}
-
+    <input type="hidden" name="level_history" id="level_history" value="">
     <input type="hidden" id="level_storage" value="{{level}}">
 
-    <input type="hidden" name="speech_time" id="speech_time" value="TODO"/>
+    <input type="hidden" name="speech_time" id="speech_time" value=""/>
 </div>
 
 {% endblock %}
@@ -195,15 +190,49 @@
         background-color: lightgreen !important;
     }
 
+    .lightcoral-other-final[readonly] {
+        border: none !important;
+        outline: none !important;
+        box-shadow: none !important;
+        background-color: lightcoral; !important;
+        color: white;
+    }
 
+    .lightblue-other-final[readonly] {
+        border: none !important;
+        outline: none !important;
+        box-shadow: none !important;
+        background-color: lightblue; !important;
+        color: white;
+    }
+
+    .lightgreen-other-final[readonly] {
+        border: none !important;
+        outline: none !important;
+        box-shadow: none !important;
+        background-color: lightgreen; !important;
+        color: white;
+    }
+
+    .invisible {
+        visibility: hidden;
+    }
 </style>
 {% endblock %}
 
 {% block scripts %}
 
-<!-- Button behvaiors -->
 <script>
-    // Block refresh
+    // Globale Handles, damit wir Timer sauber abbrechen können
+    let trialTimeout = null;
+    let breakTimeout = null;
+
+    function clearExistingTimers() {
+        if (trialTimeout) { clearTimeout(trialTimeout); trialTimeout = null; }
+        if (breakTimeout) { clearTimeout(breakTimeout); breakTimeout = null; }
+    }
+
+    // Block broswer page refresh
     document.addEventListener('keydown', function(event) {
         if (event.key === 'F5' || (event.ctrlKey && event.key === 'r') ||
             (event.ctrlKey && event.key === 'F5') || (event.shiftKey && event.key === 'F5') ||
@@ -216,6 +245,508 @@
     document.addEventListener('contextmenu', function(event) {
         event.preventDefault();
     });
+
+    // ENTER im eigenen Final-Feld => Antwort abgeben
+    const finInput = document.getElementById("fin_sol_own");
+    finInput.addEventListener("keydown", e => {
+        if (e.key === "Enter") submitFinalAnswer();
+    });
+
+    function submitFinalAnswer() {
+        const answer = finInput.value.trim();
+        if (answer === "") return;      // leere Eingaben ignorieren
+
+        liveSend({
+            info_type: "final_answer_submitted",
+            player: "{{color}}",
+            answer: answer
+        });
+
+        // nach Abgabe keine Änderungen mehr zulassen
+        document.querySelectorAll(".answer-box.editable").forEach(el => {
+            el.disabled = true;
+        });
+    }
+
+    // Handle tabbing behavior for controlled inputs
+    // Kept in despite missing a chat window for similarity
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Tab') {
+            e.preventDefault(); // Prevent default tab behavior
+            finInput.focus(); // Force focus to the special field
+        }
+    }, true);
+</script>
+
+<!-- Main Math Task Functions -->
+<script>
+    const taskDuration = {{taskDuration}} * 1000;
+    const trialDuration = {{trialDuration}} * 1000;
+    const breakDuration = {{breakDuration}} * 1000;
+    const finalInputBlockDuration = 10 * 1000;
+    const startWaitDuration = 10 * 1000;
+
+    let equationObject = [];
+    let difficulty = "{{difficulty}}";
+    let min_level = {{ min_level }}
+    let levelHistory = [];
+
+    function generateEquations(difficulty) {
+        let equations = [];
+        if(difficulty==="Easy") {
+            const playerCount = 3;
+            const firstSummands = [100, 100, 100];
+            const secondSummands = [1, 1, Math.floor(Math.random() * 2) + 1].sort(() => Math.random() - 0.5);
+            // console.log(secondSummands);
+
+            for (let i = 0; i < playerCount; i++) {
+                equations.push(`${firstSummands[i]} + ${secondSummands[i]}`);
+            }
+        }
+        else {
+            // Load level from hidden input
+            let level = parseInt(document.getElementById("level_storage").value) || 0;
+
+            // Get the answer history to potentially adapt the level
+            let answer_history = document.getElementById("answer_history").value || "";
+            // console.log(answer_history);
+
+            // Check if the level should be adjusted
+            if (answer_history.split("").length >= 3) {
+                // console.log("Checking if level change should happen...");
+                // Get the last 3 answers
+                let lastThree = answer_history.slice(-3);
+                // let correctCount = answer_history.split("").filter(char => char === "1").length;
+                let correctCount = lastThree.split("").filter(char => char === "1").length;
+                let levelChanged = false;
+
+                if (difficulty === "Optimal"){
+                    if (correctCount === 3) {
+                        // console.log("3 correct!");
+                        level += 1; // Level up if last 3 were correct
+                        levelChanged = true;
+                    } else if (correctCount <= 1) {
+                        // console.log("Level down!");
+                        level = Math.max(min_level, level - 1); // Level down if 2 or more incorrect
+                        levelChanged = true;
+                    }
+                } else if (difficulty === "Hard") {
+                    if (correctCount >= 2) {
+                        level += 1; // Level up if 2/3 were correct
+                        levelChanged = true;
+                    } else if (correctCount === 0) {
+                        level = Math.max(min_level, level - 1); // Level down if all 3 were incorrect
+                        levelChanged = true;
+                    }
+                }
+
+                if (levelChanged) {
+                    // Reset history once a level change occurs
+                    document.getElementById("answer_history").value = "";
+                }
+                // document.getElementById("answer_history").value = "";
+            }
+
+            // Store level for next round
+            document.getElementById("level_storage").value = level;
+            levelHistory.push(level);
+            document.getElementById("level_history").value = levelHistory.join(",");
+
+            // Define digit range based on difficulty
+            let digitRange = difficulty === "Hard" ? 6 : 3;
+
+            // Initialize equations as strings
+            equations = ["100", "100", "100"];
+
+            // Create an array of random digits with length (level + 3)
+            let digits = Array.from({ length: level + 3 }, () => Math.floor(Math.random() * digitRange) + 1);
+
+            // Cycle through equations and distribute digits
+            let i = 0;
+            while (digits.length > 0) {
+                let digit = digits.shift(); // Remove one digit from the array
+                if (/\d{2}$/.test(equations[i])) { // If the equation ends with two digits
+                    equations[i] += " + " + digit;
+                } else {
+                    equations[i] += digit; // Append the digit directly
+                }
+                i = (i + 1) % 3; // Cycle through equations
+            }
+        }
+
+        // Calculate solutions by evaluating the string equations
+        let solutions = equations.map(eq => eval(eq)); // Safely interpret and compute the equation
+
+        // Compute final solution as the sum of all individual solutions
+        let finalSolution = solutions.reduce((acc, val) => acc + val, 0);
+        // console.log(finalSolution);
+
+        return {
+            equations: equations,
+            solutions: solutions,
+            finalSolution: finalSolution
+        };
+    }
+
+    function generateEquationDistribution() {
+        const eq = (a, b) => a[0] === b[0] && a[1] === b[1];
+
+        let one, two, three;
+        do {
+            const randPair = () => [1, 2, 3].sort(() => Math.random() - 0.5).slice(0, 2).sort((a, b) => a - b);
+            one = randPair();
+            two = randPair();
+            three = randPair();
+        } while (eq(one, two) && eq(two, three));
+
+        return {
+            "lightcoral": one,
+            "lightgreen": two,
+            "lightblue": three
+        };
+    }
+
+    function resetForNewEquations(reason="submit") {
+        // Get the current input values (default to "NA" if empty)
+        let sol1 = document.getElementById("sol_1").value || "NA";
+        let sol2 = document.getElementById("sol_2").value || "NA";
+        let sol3 = document.getElementById("sol_3").value || "NA";
+        let finSolOwn = document.getElementById("fin_sol_own").value || "NA";
+        let finSolA = document.getElementById("fin_sol_a").value || "NA";
+        let finSolB = document.getElementById("fin_sol_b").value || "NA";
+
+        // Compute correctness (1 = correct, 0 = incorrect)
+        let isCorrect1 = (Number(sol1) === Number(equationObject.solutions[0])) ? 1 : 0;
+        let isCorrect2 = (Number(sol2) === Number(equationObject.solutions[1])) ? 1 : 0;
+        let isCorrect3 = (Number(sol3) === Number(equationObject.solutions[2])) ? 1 : 0;
+        let isCorrectFinSolOwn = (Number(finSolOwn) === Number(equationObject.finalSolution)) ? 1 : 0;
+        let isCorrectFinSolA = (Number(finSolA) === Number(equationObject.finalSolution)) ? 1 : 0;
+        let isCorrectFinSolB = (Number(finSolB) === Number(equationObject.finalSolution)) ? 1 : 0;
+
+        // Get timestamp
+        let timestamp = Date.now();
+
+        // Update the action log (store correctness instead of actual answers)
+        let actionLog = document.getElementById("action_log").value;
+
+        if (reason === "timeUp"){
+            actionLog += `;[${timestamp},timeUp,${sol1},${isCorrect1},${sol2},${isCorrect2},${sol3},${isCorrect3},${finSolOwn},${isCorrectFinSolOwn},${finSolA},${isCorrectFinSolA},${finSolB},${isCorrectFinSolB}]`;
+        } else {
+            actionLog += `;[${timestamp},submit,${sol1},${isCorrect1},${sol2},${isCorrect2},${sol3},${isCorrect3},${finSolOwn},${isCorrectFinSolOwn},${finSolA},${isCorrectFinSolA},${finSolB},${isCorrectFinSolB}]`;
+        }
+        document.getElementById("action_log").value = actionLog;
+
+        // Update the Count of Correct Answers
+        let answer_history = document.getElementById("answer_history").value
+        let correct_amount = isCorrectFinSolOwn + isCorrectFinSolA + isCorrectFinSolB;
+        if (correct_amount >= 2) {answer_history += "1";} else {answer_history += "0";}
+        document.getElementById("answer_history").value = answer_history;
+
+        // Clear all input fields
+        clearInputFields();
+
+        // Ensure inputs are not focused or selected
+        document.activeElement.blur();
+    }
+
+    function clearInputFields() {
+        ["sol_1", "sol_2", "sol_3", "fin_sol_own", "fin_sol_a", "fin_sol_b"].forEach(id => {
+            const input = document.getElementById(id);
+            input.value = "";
+            input.blur();
+            input.disabled = true;
+        });
+
+        // Hide the others final answers again
+        // (should only show up when something is entered for each trial)
+        ["fin_sol_a", "fin_sol_b"].forEach(id => {
+            const input = document.getElementById(id);
+            input.classList.add("invisible");
+        });
+
+        // Reset text of equations to "loading" or "xxx"
+        document.getElementById("eq_1").textContent = "loading ...";
+        document.getElementById("eq_2").textContent = "loading ...";
+        document.getElementById("eq_3").textContent = "loading ...";
+    }
+
+    function unlockAnswerFields() {
+        ["sol_1", "sol_2", "sol_3"].forEach(id => {
+            const input = document.getElementById(id);
+            input.disabled = false;
+        });
+    }
+
+    function updateEquations() {
+        if ('{{color}}' === 'lightcoral') {
+            // Generate new equations
+            equationObject = generateEquations(difficulty);
+
+            // Generate distributions
+            disributionObject = generateEquationDistribution();
+
+            // Log the start of the trial
+            let actionLog = document.getElementById("action_log").value;
+            actionLog += `;[${Date.now()},trialStart,(${equationObject.equations.join("&")}), ${JSON.stringify(disributionObject)}]`;
+            document.getElementById("action_log").value = actionLog;
+
+            // Send the generated equations to all players
+            liveSend({
+                "info_type": "Equations",
+                "equations": equationObject.equations,
+                "solutions": equationObject.solutions,
+                "finalSolution": equationObject.finalSolution,
+                "distribution": disributionObject
+            });
+        }
+    }
+
+    function startEquationCycle() {
+        // Unlock final answer field after 10 seconds (blocked initially)
+        setTimeout(() => {
+            liveSend({info_type: "openFinalInput"});
+        }, finalInputBlockDuration);
+
+        // Start a 28 sec trial
+        trialTimeout = setTimeout(() => {
+            liveSend({info_type: "timeUp"});
+
+            // 4 sec break between trials
+            breakTimeout = setTimeout(() => {
+                updateEquations();
+                startEquationCycle();
+            }, breakDuration);
+
+        }, trialDuration);
+    }
+
+    // Action Signaling Methods
+    function selectSol(element) {
+        if(!element.disabled) {
+            liveSend({"info_type": "selected", "player": "{{color}}", "selected": element.id});
+        }
+    }
+
+    function selectFinSol() {
+        liveSend({"info_type": "selected", "player": "{{color}}", "selected": "final"});
+    }
+
+    function deselectSol(element) {
+        if(!element.disabled) {
+            liveSend({"info_type": "deselect", "player": "{{color}}", "deselected": element.id});
+        }
+    }
+
+    function deselectFinSol() {
+        liveSend({"info_type": "deselect", "player": "{{color}}", "deselected": "final"});
+    }
+
+    // Solution Input Display Methods
+    function inputChanged(element) {
+        if(!element.disabled) {
+            liveSend({
+                "info_type": "input_changed",
+                "player": "{{color}}",
+                "selected": element.id,
+                "content": element.value
+            });
+        }
+    }
+
+    function finalInputChanged(element) {
+        if(!element.disabled) {
+            liveSend({
+                "info_type": "final_input_changed",
+                "player": "{{color}}",
+                "selected": "final",
+                "content": element.value
+            });
+        }
+    }
+
+    document.addEventListener("DOMContentLoaded", function() {
+        if ('{{color}}' === 'lightcoral') { // This is executed for the first player ("red")
+            document.getElementById("fin_sol_own").classList.add("lightcoral-b");
+            document.getElementById("fin_sol_a").classList.add("lightgreen-b");
+            document.getElementById("fin_sol_b").classList.add("lightblue-b");
+            document.getElementById("fin_sol_a").classList.add("lightgreen-other-final");
+            document.getElementById("fin_sol_b").classList.add("lightblue-other-final");
+
+            // So basically, the task is started after X seconds when the red player is ready
+            // When I comment this out, the task does not start...
+            setTimeout(() => {
+                updateEquations();
+                startEquationCycle();
+            }, startWaitDuration); // This sets how long the wait is before the task starts for everyone
+
+        } else if ('{{color}}' === 'lightgreen') {
+            document.getElementById("fin_sol_own").classList.add("lightgreen-b");
+            document.getElementById("fin_sol_a").classList.add("lightcoral-b");
+            document.getElementById("fin_sol_b").classList.add("lightblue-b");
+            document.getElementById("fin_sol_a").classList.add("lightcoral-other-final");
+            document.getElementById("fin_sol_b").classList.add("lightblue-other-final");
+
+        } else if ('{{color}}' === 'lightblue') {
+            document.getElementById("fin_sol_own").classList.add("lightblue-b");
+            document.getElementById("fin_sol_a").classList.add("lightcoral-b");
+            document.getElementById("fin_sol_b").classList.add("lightgreen-b");
+            document.getElementById("fin_sol_a").classList.add("lightcoral-other-final");
+            document.getElementById("fin_sol_b").classList.add("lightgreen-other-final");
+        }
+
+        // Block the input fields initially
+        clearInputFields();
+
+        document.getElementById("task_load_time").value = Date.now();
+
+        // Final task timer - i.e. when to move on to next stage in experiment
+        setTimeout(() => {
+            document.getElementById("nextbtn").click();
+        }, taskDuration);
+    });
+</script>
+
+<!-- LiveSend/Receive functions -->
+<script>
+    function liveRecv(data) {
+        if (data.info_type === "Equations") {
+            // Update equations
+            /**
+            // Showing all for every participant
+            document.getElementById("eq_1").innerText = data.equations[0];
+            document.getElementById("eq_2").innerText = data.equations[1];
+            document.getElementById("eq_3").innerText = data.equations[2];
+             **/
+
+            // Using the distribution information
+            const visibleIndices = data.distribution["{{color}}"];
+            for (let i = 1; i < 4; i++) {
+                const element = document.getElementById(`eq_${i}`);
+                if (visibleIndices.includes(i)) {
+                    element.innerText = data.equations[i-1];
+                } else {
+                    element.innerText = "?";
+                }
+            }
+
+            // Unlock answer fields
+            unlockAnswerFields();
+
+            // Ensure all players store the equationObject properly
+            equationObject = {
+                equations: data.equations,
+                solutions: data.solutions,
+                finalSolution: data.finalSolution
+            };
+        }
+
+        else if (data.info_type === "selected") {
+            // Remove highlight from the player's previous selection
+            if (data.previous && data.previous.length > 0) {
+                data.previous.forEach(prevId => {
+                    let prevElement = document.getElementById(prevId);
+                    if (prevElement) {
+                        prevElement.classList.remove(data.player);
+                    }
+                });
+            }
+
+            // If the selected element is a final solution, unhide it for others
+            if (data.selected === "final") {
+                if (data.player !== "{{color}}") {
+                    let element = document.querySelector(`.${data.player}-other-final`)
+                    element.classList.remove("invisible");
+                }
+            // Otherwise highlight and block the selected field
+            } else {
+                // Add new highlight to the selected element
+                document.getElementById(data.selected).classList.add(data.player);
+
+                // Block the element from editing from other users at the same time
+                if (data.player !== "{{color}}") {
+                    document.getElementById(data.selected).disabled = true;
+                }
+            }
+        }
+
+        else if (data.info_type === "deselected") {
+            if (data.field === "final") {
+                // If the selected element is a final solution, but no values were added, hide it again for others
+                if (data.player !== "{{color}}") {
+                    let inputField = document.querySelector(`.${data.player}-other-final`);
+                    if (inputField && inputField.value.trim() === "") {
+                        inputField.classList.add("invisible");
+                    }
+                }
+            }
+            else {
+                document.getElementById(data.field).classList.remove(data.player);
+                document.getElementById(data.field).disabled = false;
+            }
+        }
+
+        else if (data.info_type === "input_changed") {
+            document.getElementById(data.selected).value = data.content;
+        }
+
+        else if (data.info_type === "final_input_changed") {
+            if ("{{color}}" !== data.player) {
+                if (data.player === "lightcoral") {
+                    document.querySelector(".lightcoral-b").value = data.content;
+                } else if (data.player === "lightblue") {
+                    document.querySelector(".lightblue-b").value = data.content;
+                } else if (data.player === "lightgreen") {
+                    document.querySelector(".lightgreen-b").value = data.content;
+                }
+            }
+        }
+
+        else if (data.info_type === "timeUp") {
+            resetForNewEquations("timeUp");
+        }
+
+        else if (data.info_type === "openFinalInput") {
+            let input = document.getElementById("fin_sol_own")
+            input.disabled = false;
+        }
+
+        else if (data.info_type === "player_submitted") {
+            // fremde Final-Antwort eintragen
+            if (data.player !== "{{color}}") {
+                if (data.player === "lightcoral") {
+                    document.querySelector(".lightcoral-b").classList.remove("invisible");
+                    document.querySelector(".lightcoral-b").value = data.answer;
+                } else if (data.player === "lightblue") {
+                    document.querySelector(".lightblue-b").classList.remove("invisible");
+                    document.querySelector(".lightblue-b").value = data.answer;
+                } else if (data.player === "lightgreen") {
+                    document.querySelector(".lightgreen-b").classList.remove("invisible");
+                    document.querySelector(".lightgreen-b").value = data.answer;
+                }
+            }
+        }
+
+        else if (data.info_type === "all_submitted") {
+            // sicherstellen, dass alle Endergebnisse sichtbar sind
+            Object.entries(data.submissions).forEach(([col, val]) => {
+                if (col === "lightcoral")      document.querySelector(".lightcoral-b").value = val;
+                else if (col === "lightblue")  document.querySelector(".lightblue-b").value  = val;
+                else if (col === "lightgreen") document.querySelector(".lightgreen-b").value = val;
+            });
+
+            // Trial als „submit“ loggen & Felder leeren
+            resetForNewEquations("submit");
+
+            // Nur der rote Spieler startet die nächste Runde + Timer-Reset
+            if ("{{color}}" === "lightcoral") {
+                clearExistingTimers();
+                breakTimeout = setTimeout(() => {
+                    updateEquations();
+                    startEquationCycle();
+                }, breakDuration);
+            }
+        }
+    }
 </script>
 
 <!-- JITSI -->
@@ -225,7 +756,7 @@
 
     const domain = "video-meeting-system-backend.k8s.iism.kit.edu/";
     const options = {
-        roomName: "study",   // hier otree group variable oder alternativ ein string
+        roomName: "{{ room_id }}",   // hier otree group variable oder alternativ ein string
         lang: "en",
         width:  1000,   // anpassen je nach px größe
         height: 480,   // anpassen je nach px größe
@@ -236,7 +767,7 @@
             prejoinConfig: {
                 enabled: false,
             },
-            disableSelfView: false,   // wollen wir selfview?
+            disableSelfView: false,
             startWithAudioMuted: false,
             startWithVideoMuted: false,
             filmstrip: {
@@ -250,14 +781,13 @@
         },
         parentNode: document.getElementById("jitsi-surface"),  // wenn div anders benannt, dann hier anpassen
         userInfo: {
-            displayName: "{{ id }}",  // hier otree participant name
+            displayName: "{{ color }}",
         },
     };
 
     api = new JitsiMeetExternalAPI(domain, options);
 
-
-    // code snippets für unterschiedliche Logs
+    // Code snippets für unterschiedliche Logs
 
     //get participant ID after I joined   - braucht man um herauszufinden wer wer ist beim speaker
     api.on("videoConferenceJoined", function (abc) {
@@ -288,7 +818,6 @@
     api.on("audioMuteStatusChanged", function (muted) {
         console.log("audioMuteStatusChanged" + muted.muted);
     });
-
 
     // particiapnt joined
     api.on("participantJoined", function (parjoin) {
@@ -323,10 +852,9 @@
         console.log("leave_overview_all_ids:" + allIds);
     });
 
-    //dominant speaker changed event  , required for audio check
+    // dominant speaker changed event  , required for audio check
     let speakingEvents = "";
     let lastSpeaker = null;
-
 
     api.on("dominantSpeakerChanged", function (event) {
         console.log("dominantspeakerchanged_to_" + event.id);
@@ -335,12 +863,12 @@
 
         if (event.id == my_ID) {
             lastSpeaker = event.id;
-            document.getElementById("speech_time").value += "S_" + timestamp + "/";
+            document.getElementById("speech_time").value += "[S_" + timestamp + "];";
 
         } else {
-            document.getElementById("speech_time").value += "E_" + timestamp + "/";
+            document.getElementById("speech_time").value += "[E_" + timestamp + "];";
             if (lastSpeaker == my_ID) {
-                document.getElementById("speech_time").value += "E_" + timestamp + "/";
+                document.getElementById("speech_time").value += "[E_" + timestamp + "];";
             }
         }
 
@@ -348,295 +876,5 @@
     });
 </script>
 
-<!-- Math Task -->
-<script>
-    const taskDuration = {{taskDuration}} * 1000;
-    const trialDuration = {{trialDuration}} * 1000;
-    const breakDuration = {{breakDuration}} * 1000;
-
-    let equationObject = [];
-    let difficulty = "{{difficulty}}";
-
-    function updateEquations() {
-        if ('{{color}}' === 'lightcoral') {
-            equationObject = generateEquations("Optimal");
-            // Send the generated equations to all players
-            liveSend({
-                "info_type": "Equations",
-                "equations": equationObject.equations,
-                "solutions": equationObject.solutions,
-                "finalSolution": equationObject.finalSolution
-            });
-
-            document.getElementById("eq_1").textContent = equationObject.equations[0];
-            document.getElementById("eq_2").textContent = equationObject.equations[1];
-            document.getElementById("eq_3").textContent = equationObject.equations[2];
-        }
-    }
-
-    function startEquationCycle() {
-        // Allow participants to work for 28 seconds
-        setTimeout(() => {
-            liveSend({"info_type": "timeUp"}); // Broadcast to all players
-
-            // Wait 4 seconds (break), then restart the cycle
-            setTimeout(() => {
-                updateEquations();
-                startEquationCycle(); // Step 3: Start new round after the break
-            }, breakDuration);
-
-        }, trialDuration);
-    }
-
-    // Start Time Log
-    document.addEventListener("DOMContentLoaded", function() {
-        // Add keypress listener to own final input
-        const finSolInput = document.getElementById("fin_sol_own");
-        finSolInput.addEventListener("keydown", function (event) {
-            if (event.key === "Enter") {
-              submitAnswer();
-            }
-          });
-
-        if ('{{color}}' === 'lightcoral') {
-            document.getElementById("fin_sol_own").classList.add("lightcoral-b");
-
-            setTimeout(() => {
-                updateEquations("start");
-            }, 1000);
-
-        } else if ('{{color}}' === 'lightgreen') {
-            document.getElementById("fin_sol_own").classList.add("lightgreen-b");
-
-        } else if ('{{color}}' === 'lightblue') {
-            document.getElementById("fin_sol_own").classList.add("lightblue-b");
-
-        }
-
-        document.getElementById("task_load_time").value = Date.now();
-
-        setTimeout(() => {
-            document.getElementById("nextbtn").click();
-        }, taskDuration);
-
-        if ('{{color}}' === 'lightcoral') {
-            startEquationCycle();
-        }
-    });
-
-    function selectSol(element) {
-        liveSend({"info_type": "selected", "player": "{{color}}", "selected": element.id});
-    }
-
-    function selectFinSol(element) {
-        liveSend({"info_type": "selected", "player": "{{color}}", "selected": "final"});
-    }
-
-    function deselectSol(element) {
-        liveSend({"info_type": "deselect", "player": "{{color}}", "deselected": element.id});
-    }
-
-    function inputChanged(element) {
-        liveSend({"info_type": "input_changed", "player": "{{color}}", "selected": element.id, "content": element.value});
-    }
-
-    function finalInputChanged(element) {
-        liveSend({"info_type": "final_input_changed", "player": "{{color}}", "selected": "final", "content": element.value});
-    }
-
-    function submitAnswer() {
-        console.log("Attempting to submit an answer!")
-    }
-
-    function generateEquations(difficulty) {
-        // Load level from hidden input
-        let level = parseInt(document.getElementById("level_storage").value) || 0;
-        let level_hist = parseInt(document.getElementById("level_history").value) || 0;
-
-        // Get the answer history to potentially adapt the level
-        let answer_history = document.getElementById("answer_history").value || "";
-
-        if (answer_history.split("").length === 3) {
-            let correctCount = answer_history.split("").filter(char => char === "1").length;
-
-            if (difficulty === "Optimal"){
-                if (correctCount === 3) {
-                    level += 1; // Level up if last 3 were correct
-                } else if (correctCount <= 1) {
-                    level = Math.max(0, level - 1); // Level down if 2 or more incorrect
-                }
-            } else if (difficulty === "Hard") {
-                if (correctCount >= 2) {
-                    level += 1; // Level up if 2/3 were correct
-                } else if (correctCount === 0) {
-                    level = Math.max(0, level - 1); // Level down if all 3 were incorrect
-                }
-            }
-
-            document.getElementById("answer_history").value = "";
-        }
-
-        // Store level for next round
-        document.getElementById("level_storage").value = level;
-        document.getElementById("level_history").value += "," + level;
-
-        // Define digit range based on difficulty
-        let digitRange = difficulty === "Hard" ? 6 : 3;
-
-        // Initialize equations as strings
-        let equations = [
-            "100", // Equation 1
-            "100", // Equation 2
-            "100"  // Equation 3
-        ];
-
-        // Create an array of random digits with length (level + 3)
-        let digits = Array.from({ length: level + 3 }, () => Math.floor(Math.random() * digitRange) + 1);
-
-        // Cycle through equations and distribute digits
-        let i = 0;
-        while (digits.length > 0) {
-            let digit = digits.shift(); // Remove one digit from the array
-            if (/\d{2}$/.test(equations[i])) { // If the equation ends with two digits
-                equations[i] += " + " + digit;
-            } else {
-                equations[i] += digit; // Append the digit directly
-            }
-            i = (i + 1) % 3; // Cycle through equations
-        }
-
-        // Calculate solutions by evaluating the string equations
-        let solutions = equations.map(eq => eval(eq)); // Safely interpret and compute the equation
-
-        // Compute final solution as the sum of all individual solutions
-        let finalSolution = solutions.reduce((acc, val) => acc + val, 0);
-
-        return {
-            equations: equations,
-            solutions: solutions,
-            finalSolution: finalSolution
-        };
-    }
-
-    function resetForNewEquations(reason="submit") {
-        // Get the current input values (default to "NA" if empty)
-        let sol1 = document.getElementById("sol_1").value || "NA";
-        let sol2 = document.getElementById("sol_2").value || "NA";
-        let sol3 = document.getElementById("sol_3").value || "NA";
-        let finSolOwn = document.getElementById("fin_sol_own").value || "NA";
-        let finSolA = document.getElementById("fin_sol_a").value || "NA";
-        let finSolB = document.getElementById("fin_sol_b").value || "NA";
-
-        // Compute correctness (1 = correct, 0 = incorrect)
-        let isCorrect1 = (Number(sol1) === Number(equationObject.solutions[0])) ? 1 : 0;
-        let isCorrect2 = (Number(sol2) === Number(equationObject.solutions[1])) ? 1 : 0;
-        let isCorrect3 = (Number(sol3) === Number(equationObject.solutions[2])) ? 1 : 0;
-        let isCorrectFinSolOwn = (Number(finSolOwn) === Number(equationObject.finalSolution)) ? 1 : 0;
-        let isCorrectFinSolA = (Number(finSolA) === Number(equationObject.finalSolution)) ? 1 : 0;
-        let isCorrectFinSolB = (Number(finSolB) === Number(equationObject.finalSolution)) ? 1 : 0;
-
-        // Get timestamp
-        let timestamp = Date.now();
-
-        // Update the action log (store correctness instead of actual answers)
-        let actionLog = document.getElementById("action_log").value;
-
-        if (reason === "timeUp"){
-            actionLog += `,[timeUp,${isCorrect1},${isCorrect2},${isCorrect3},${isCorrectFinSolOwn},${isCorrectFinSolA},${isCorrectFinSolB},${timestamp}]`;
-        } else if (reason === "start"){
-            actionLog += `[start,${isCorrect1},${isCorrect2},${isCorrect3},${isCorrectFinSolOwn},${isCorrectFinSolA},${isCorrectFinSolB},${timestamp}]`;
-        } else {
-            actionLog += `,[submit,${isCorrect1},${isCorrect2},${isCorrect3},${isCorrectFinSolOwn},${isCorrectFinSolA},${isCorrectFinSolB},${timestamp}]`;
-        }
-        document.getElementById("action_log").value = actionLog;
-
-        // Update the Count of Correct Answers
-        let answer_history = document.getElementById("answer_history").value
-        let correct_amount = isCorrectFinSolOwn + isCorrectFinSolA + isCorrectFinSolB;
-        if (correct_amount >= 2) {answer_history += "1";} else {answer_history += "0";}
-        document.getElementById("answer_history").value = answer_history;
-
-        // Clear all input fields
-        document.getElementById("sol_1").value = "";
-        document.getElementById("sol_2").value = "";
-        document.getElementById("sol_3").value = "";
-        document.getElementById("fin_sol_own").value = "";
-        document.getElementById("fin_sol_a").value = "";
-        document.getElementById("fin_sol_b").value = "";
-
-        document.getElementById("eq_1").textContent = "loading ...";
-        document.getElementById("eq_2").textContent = "loading ...";
-        document.getElementById("eq_3").textContent = "loading ...";
-
-        // Ensure inputs are not focused or selected
-        document.activeElement.blur();
-    }
-</script>
-
-<!-- Messaging -->
-<script>
-    function liveRecv(data) {
-        if (data.info_type === "Equations") {
-            document.getElementById("eq_1").innerText = data.equations[0];
-            document.getElementById("eq_2").innerText = data.equations[1];
-            document.getElementById("eq_3").innerText = data.equations[2];
-
-            // Ensure all players store the equationObject properly
-            equationObject = {
-                equations: data.equations,
-                solutions: data.solutions,
-                finalSolution: data.finalSolution
-            };
-        }
-
-        if (data.info_type === "selected") {
-            // Remove highlight from the player's previous selection
-            if (data.previous && data.previous.length > 0) {
-                data.previous.forEach(prevId => {
-                    let prevElement = document.getElementById(prevId);
-                    if (prevElement) {
-                        prevElement.classList.remove(data.player);
-                    }
-                });
-            }
-            document.getElementById(data.selected).classList.add(data.player);
-
-            if ("{{color}}" == data.player) {
-                document.getElementById(data.field).classList.remove("readonly");
-                document.getElementById(data.selected).classList.add("editable");
-            } else {
-                document.getElementById(data.selected).classList.remove("editable");
-                document.getElementById(data.selected).classList.add("readonly");
-            }
-        }
-
-        else if (data.info_type === "deselected") {
-            document.getElementById(data.field).classList.remove(data.player);
-
-            document.getElementById(data.field).classList.remove("readonly");
-            document.getElementById(data.field).classList.add("editable");
-        }
-
-        else if (data.info_type === "input_changed") {
-            document.getElementById(data.selected).value = data.content;
-        }
-
-        else if (data.info_type === "final_input_changed") {
-            if ("{{color}}" !== data.player) {
-                if (data.player === "lightcoral") {
-                    document.querySelector(".lightcoral-b").value = data.content;
-                } else if (data.player === "lightblue") {
-                    document.querySelector(".lightblue-b").value = data.content;
-                } else if (data.player === "lightgreen") {
-                    document.querySelector(".lightgreen-b").value = data.content;
-                }
-            }
-        }
-
-        else if (data.info_type === "timeUp") {
-            resetForNewEquations("timeUp");
-        }
-    }
-</script>
 {% endblock %}
 

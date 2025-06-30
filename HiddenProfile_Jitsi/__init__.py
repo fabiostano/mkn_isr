@@ -41,7 +41,6 @@ class Player(BasePlayer):
     project_choice = models.StringField()
     player_payoff = models.CurrencyField(initial=C.BASE_PAYOUT)
     next_ready = models.BooleanField(initial=False)
-    speech_time = models.StringField(blank=True)
 
     # ----- Timestamps ----- #
     task_load_time_project = models.StringField(blank=True)
@@ -49,6 +48,8 @@ class Player(BasePlayer):
     task_load_time_discussion = models.StringField(blank=True)
     task_end_time_discussion = models.StringField(blank=True)
     rest_actions_eo = models.StringField(label="")
+
+    speech_time = models.StringField(blank=True)
 
     def make_7p_likert_field(label):
         return models.IntegerField(
@@ -286,7 +287,8 @@ class Discussion(Page):
         return dict(
             id = player.id_in_group,
             color=C.COLORMAP[player.id_in_group - 1],
-            taskDuration=C.TASK_TIME_LIMIT
+            taskDuration=C.TASK_TIME_LIMIT,
+            room_id=player.group.id
         )
 
     @staticmethod
