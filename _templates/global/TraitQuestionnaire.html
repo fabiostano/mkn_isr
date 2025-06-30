@@ -111,7 +111,7 @@
 
     <div class="survey-container">
         <div class="row">
-            <p>Please indicate if you recognize your group members from before the study.</p>
+            <p>Please indicate if you recognize your team members from before the study.</p>
         <table class="table mytable" frame="void" style="width:100%; ">
             <tr>
                 <th>                                          </th>
@@ -123,30 +123,39 @@
                 <th>  </th>
                 <th style="text-align:center"> Very Much </th>
             </tr>
-        {% for field in form %}
-            {% if field.id == "id_rec_lightcoral" and my_color != "lightcoral" %}
-                <tr>
-                    <td align="left" style="width:33%">{{ field.label }}</td>
-                    {% for choice in field %}
-                        <td align="center">{{ choice }}</td>
-                    {% endfor %}
-                </tr>
-            {% elif field.id == "id_rec_lightblue" and my_color != "lightblue" %}
-                <tr>
-                    <td align="left" style="width:33%">{{ field.label }}</td>
-                    {% for choice in field %}
-                        <td align="center">{{ choice }}</td>
-                    {% endfor %}
-                </tr>
-            {% elif field.id == "id_rec_lightgreen" and my_color != "lightgreen" %}
-                <tr>
-                    <td align="left" style="width:33%">{{ field.label }}</td>
-                    {% for choice in field %}
-                        <td align="center">{{ choice }}</td>
-                    {% endfor %}
-                </tr>
-            {% endif %}
-        {% endfor %}
+            {% for field in form %}
+                {% if field.id == "id_rec_lightcoral" and my_color != "lightcoral" %}
+                    <tr>
+                        <td align="left" style="width:33%">
+                            Before the study, how well did you know the player labeled
+                            <span style="color: lightcoral; font-weight:bold;">lightcoral</span>?
+                        </td>
+                        {% for choice in field %}
+                            <td align="center">{{ choice }}</td>
+                        {% endfor %}
+                    </tr>
+                {% elif field.id == "id_rec_lightblue" and my_color != "lightblue" %}
+                    <tr>
+                        <td align="left" style="width:33%">
+                            Before the study, how well did you know the player labeled
+                            <span style="color: lightblue; font-weight:bold;">lightblue</span>?
+                        </td>
+                        {% for choice in field %}
+                            <td align="center">{{ choice }}</td>
+                        {% endfor %}
+                    </tr>
+                {% elif field.id == "id_rec_lightgreen" and my_color != "lightgreen" %}
+                    <tr>
+                        <td align="left" style="width:33%">
+                            Before the study, how well did you know the player labeled
+                            <span style="color: lightgreen; font-weight:bold;">lightgreen</span>?
+                        </td>
+                        {% for choice in field %}
+                            <td align="center">{{ choice }}</td>
+                        {% endfor %}
+                    </tr>
+                {% endif %}
+            {% endfor %}
         </table>
     </div>
 

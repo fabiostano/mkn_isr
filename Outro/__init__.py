@@ -19,6 +19,7 @@ class Group(BaseGroup):
     pass
 
 class Player(BasePlayer):
+    color = models.StringField()
     ### --- TRAIT Q --- ###
 
     # ----- Task Attitudes ----- #
