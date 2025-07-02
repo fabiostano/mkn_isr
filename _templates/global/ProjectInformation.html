@@ -84,20 +84,86 @@
 <br/><br/>
 
 <!-- Logging fields -->
+<!-- Logging fields -->
 <input type="hidden" name="task_load_time_project" id="task_load_time_project" value=""/>
 <input type="hidden" name="task_end_time_project" id="task_end_time_project" value=""/>
 
-<div class="d-flex justify-content-center">
-    <button class="otree-btn-next btn btn-primary next-button otree-next-button" onclick="logNextTime()">Next</button>
+<!-- Timeout message -->
+<div class="text-center mt-3" id="warning-message" style="display: none; color: darkorange; font-weight: bold;">
+    You have 1 minute left!
+</div>
+
+<!-- Next Button -->
+<div class="d-flex justify-content-center mt-4">
+    <button id="nextbtn" class="otree-btn-next btn btn-primary next-button otree-next-button">Next</button>
+</div>
+
+<!-- Waiting message -->
+<div class="text-center mt-3" id="waiting-message" style="display: none;">
+    Waiting for the other participants...
 </div>
 
 <script>
-    document.addEventListener("DOMContentLoaded", function () {
-        document.getElementById("task_load_time_project").value = Date.now();
-    });
-    function logNextTime() {
-        document.getElementById("task_end_time_project").value = Date.now();
+    const taskDuration = {{ taskDuration }} * 1000;
+    const warningTime = 60 * 1000;
+
+    let timeoutIdWarning = null;
+    let timeoutIdEnd = null;
+    let allReady = false;
+
+    function liveRecv(data) {
+        if (data.type === "go_to_next") {
+            allReady = true;
+            document.getElementById("warning-message").style.display = "none";
+            form.submit();
+        } else if (data.type === "waiting") {
+        }
     }
+
+    document.addEventListener("DOMContentLoaded", function () {
+        const form = document.querySelector("form");
+        document.getElementById("task_load_time_project").value = Date.now();
+
+        const button = document.getElementById("nextbtn");
+        const waitingMessage = document.getElementById("waiting-message");
+        const warningMessage = document.getElementById("warning-message");
+
+        function handleNextClick() {
+            if (allReady) return;
+            allReady = true;
+
+            document.getElementById("task_end_time_project").value = Date.now();
+            button.disabled = true;
+            button.style.backgroundColor = "#ccc";
+            button.style.borderColor = "#ccc";
+            button.style.color = "#666";
+            button.style.cursor = "not-allowed";
+            waitingMessage.style.display = "block";
+            warningMessage.style.display = "none";
+            liveSend({ type: "next_clicked" });
+
+            clearTimeout(timeoutIdWarning);
+            clearTimeout(timeoutIdEnd);
+        }
+
+        button.addEventListener("click", function (e) {
+            e.preventDefault();
+            handleNextClick();
+        });
+
+        timeoutIdWarning = setTimeout(() => {
+            if (!allReady) {
+                warningMessage.style.display = "block";
+            }
+        }, taskDuration - warningTime);
+
+        timeoutIdEnd = setTimeout(() => {
+            if (!allReady) {
+                liveSend({ type: "next_clicked" });
+            }
+        }, taskDuration);
+    });
 </script>
+
 
 {% endblock %}

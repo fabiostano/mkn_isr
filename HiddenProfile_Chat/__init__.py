@@ -375,10 +375,26 @@ class ProjectInformation(Page):
     def is_displayed(player: Player):
         return True
 
+    @staticmethod
     def vars_for_template(player: Player):
         return {
             'role': player.player_role,
+            'taskDuration': 300,  # 5 Minuten in Sekunden
         }
+
+    @staticmethod
+    def live_method(player: Player, data):
+        if data.get("type") == "next_clicked":
+            player.next_ready = True
+            all_ready = all(p.next_ready for p in player.group.get_players())
+            if all_ready:
+                return {p.id_in_group: {"type": "go_to_next"} for p in player.group.get_players()}
+            else:
+                return {player.id_in_group: {"type": "waiting"}}
+
+    @staticmethod
+    def before_next_page(player: Player, timeout_happened):
+        player.next_ready = False
 
 def normalize(value, min_value, max_value, higher_is_better=True):
     """

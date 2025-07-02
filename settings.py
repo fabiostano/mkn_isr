@@ -6,7 +6,8 @@ SESSION_CONFIGS = [
                    dict(name='Jitsi_HP_Math', num_demo_participants=9, app_sequence=['Intro', 'HiddenProfile_Jitsi', 'mathJitsi', 'Outro']),
                    dict(name='Chat_Math_HP', num_demo_participants=9, app_sequence=['Intro','mathChat', 'HiddenProfile_Chat', 'Outro']),
                    dict(name='Chat_HP_Math', num_demo_participants=9, app_sequence=['Intro', 'HiddenProfile_Chat', 'mathChat', 'Outro']),
-                   dict(name='MathJitsiTest', num_demo_participants=3, app_sequence=['mathJitsi'])
+                   dict(name='MathJitsiTest', num_demo_participants=3, app_sequence=['mathJitsi']),
+                   dict(name='HPTest', num_demo_participants=3, app_sequence=['HiddenProfile_Chat', 'Outro'])
                    ]
 
 LANGUAGE_CODE = 'en'
