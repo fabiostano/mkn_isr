@@ -32,7 +32,7 @@
         }
     </style>
 
-    <div id="ptc" class="jumbotron" style="padding-top: 5%">
+    <div id="ptcANDqtiANDtweANDte" class="jumbotron" style="padding-top: 5%">
         <p>How much do you agree with the following statements?</p>
         <table class="table mytable" frame="void" style="width:100%; ">
             <tr>
@@ -47,7 +47,7 @@
             </tr>
 
              {% for field in form %}
-            {% if field.id.startswith("id_ptc") %}
+            {% if field.id.startswith("id_ptc") or field.id.startswith("id_qti") or field.id.startswith("id_twe") or field.id.startswith("id_te")%}
                 <tr>
                     <td align="left" style="width:33%">{{ field.label }}</td>
 
@@ -60,7 +60,7 @@
         </table>
     </div>
 
-    <div id="qti" class="jumbotron" style="padding-top: 5%">
+<div id="intANDcgANDtwb" class="jumbotron" style="padding-top: 5%">
         <p>How much do you agree with the following statements?</p>
         <table class="table mytable" frame="void" style="width:100%; ">
             <tr>
@@ -75,7 +75,7 @@
             </tr>
 
              {% for field in form %}
-            {% if field.id.startswith("id_qti") %}
+            {% if field.id.startswith("id_int") or field.id.startswith("id_cg") or field.id.startswith("id_twb")%}
                 <tr>
                     <td align="left" style="width:33%">{{ field.label }}</td>
 
@@ -88,7 +88,7 @@
         </table>
     </div>
 
-     <div id="twe" class="jumbotron" style="padding-top: 5%">
+    <div id="tszANDtdANDtscANDmcANDwm" class="jumbotron" style="padding-top: 5%">
         <p>How much do you agree with the following statements?</p>
         <table class="table mytable" frame="void" style="width:100%; ">
             <tr>
@@ -103,7 +103,7 @@
             </tr>
 
              {% for field in form %}
-            {% if field.id.startswith("id_twe") %}
+            {% if field.id.startswith("id_tsz") or field.id.startswith("id_td") or field.id.startswith("id_tsc") or field.id.startswith("id_mc") or field.id.startswith("id_wm")%}
                 <tr>
                     <td align="left" style="width:33%">{{ field.label }}</td>
 
@@ -116,7 +116,7 @@
         </table>
     </div>
 
-    <div id="te" class="jumbotron" style="padding-top: 5%">
+    <div id="wsANDpergANDceANDpsp" class="jumbotron" style="padding-top: 5%">
         <p>How much do you agree with the following statements?</p>
         <table class="table mytable" frame="void" style="width:100%; ">
             <tr>
@@ -131,343 +131,7 @@
             </tr>
 
              {% for field in form %}
-            {% if field.id.startswith("id_te") %}
-                <tr>
-                    <td align="left" style="width:33%">{{ field.label }}</td>
-
-                    {% for choice in field %}
-                        <td align="center" >{{ choice }}</td>
-                    {% endfor %}
-                </tr>
-            {% endif %}
-        {% endfor %}
-        </table>
-    </div>
-
-     <div id="int" class="jumbotron" style="padding-top: 5%">
-        <p>How much do you agree with the following statements?</p>
-        <table class="table mytable" frame="void" style="width:100%; ">
-            <tr>
-                <th></th>
-                <th style="text-align:center"> Strongly disagree </th>
-                <th>  </th>
-                <th>  </th>
-                <th>  </th>
-                <th>  </th>
-                <th>  </th>
-                <th style="text-align:center"> Strongly agree </th>
-            </tr>
-
-             {% for field in form %}
-            {% if field.id.startswith("id_int") %}
-                <tr>
-                    <td align="left" style="width:33%">{{ field.label }}</td>
-
-                    {% for choice in field %}
-                        <td align="center" >{{ choice }}</td>
-                    {% endfor %}
-                </tr>
-            {% endif %}
-        {% endfor %}
-        </table>
-    </div>
-
-    <div id="cg" class="jumbotron" style="padding-top: 5%">
-        <p>How much do you agree with the following statements?</p>
-        <table class="table mytable" frame="void" style="width:100%; ">
-            <tr>
-                <th></th>
-                <th style="text-align:center"> Strongly disagree </th>
-                <th>  </th>
-                <th>  </th>
-                <th>  </th>
-                <th>  </th>
-                <th>  </th>
-                <th style="text-align:center"> Strongly agree </th>
-            </tr>
-
-             {% for field in form %}
-            {% if field.id.startswith("id_cg") %}
-                <tr>
-                    <td align="left" style="width:33%">{{ field.label }}</td>
-
-                    {% for choice in field %}
-                        <td align="center" >{{ choice }}</td>
-                    {% endfor %}
-                </tr>
-            {% endif %}
-        {% endfor %}
-        </table>
-    </div>
-
-    <div id="twb" class="jumbotron" style="padding-top: 5%">
-        <p>How much do you agree with the following statements?</p>
-        <table class="table mytable" frame="void" style="width:100%; ">
-            <tr>
-                <th></th>
-                <th style="text-align:center"> Strongly disagree </th>
-                <th>  </th>
-                <th>  </th>
-                <th>  </th>
-                <th>  </th>
-                <th>  </th>
-                <th style="text-align:center"> Strongly agree </th>
-            </tr>
-
-             {% for field in form %}
-            {% if field.id.startswith("id_twb") %}
-                <tr>
-                    <td align="left" style="width:33%">{{ field.label }}</td>
-
-                    {% for choice in field %}
-                        <td align="center" >{{ choice }}</td>
-                    {% endfor %}
-                </tr>
-            {% endif %}
-        {% endfor %}
-        </table>
-    </div>
-
-     <div id="tsz" class="jumbotron" style="padding-top: 5%">
-        <p>How much do you agree with the following statements?</p>
-        <table class="table mytable" frame="void" style="width:100%; ">
-            <tr>
-                <th></th>
-                <th style="text-align:center"> Strongly disagree </th>
-                <th>  </th>
-                <th>  </th>
-                <th>  </th>
-                <th>  </th>
-                <th>  </th>
-                <th style="text-align:center"> Strongly agree </th>
-            </tr>
-
-             {% for field in form %}
-            {% if field.id.startswith("id_tsz") %}
-                <tr>
-                    <td align="left" style="width:33%">{{ field.label }}</td>
-
-                    {% for choice in field %}
-                        <td align="center" >{{ choice }}</td>
-                    {% endfor %}
-                </tr>
-            {% endif %}
-        {% endfor %}
-        </table>
-    </div>
-
-    <div id="td" class="jumbotron" style="padding-top: 5%">
-        <p>How much do you agree with the following statements?</p>
-        <table class="table mytable" frame="void" style="width:100%; ">
-            <tr>
-                <th></th>
-                <th style="text-align:center"> Strongly disagree </th>
-                <th>  </th>
-                <th>  </th>
-                <th>  </th>
-                <th>  </th>
-                <th>  </th>
-                <th style="text-align:center"> Strongly agree </th>
-            </tr>
-
-             {% for field in form %}
-            {% if field.id.startswith("id_td") %}
-                <tr>
-                    <td align="left" style="width:33%">{{ field.label }}</td>
-
-                    {% for choice in field %}
-                        <td align="center" >{{ choice }}</td>
-                    {% endfor %}
-                </tr>
-            {% endif %}
-        {% endfor %}
-        </table>
-    </div>
-
-     <div id="tsc" class="jumbotron" style="padding-top: 5%">
-        <p>How much do you agree with the following statements?</p>
-        <table class="table mytable" frame="void" style="width:100%; ">
-            <tr>
-                <th></th>
-                <th style="text-align:center"> Strongly disagree </th>
-                <th>  </th>
-                <th>  </th>
-                <th>  </th>
-                <th>  </th>
-                <th>  </th>
-                <th style="text-align:center"> Strongly agree </th>
-            </tr>
-
-             {% for field in form %}
-            {% if field.id.startswith("id_tsc") %}
-                <tr>
-                    <td align="left" style="width:33%">{{ field.label }}</td>
-
-                    {% for choice in field %}
-                        <td align="center" >{{ choice }}</td>
-                    {% endfor %}
-                </tr>
-            {% endif %}
-        {% endfor %}
-        </table>
-    </div>
-
-    <div id="mc" class="jumbotron" style="padding-top: 5%">
-        <p>How much do you agree with the following statements?</p>
-        <table class="table mytable" frame="void" style="width:100%; ">
-            <tr>
-                <th></th>
-                <th style="text-align:center"> Strongly disagree </th>
-                <th>  </th>
-                <th>  </th>
-                <th>  </th>
-                <th>  </th>
-                <th>  </th>
-                <th style="text-align:center"> Strongly agree </th>
-            </tr>
-
-             {% for field in form %}
-            {% if field.id.startswith("id_mc") %}
-                <tr>
-                    <td align="left" style="width:33%">{{ field.label }}</td>
-
-                    {% for choice in field %}
-                        <td align="center" >{{ choice }}</td>
-                    {% endfor %}
-                </tr>
-            {% endif %}
-        {% endfor %}
-        </table>
-    </div>
-
-     <div id="wm" class="jumbotron" style="padding-top: 5%">
-        <p>How much do you agree with the following statements?</p>
-        <table class="table mytable" frame="void" style="width:100%; ">
-            <tr>
-                <th></th>
-                <th style="text-align:center"> Strongly disagree </th>
-                <th>  </th>
-                <th>  </th>
-                <th>  </th>
-                <th>  </th>
-                <th>  </th>
-                <th style="text-align:center"> Strongly agree </th>
-            </tr>
-
-             {% for field in form %}
-            {% if field.id.startswith("id_wm") %}
-                <tr>
-                    <td align="left" style="width:33%">{{ field.label }}</td>
-
-                    {% for choice in field %}
-                        <td align="center" >{{ choice }}</td>
-                    {% endfor %}
-                </tr>
-            {% endif %}
-        {% endfor %}
-        </table>
-    </div>
-
-    <div id="ws" class="jumbotron" style="padding-top: 5%">
-        <p>How much do you agree with the following statements?</p>
-        <table class="table mytable" frame="void" style="width:100%; ">
-            <tr>
-                <th></th>
-                <th style="text-align:center"> Strongly disagree </th>
-                <th>  </th>
-                <th>  </th>
-                <th>  </th>
-                <th>  </th>
-                <th>  </th>
-                <th style="text-align:center"> Strongly agree </th>
-            </tr>
-
-             {% for field in form %}
-            {% if field.id.startswith("id_ws") %}
-                <tr>
-                    <td align="left" style="width:33%">{{ field.label }}</td>
-
-                    {% for choice in field %}
-                        <td align="center" >{{ choice }}</td>
-                    {% endfor %}
-                </tr>
-            {% endif %}
-        {% endfor %}
-        </table>
-    </div>
-
-    <div id="perg" class="jumbotron" style="padding-top: 5%">
-        <p>How much do you agree with the following statements?</p>
-        <table class="table mytable" frame="void" style="width:100%; ">
-            <tr>
-                <th></th>
-                <th style="text-align:center"> Strongly disagree </th>
-                <th>  </th>
-                <th>  </th>
-                <th>  </th>
-                <th>  </th>
-                <th>  </th>
-                <th style="text-align:center"> Strongly agree </th>
-            </tr>
-
-             {% for field in form %}
-            {% if field.id.startswith("id_perg") %}
-                <tr>
-                    <td align="left" style="width:33%">{{ field.label }}</td>
-
-                    {% for choice in field %}
-                        <td align="center" >{{ choice }}</td>
-                    {% endfor %}
-                </tr>
-            {% endif %}
-        {% endfor %}
-        </table>
-    </div>
-
-    <div id="ce" class="jumbotron" style="padding-top: 5%">
-        <p>How much do you agree with the following statements?</p>
-        <table class="table mytable" frame="void" style="width:100%; ">
-            <tr>
-                <th></th>
-                <th style="text-align:center"> Strongly disagree </th>
-                <th>  </th>
-                <th>  </th>
-                <th>  </th>
-                <th>  </th>
-                <th>  </th>
-                <th style="text-align:center"> Strongly agree </th>
-            </tr>
-
-             {% for field in form %}
-            {% if field.id.startswith("id_ce") %}
-                <tr>
-                    <td align="left" style="width:33%">{{ field.label }}</td>
-
-                    {% for choice in field %}
-                        <td align="center" >{{ choice }}</td>
-                    {% endfor %}
-                </tr>
-            {% endif %}
-        {% endfor %}
-        </table>
-    </div>
-
-    <div id="psp" class="jumbotron" style="padding-top: 5%">
-        <p>How much do you agree with the following statements?</p>
-        <table class="table mytable" frame="void" style="width:100%; ">
-            <tr>
-                <th></th>
-                <th style="text-align:center"> Strongly disagree </th>
-                <th>  </th>
-                <th>  </th>
-                <th>  </th>
-                <th>  </th>
-                <th>  </th>
-                <th style="text-align:center"> Strongly agree </th>
-            </tr>
-
-             {% for field in form %}
-            {% if field.id.startswith("id_psp") %}
+            {% if field.id.startswith("id_ws") or field.id.startswith("id_perg") or field.id.startswith("id_ce") or field.id.startswith("id_psp")%}
                 <tr>
                     <td align="left" style="width:33%">{{ field.label }}</td>
 
@@ -498,8 +162,8 @@
                 {% if field.id == "id_fam1_lightcoral" and my_color != "lightcoral" %}
                     <tr>
                         <td align="left" style="width:33%">
-                            After this task, how well do you know the player labeled
-                            <span style="color: lightcoral; font-weight: bold">lightcoral</span>?
+                            <strong>After this task, how well do you know the player labeled
+                            <span style="color: lightcoral; font-weight: bold">lightcoral</span>?</strong>
                         </td>
                         {% for choice in field %}
                             <td align="center">{{ choice }}</td>
@@ -508,8 +172,8 @@
                 {% elif field.id == "id_fam2_lightcoral" and my_color != "lightcoral" %}
                     <tr>
                         <td align="left" style="width:33%">
-                            During the task, how closely did you work together with the player labeled
-                            <span style="color: lightcoral; font-weight: bold">lightcoral</span>?
+                            <strong>During the task, how closely did you work together with the player labeled
+                            <span style="color: lightcoral; font-weight: bold">lightcoral</span>?</strong>
                         </td>
                         {% for choice in field %}
                             <td align="center">{{ choice }}</td>
@@ -518,8 +182,8 @@
                 {% elif field.id == "id_fam1_lightblue" and my_color != "lightblue" %}
                     <tr>
                         <td align="left" style="width:33%">
-                            After this task, how well do you know the player labeled
-                            <span style="color: lightblue; font-weight: bold">lightblue</span>?
+                            <strong>After this task, how well do you know the player labeled
+                            <span style="color: lightblue; font-weight: bold">lightblue</span>?</strong>
                         </td>
                         {% for choice in field %}
                             <td align="center">{{ choice }}</td>
@@ -528,8 +192,8 @@
                 {% elif field.id == "id_fam2_lightblue" and my_color != "lightblue" %}
                     <tr>
                         <td align="left" style="width:33%">
-                            During the task, how closely did you work together with the player labeled
-                            <span style="color: lightblue; font-weight: bold">lightblue</span>?
+                            <strong>During the task, how closely did you work together with the player labeled
+                            <span style="color: lightblue; font-weight: bold">lightblue</span>?</strong>
                         </td>
                         {% for choice in field %}
                             <td align="center">{{ choice }}</td>
@@ -538,8 +202,8 @@
                 {% elif field.id == "id_fam1_lightgreen" and my_color != "lightgreen" %}
                     <tr>
                         <td align="left" style="width:33%">
-                            After this task, how well do you know the player labeled
-                            <span style="color: lightgreen; font-weight: bold">lightgreen</span>?
+                            <strong>After this task, how well do you know the player labeled
+                            <span style="color: lightgreen; font-weight: bold">lightgreen</span>?</strong>
                         </td>
                         {% for choice in field %}
                             <td align="center">{{ choice }}</td>
@@ -548,8 +212,8 @@
                 {% elif field.id == "id_fam2_lightgreen" and my_color != "lightgreen" %}
                     <tr>
                         <td align="left" style="width:33%">
-                            During the task, how closely did you work together with the player labeled
-                            <span style="color: lightgreen; font-weight: bold">lightgreen</span>?
+                            <strong>During the task, how closely did you work together with the player labeled
+                            <span style="color: lightgreen; font-weight: bold">lightgreen</span>?</strong>
                         </td>
                         {% for choice in field %}
                             <td align="center">{{ choice }}</td>

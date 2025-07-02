@@ -11,8 +11,27 @@
 <div class="row">
     <div class="container">
         <p><b style="color: red">For the next round only</b><b>, you can pick the starting level that matches your abilities best.</b></p>
-        <p>The equation below is an example of how tasks will look in this level of difficulty. Please use the field below to select a task level that is well-matched to your abilities.</p>
+        <p>The equations below are an example of how tasks will look in this level of difficulty. Please use the field below to select a task level between 1 and 50 that is well-matched to your abilities.</p>
         <p><b style="color: red">The median of all 3 players' answers (i.e. the middle value)</b> will determine the difficulty.</p>
+        <div class="row" style="padding-left:50px; padding-right: 50px; margin-left:40px;">
+            <div class="spinner-wrapper mt-3 text-center">
+                <p><b>Select your optimal level here:</b></p>
+                    <div class="d-flex justify-content-center align-items-center gap-2">
+                        <button type="button" class="btn btn-outline-secondary" onclick="decrement()">-</button>
+                        <input type="number"
+                               id="difficultySpinner"
+                               name="difficulty"
+                               min="{{ min_level }}"
+                               max="{{ max_level }}"
+                               value="{{ level }}"
+                               step="1"
+                               oninput="handleSpinnerChange(this.value)"
+                               class="form-control text-center"
+                               style="width: 80px; border-radius: 5px;" />
+                        <button type="button" class="btn btn-outline-secondary" onclick="increment()">+</button>
+                    </div>
+                </div>
+            </div>
     </div>
 </div>
 <div class="row">
@@ -85,14 +104,6 @@
                         <td><input id="fin_sol_b" type="number" pattern="[0-9]*" maxlength="3" class="form-control answer-box readonly invisible" placeholder="" readonly></td>
                     </tr>
                 </table>
-            </div>
-        </div>
-        <div class="row" style="padding-left:50px; padding-right: 50px; margin-left:40px;">
-            <div class="spinner-wrapper">
-                <p>Select your optimal level here:</p>
-                <button type="button" onclick="decrement()">-</button>
-                <input type="number" id="difficultySpinner" name="difficulty" min="{{ min_level }}" max="{{ max_level }}" value="{{ level }}" step="1" oninput="handleSpinnerChange(this.value)" style="width: 80px;"/>
-                <button type="button" onclick="increment()">+</button>
             </div>
         </div>
     </div>
