@@ -116,7 +116,7 @@
         </table>
     </div>
 
-    <div id="wsANDpergANDceANDpsp" class="jumbotron" style="padding-top: 5%">
+    <div id="wsANDpergANDceANDslANDpsp" class="jumbotron" style="padding-top: 5%">
         <p>How much do you agree with the following statements?</p>
         <table class="table mytable" frame="void" style="width:100%; ">
             <tr>
@@ -131,7 +131,7 @@
             </tr>
 
              {% for field in form %}
-            {% if field.id.startswith("id_ws") or field.id.startswith("id_perg") or field.id.startswith("id_ce") or field.id.startswith("id_psp")%}
+            {% if field.id.startswith("id_ws") or field.id.startswith("id_perg") or field.id.startswith("id_ce") or field.id.startswith("id_sl") or field.id.startswith("id_psp")%}
                 <tr>
                     <td align="left" style="width:33%">{{ field.label }}</td>
 
