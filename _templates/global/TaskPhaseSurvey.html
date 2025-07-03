@@ -46,7 +46,7 @@
                 <th style="text-align:center"> Strongly agree </th>
             </tr>
 
-             {% for field in form %}
+            {% for field in form %}
             {% if field.id.startswith("id_ptc") or field.id.startswith("id_qti") or field.id.startswith("id_twe") or field.id.startswith("id_te")%}
                 <tr>
                     <td align="left" style="width:33%">{{ field.label }}</td>

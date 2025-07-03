@@ -9,7 +9,7 @@ class C(BaseConstants):
     NAME_IN_URL = 'mathChat'
     PLAYERS_PER_GROUP = 3
     NUM_ROUNDS = 6
-    TASK_TIME_LIMIT = 2 * 60 # Task Time
+    TASK_TIME_LIMIT = 5 * 60 # Task Time
     TRIAL_TIME = 28
     BREAK_TIME = 4
     MIN_DIFFICULTY = 1  # Start difficulty level
@@ -43,11 +43,12 @@ class Player(BasePlayer):
     # ----- Communication Logs ----- #
     chat_log = models.LongStringField(initial="", blank=True)
 
-    def make_7p_likert_field(label):
+    def make_7p_likert_field(label, blank=False):
         return models.IntegerField(
             label=label,
             choices=[1, 2, 3, 4, 5, 6, 7],
-            widget=widgets.RadioSelectHorizontal
+            widget=widgets.RadioSelectHorizontal,
+            blank=blank
         )
 
     ### Task Round Survey
@@ -227,24 +228,23 @@ class Player(BasePlayer):
                                  widget=widgets.RadioSelectHorizontal)
 
     # ----- Familiarity ----- #
-    fam1_lightcoral = make_7p_likert_field('After this task, how well do you know the player labeled lightcoral?')
-    fam2_lightcoral = make_7p_likert_field('During the task, how closely did you work together with the player labeled lightcoral?')
-    fam1_lightgreen = make_7p_likert_field('After this task, how well do you know the player labeled lightgreen?')
-    fam2_lightgreen = make_7p_likert_field('During the task, how closely did you work together with the player labeled lightgreen?')
-    fam1_lightblue = make_7p_likert_field('After this task, how well do you know the player labeled lightblue?')
-    fam2_lightblue = make_7p_likert_field('During the task, how closely did you work together with the player labeled lightblue?')
+    fam1_lightcoral = make_7p_likert_field('After this task, how well do you know the player labeled lightcoral?', blank=True)
+    fam2_lightcoral = make_7p_likert_field('During the task, how closely did you work together with the player labeled lightcoral?', blank=True)
+    fam1_lightgreen = make_7p_likert_field('After this task, how well do you know the player labeled lightgreen?', blank=True)
+    fam2_lightgreen = make_7p_likert_field('During the task, how closely did you work together with the player labeled lightgreen?', blank=True)
+    fam1_lightblue = make_7p_likert_field('After this task, how well do you know the player labeled lightblue?', blank=True)
+    fam2_lightblue = make_7p_likert_field('During the task, how closely did you work together with the player labeled lightblue?', blank=True)
 
 def creating_session(subsession):
-    if subsession.round_number == 1:
-        # Draw once and store at the session level
-        condition_order = choice(C.LATIN_SQUARE_ORDERS)
-        print("Chosen Latin square:", condition_order)
+    for group in subsession.get_groups():
+        if group.round_number == 1:
+            # Draw once and store at the session level
+            condition_order = choice(C.LATIN_SQUARE_ORDERS)
+            print("Chosen Latin square:", condition_order)
 
-        for p in subsession.get_players():
-            p.participant.condition_order = condition_order
-
-    for p in subsession.get_players():
-        p.color = C.COLORMAP[p.id_in_group - 1]
+            for p in group.get_players():
+                p.participant.condition_order = condition_order
+                p.color = C.COLORMAP[p.id_in_group - 1]
 
 class Explanation(Page):
     form_model = 'player'

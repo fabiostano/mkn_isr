@@ -7,7 +7,7 @@ c = cu
 doc = ''
 class C(BaseConstants):
     NAME_IN_URL = 'Outro'
-    PLAYERS_PER_GROUP = None
+    PLAYERS_PER_GROUP = 3
     NUM_ROUNDS = 1
 
     COLORMAP = ['lightcoral', 'lightgreen', 'lightblue']
@@ -102,17 +102,18 @@ class Player(BasePlayer):
     # ----- Recognition ----- #
     rec_lightcoral = models.IntegerField(label='Before the study, how well did you know the player labeled lightcoral?',
                                      choices=[[1, '1'], [2, '2'], [3, '3'], [4, '4'], [5, '5'], [6, '6'], [7, '7']],
-                                     widget=widgets.RadioSelectHorizontal)
+                                     widget=widgets.RadioSelectHorizontal, blank=True)
     rec_lightgreen = models.IntegerField(label='Before the study, how well did you know the player labeled lightgreen?',
                                      choices=[[1, '1'], [2, '2'], [3, '3'], [4, '4'], [5, '5'], [6, '6'], [7, '7']],
-                                     widget=widgets.RadioSelectHorizontal)
+                                     widget=widgets.RadioSelectHorizontal, blank=True)
     rec_lightblue = models.IntegerField(label='Before the study, how well did you know the player labeled lightblue?',
                                      choices=[[1, '1'], [2, '2'], [3, '3'], [4, '4'], [5, '5'], [6, '6'], [7, '7']],
-                                     widget=widgets.RadioSelectHorizontal)
+                                     widget=widgets.RadioSelectHorizontal, blank=True)
 
 def creating_session(subsession: Subsession):
-    for p in subsession.get_players():
-         p.color = C.COLORMAP[p.id_in_group - 1]
+    for group in subsession.get_groups():
+        for p in group.get_players():
+            p.color = C.COLORMAP[p.id_in_group - 1]
 
 class ThankYou(Page):
     form_model = 'player'

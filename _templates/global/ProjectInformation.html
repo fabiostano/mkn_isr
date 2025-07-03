@@ -15,21 +15,27 @@
 </style>
 
 <div class="content-box">
-   <p>Dear <strong>{{ role }}</strong>, only you possess the information below, so it is essential that you share it with the rest of the team to achieve an optimal decision for the company. Make sure to <strong>pay close attention and remember the details</strong>, as the information will not be repeated later.<p/>
+    <p>
+        You now have <b style="color: red">5 minutes</b> to review the information below.
+    </p>
+    <p>
+        Dear <strong>{{ role }}</strong>, only you possess the information below, so it is essential that you share it
+        with the rest of the team to achieve an optimal decision for the company. Make sure to <strong>pay close attention
+        and remember the details</strong>, as the information will not be repeated later.
+    <p/>
 
+    <h2>Project Descriptions</h2>
+    <p>Here’s a brief overview of each project:</p>
 
-<h2>Project Descriptions</h2>
-<p>Here’s a brief overview of each project:</p>
-
-<div class="project-description">
-    <h3>Project A: EcoTrack</h3>
-    <p>EcoTrack is an innovative software platform designed to help companies monitor and optimize their environmental impact. By integrating real-time data analytics and machine learning algorithms, EcoTrack allows organizations to track their carbon footprint, energy consumption, and resource utilization. This project is crucial for businesses looking to enhance their sustainability efforts and meet regulatory requirements while improving their public image.
-    The project itself has an environmental impact of <strong>60 tons of CO₂ per year</strong>.
-        {% if role == 'Chief Financial Officer' %} However, EcoTrack will generate approximately <strong>4 million €</strong> in annual profit.
-        {% elif role == 'Chief Marketing Officer' %} However, EcoTrack is expected to attract approximately <strong>70.000 users in Germany</strong>.
-        {% elif role == 'Chief Human Resources Officer' %} Also, the estimated salary cost for realizing EcoTrack is <strong>50.000 €</strong> per year. </p>
-    {% endif %}
-</div>
+    <div class="project-description">
+        <h3>Project A: EcoTrack</h3>
+        <p>EcoTrack is an innovative software platform designed to help companies monitor and optimize their environmental impact. By integrating real-time data analytics and machine learning algorithms, EcoTrack allows organizations to track their carbon footprint, energy consumption, and resource utilization. This project is crucial for businesses looking to enhance their sustainability efforts and meet regulatory requirements while improving their public image.
+        The project itself has an environmental impact of <strong>60 tons of CO₂ per year</strong>.
+            {% if role == 'Chief Financial Officer' %} However, EcoTrack will generate approximately <strong>4 million €</strong> in annual profit.
+            {% elif role == 'Chief Marketing Officer' %} However, EcoTrack is expected to attract approximately <strong>70.000 users in Germany</strong>.
+            {% elif role == 'Chief Human Resources Officer' %} Also, the estimated salary cost for realizing EcoTrack is <strong>50.000 €</strong> per year. </p>
+        {% endif %}
+    </div>
 
 <div class="project-description">
     <h3>Project B: TalentSphere</h3>
@@ -39,46 +45,46 @@
     {% elif role == 'Chief Marketing Officer' %} Furthermore, TalentSphere has an environmental impact of <strong>95 tons of CO₂ per year</strong>.
     {% elif role == 'Chief Human Resources Officer' %} Yet, TalentSphere will generate approximately <strong>3 million €</strong> in annual profit. </p>
     {% endif %}
-</div>
+    </div>
 
-<div class="project-description">
-    <h3>Project C: MarketPulse</h3>
-    <p>MarketPulse is an innovative market intelligence platform designed to help businesses understand consumer trends and preferences in real time. Utilizing big data analytics and natural language processing, MarketPulse delivers actionable insights that allow marketing teams to craft targeted campaigns that resonate with their audience. This project not only helps businesses stay ahead of market shifts but also maximizes ROI on marketing spend.
-    This project is expected to meet a market demand of <strong>60.000 users in Germany</strong>.
-    {% if role == 'Chief Financial Officer' %} Yet, the estimated salary cost for MarketPulse would be <strong>55.000 €</strong> per year.
-    {% elif role == 'Chief Marketing Officer' %} Moreover, MarketPulse will generate approximately <strong>2 million €</strong> in annual profit.
-    {% elif role == 'Chief Human Resources Officer' %} However, MarketPulse has an environmental impact of <strong>40 tons of CO₂ per year</strong>. </p>
-    {% endif %}
-</div>
+    <div class="project-description">
+        <h3>Project C: MarketPulse</h3>
+        <p>MarketPulse is an innovative market intelligence platform designed to help businesses understand consumer trends and preferences in real time. Utilizing big data analytics and natural language processing, MarketPulse delivers actionable insights that allow marketing teams to craft targeted campaigns that resonate with their audience. This project not only helps businesses stay ahead of market shifts but also maximizes ROI on marketing spend.
+        This project is expected to meet a market demand of <strong>60.000 users in Germany</strong>.
+        {% if role == 'Chief Financial Officer' %} Yet, the estimated salary cost for MarketPulse would be <strong>55.000 €</strong> per year.
+        {% elif role == 'Chief Marketing Officer' %} Moreover, MarketPulse will generate approximately <strong>2 million €</strong> in annual profit.
+        {% elif role == 'Chief Human Resources Officer' %} However, MarketPulse has an environmental impact of <strong>40 tons of CO₂ per year</strong>. </p>
+        {% endif %}
+    </div>
 
-<h2>Decision Task</h2>
-<p>Remember, the project with the highest total attribute scores is considered the optimal choice for the company. Please also consider that for some dimensions, higher attribute scores may relate to lower given values (e.g. environmental impact).</p>
+    <h2>Decision Task</h2>
+    <p>Remember, the project with the highest total attribute scores is considered the optimal choice for the company. Please also consider that for some dimensions, higher attribute scores may relate to lower given values (e.g. environmental impact).</p>
 
-<style>
-    table {
-        width: 100%;
-        border-collapse: collapse;
-    }
-    th, td {
-        border: 1px solid #ddd;
-        padding: 8px;
-        text-align: left;
-    }
-    th {
-        background-color: #f2f2f2;
-        font-weight: bold;
-    }
-    tr:nth-child(even) {
-        background-color: #f9f9f9;
-    }
-    tr:hover {
-        background-color: #e2e2e2;
-    }
-</style>
+    <style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        tr:hover {
+            background-color: #e2e2e2;
+        }
+    </style>
 
-<p>Take a moment to review the project details. This information will be essential for your upcoming discussion with the team.</p>
+    <p>Take a moment to review the project details. This information will be essential for your upcoming discussion with the team.</p>
 
-<p>Once you feel prepared, click the next button below to proceed to the next step.</p>
+    <p>Once you feel prepared, click the next button below to proceed to the next step.</p>
 </div>
 
 <br/><br/>

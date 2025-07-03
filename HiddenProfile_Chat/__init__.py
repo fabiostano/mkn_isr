@@ -8,6 +8,7 @@ class C(BaseConstants):
     TEAM_BONUS = 30
     DEPT_BONUS = 50
     MAX_INFO_SHARING_BONUS = 70
+    TASK_PREP_TIME_LIMIT = 5*60
     TASK_TIME_LIMIT = 7*60 # 3 * 60  # Task Time
 
     COLORMAP = ['lightcoral', 'lightgreen', 'lightblue']
@@ -48,11 +49,12 @@ class Player(BasePlayer):
     task_end_time_discussion = models.StringField(blank=True)
     rest_actions_eo = models.StringField(label="")
 
-    def make_7p_likert_field(label):
+    def make_7p_likert_field(label, blank=False):
         return models.IntegerField(
             label=label,
             choices=[1, 2, 3, 4, 5, 6, 7],
-            widget=widgets.RadioSelectHorizontal
+            widget=widgets.RadioSelectHorizontal,
+            blank=blank
         )
 
     ### Task Round Survey
@@ -231,28 +233,29 @@ class Player(BasePlayer):
     fusion = models.IntegerField(label="test", choices=[[1, '1'], [2, '2'], [3, '3'], [4, '4'], [5, '5']], widget=widgets.RadioSelectHorizontal)
 
     # ----- Familiarity ----- #
-    fam1_lightcoral = make_7p_likert_field('After this task, how well do you know the player labeled lightcoral?')
-    fam2_lightcoral = make_7p_likert_field('During the task, how closely did you work together with the player labeled lightcoral?')
-    fam1_lightgreen = make_7p_likert_field('After this task, how well do you know the player labeled lightgreen?')
-    fam2_lightgreen = make_7p_likert_field('During the task, how closely did you work together with the player labeled lightgreen?')
-    fam1_lightblue = make_7p_likert_field('After this task, how well do you know the player labeled lightblue?')
-    fam2_lightblue = make_7p_likert_field('During the task, how closely did you work together with the player labeled lightblue?')
+    fam1_lightcoral = make_7p_likert_field('After this task, how well do you know the player labeled lightcoral?', blank=True)
+    fam2_lightcoral = make_7p_likert_field('During the task, how closely did you work together with the player labeled lightcoral?', blank=True)
+    fam1_lightgreen = make_7p_likert_field('After this task, how well do you know the player labeled lightgreen?', blank=True)
+    fam2_lightgreen = make_7p_likert_field('During the task, how closely did you work together with the player labeled lightgreen?', blank=True)
+    fam1_lightblue = make_7p_likert_field('After this task, how well do you know the player labeled lightblue?', blank=True)
+    fam2_lightblue = make_7p_likert_field('During the task, how closely did you work together with the player labeled lightblue?', blank=True)
 
 def creating_session(subsession: Subsession):
-    import random
-    roles = C.ROLES[:]
-    random.shuffle(roles)
+    for group in subsession.get_groups():
+        import random
+        roles = C.ROLES[:]
+        random.shuffle(roles)
 
-    for p in subsession.get_players():
-        p.color = C.COLORMAP[p.id_in_group - 1]
-        p.player_role = roles.pop()
+        for p in group.get_players():
+            p.color = C.COLORMAP[p.id_in_group - 1]
+            p.player_role = roles.pop()
 
-        if p.player_role == 'Chief Human Resources Officer':
-            p.personal_interest = 'salary_cost'
-        elif p.player_role == 'Chief Marketing Officer':
-            p.personal_interest = 'market_demand'
-        elif p.player_role == 'Chief Financial Officer':
-            p.personal_interest = 'profit'
+            if p.player_role == 'Chief Human Resources Officer':
+                p.personal_interest = 'salary_cost'
+            elif p.player_role == 'Chief Marketing Officer':
+                p.personal_interest = 'market_demand'
+            elif p.player_role == 'Chief Financial Officer':
+                p.personal_interest = 'profit'
 
 class RoleAssignment(Page):
     def vars_for_template(player: Player):
@@ -379,7 +382,7 @@ class ProjectInformation(Page):
     def vars_for_template(player: Player):
         return {
             'role': player.player_role,
-            'taskDuration': 300,  # 5 Minuten in Sekunden
+            'taskDuration': C.TASK_PREP_TIME_LIMIT,
         }
 
     @staticmethod
