@@ -464,7 +464,7 @@ class Task(Page):
             elif condition == "A":
                 # Check all difficulty selections and calculate the median
                 selected_difficulties = []
-                for p in player.subsession.get_players():
+                for p in player.group.get_players():
                     selected_difficulties.append(p.participant.selected_difficulty)
                 median_difficulty = statistics.median(selected_difficulties)
                 # Set the parameters
