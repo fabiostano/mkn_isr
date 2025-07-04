@@ -116,7 +116,7 @@
         </table>
     </div>
 
-    <div id="wsANDpergANDceANDslANDpsp" class="jumbotron" style="padding-top: 5%">
+    <div id="wsANDpergANDceANDpsp" class="jumbotron" style="padding-top: 5%">
         <p>How much do you agree with the following statements?</p>
         <table class="table mytable" frame="void" style="width:100%; ">
             <tr>
@@ -131,7 +131,35 @@
             </tr>
 
              {% for field in form %}
-            {% if field.id.startswith("id_ws") or field.id.startswith("id_perg") or field.id.startswith("id_ce") or field.id.startswith("id_sl") or field.id.startswith("id_psp")%}
+            {% if field.id.startswith("id_ws") or field.id.startswith("id_perg") or field.id.startswith("id_ce") or field.id.startswith("id_psp")%}
+                <tr>
+                    <td align="left" style="width:33%">{{ field.label }}</td>
+
+                    {% for choice in field %}
+                        <td align="center" >{{ choice }}</td>
+                    {% endfor %}
+                </tr>
+            {% endif %}
+        {% endfor %}
+        </table>
+    </div>
+
+<div id="sl" class="jumbotron" style="padding-top: 5%">
+        <p>How much do you agree with the following statements?</p>
+        <table class="table mytable" frame="void" style="width:100%; ">
+            <tr>
+                <th></th>
+                <th style="text-align:center"> Strongly disagree </th>
+                <th>  </th>
+                <th>  </th>
+                <th>  </th>
+                <th>  </th>
+                <th>  </th>
+                <th style="text-align:center"> Strongly agree </th>
+            </tr>
+
+             {% for field in form %}
+            {% if field.id.startswith("id_sl")%}
                 <tr>
                     <td align="left" style="width:33%">{{ field.label }}</td>
 
