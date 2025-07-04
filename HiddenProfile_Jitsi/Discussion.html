@@ -24,6 +24,10 @@
 <div id="waiting-message" style="margin-top: 10px; text-align: center; color: gray; display: none;">
     Waiting for others...
 </div>
+<div id="warning-message"
+     style="margin-top: 10px; text-align: center; color: darkorange; font-weight: bold; display: none;">
+    You have 1 minute left! Please wrap up soon.
+</div>
 
 <!-- Logging fields -->
 <input type="hidden" name="task_load_time_discussion" id="task_load_time_discussion" value=""/>
@@ -240,9 +244,16 @@
 
 <script>
     const taskDuration = {{ taskDuration }} * 1000;
+    const warningTime = 60 * 1000;
+
+    let timeoutIdWarning = null;
+    let timeoutIdEnd = null;
+    let allReady = false;
 
     function liveRecv(data) {
         if (data.type === "go_to_next") {
+            allReady = true;
+            document.getElementById("warning-message").style.display = "none";
             form.submit();
         } else if (data.type === "waiting") {
         }
@@ -264,6 +275,7 @@
 
             const button = document.getElementById("nextbtn");
             const waitingMessage = document.getElementById("waiting-message");
+            const warningMessage = document.getElementById("warning-message");
 
             function handleNextClick() {
                 document.getElementById("task_end_time_discussion").value = Date.now();
@@ -273,7 +285,10 @@
                 button.style.color = "#666";
                 button.style.cursor = "not-allowed";
                 waitingMessage.style.display = "block";
+                warningMessage.style.display = "none";
                 liveSend({ type: "next_clicked" });
+                clearTimeout(timeoutWarning);
+                clearTimeout(timeoutEnd);
             }
 
             button.addEventListener("click", function (e) {
@@ -281,9 +296,17 @@
                 handleNextClick();
             });
 
-            setTimeout(() => {
-                liveSend({ type: "next_clicked" });
-            }, taskDuration);
+            timeoutWarning = setTimeout(() => {
+                if (!allReady) {
+                    warningMessage.style.display = "block";
+                }
+            }, taskDuration - warningTime); // = 6 Minuten
+
+            timeoutEnd = setTimeout(() => {
+                if (!allReady) {
+                    handleNextClick();
+                }
+            }, taskDuration); // = 7 Minuten
         });
     });
 </script>

@@ -142,7 +142,7 @@ class Player(BasePlayer):
     ptc4 = make_7p_likert_field('This task was challenging.')
 
     # ----- Quality of Team Interaction ----- #
-    qti1 = make_7p_likert_field('There was a lot of unpleasantness amoung members of this team.')
+    qti1 = make_7p_likert_field('There was a lot of unpleasantness among members of this team.')
     qti2 = make_7p_likert_field('The longer we worked together as a team, the less well we did.')
     qti3 = make_7p_likert_field('Working together energised and uplifted members of our team.')
     qti4 = make_7p_likert_field('Every time someone attempted to correct a solution, things seemed to get worse rather than better.')
