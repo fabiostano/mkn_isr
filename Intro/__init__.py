@@ -1,22 +1,36 @@
-
 from otree.api import *
 import random
+import string
 c = cu
 
 doc = ''
 class C(BaseConstants):
     NAME_IN_URL = 'Intro'
-    PLAYERS_PER_GROUP = None
+    PLAYERS_PER_GROUP = 3
     NUM_ROUNDS = 1
 
 class Subsession(BaseSubsession):
     pass
 
 class Group(BaseGroup):
-    pass
+    custom_group_id = models.StringField(blank=True)
+
+def random_code(length=10):
+    return ''.join(random.choices(string.ascii_uppercase + string.digits, k=length))
+
+def creating_session(subsession):
+    for group in subsession.get_groups():
+        group.custom_group_id = random_code()
 
 class Player(BasePlayer):
-    selected_playlist = models.StringField()
+    booth = models.StringField(
+        label='Which KD2Lab booth is this?',
+        choices=["A11", "A12", "A13", "A14", "A15", "A16", "A17", "A18", "A19"],
+    )
+
+    token = models.StringField(
+        label='Please enter your study token here:'
+    )
 
     # ----- DEMOGRAPHICS ----- #
     english = models.StringField(
@@ -85,4 +99,12 @@ class RestEyesClosed(Page):
     form_model = 'player'
     form_fields = ['rest_actions_ec']
 
-page_sequence = [Vorbereitung, Welcome, IntroQuestionnaire, StateQuestionnaire, RestEyesOpen, RestEyesClosed]
+class Setup(Page):
+    form_model = 'player'
+
+    @staticmethod
+    def get_form_fields(player: Player):
+        setup_fields = ['token', 'booth']
+        return setup_fields
+
+page_sequence = [Setup, Vorbereitung, Welcome, IntroQuestionnaire, StateQuestionnaire, RestEyesOpen, RestEyesClosed]
