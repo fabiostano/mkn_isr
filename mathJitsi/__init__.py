@@ -289,6 +289,21 @@ class BeforeTask(Page):
     def before_next_page(player, timeout_happened):
         player.color = C.COLORMAP[player.id_in_group-1]
 
+class BeforeVideo(Page):
+    form_model = 'player'
+
+    @staticmethod
+    def vars_for_template(player: Player):
+        return {
+            "round_number": player.round_number
+        }
+
+    def is_displayed(player: Player):
+        return player.round_number < 2
+
+    def before_next_page(player, timeout_happened):
+        player.color = C.COLORMAP[player.id_in_group-1]
+
 class Wait_Page(WaitPage):
     form_model = 'player'
     title_text = "Please wait until all other team members are ready."
@@ -644,7 +659,7 @@ class DifficultySelection(Page):
         index = player.round_number - 3  # Index 0–3 for condition_order
         return player.participant.condition_order[index] == "A"
 
-page_sequence = [BeforeTask, # Only shown once
+page_sequence = [BeforeTask, BeforeVideo, # Only shown once
                  DifficultySelection, # Only shown once
                  Explanation, Wait_Page, Task, # All repeated (incl. practice and calibration)
                  PracticeAfter,
