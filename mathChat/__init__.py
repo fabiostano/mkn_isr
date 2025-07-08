@@ -343,6 +343,7 @@ class TaskSurvey(Page):
 class TaskPhaseSurvey(Page):
     form_model = 'player'
 
+    @staticmethod
     def vars_for_template(player):
         return dict(my_color=player.color)
 
@@ -498,6 +499,8 @@ class Task(Page):
         )
 
     def before_next_page(player, timeout_happened):
+        player.color = C.COLORMAP[player.id_in_group - 1]
+
         if player.round_number == 2:  # This is the calibration round!
             # Check if the level_history object is not empty
             if player.level_history and player.level_history.strip():

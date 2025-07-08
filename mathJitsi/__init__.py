@@ -499,6 +499,8 @@ class Task(Page):
         )
 
     def before_next_page(player, timeout_happened):
+        player.color = C.COLORMAP[player.id_in_group - 1]
+
         if player.round_number == 2:  # This is the calibration round!
             # Check if the level_history object is not empty
             if player.level_history and player.level_history.strip():
