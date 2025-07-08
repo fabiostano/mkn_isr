@@ -39,6 +39,7 @@
 
 <!-- Logging fields -->
 <input type="hidden" name="task_load_time_discussion" id="task_load_time_discussion" value=""/>
+<input type="hidden" name="task_finish_click_time_discussion" id="task_finish_click_time_discussion" value=""/>
 <input type="hidden" name="task_end_time_discussion" id="task_end_time_discussion" value=""/>
 <input type="hidden" name="chat_log" id="chat_log" value=""/>
 {{ formfield_errors 'chat_log' }}
@@ -244,7 +245,6 @@
         const warningMessage = document.getElementById("warning-message");
 
         function handleNextClick() {
-            document.getElementById("task_end_time_discussion").value = Date.now();
             button.disabled = true;
             button.style.backgroundColor = "#ccc";
             button.style.borderColor = "#ccc";
@@ -257,6 +257,7 @@
 
         button.addEventListener("click", function (e) {
             e.preventDefault();
+            document.getElementById("task_finish_click_time_discussion").value = Date.now();
             handleNextClick();
         });
 
@@ -268,6 +269,7 @@
 
         timeoutEnd = setTimeout(() => {
             if (!allReady) {
+                document.getElementById("task_end_time_discussion").value = Date.now();
                 handleNextClick();
             }
         }, taskDuration); // = 7 Minuten

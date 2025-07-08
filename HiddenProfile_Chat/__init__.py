@@ -44,8 +44,10 @@ class Player(BasePlayer):
 
     # ----- Timestamps ----- #
     task_load_time_project = models.StringField(blank=True)
+    task_finish_click_time_project = models.StringField(blank=True)
     task_end_time_project = models.StringField(blank=True)
     task_load_time_discussion = models.StringField(blank=True)
+    task_finish_click_time_discussion = models.StringField(blank=True)
     task_end_time_discussion = models.StringField(blank=True)
     rest_actions_eo = models.StringField(label="")
 
@@ -280,7 +282,7 @@ class DiscussionPreface(Page):
 
 class Discussion(Page):
     form_model = 'player'
-    form_fields = ['task_load_time_discussion', 'task_end_time_discussion', 'chat_log']
+    form_fields = ['task_load_time_discussion', 'task_finish_click_time_discussion', 'task_end_time_discussion', 'chat_log']
 
     def vars_for_template(player):
         return dict(
@@ -372,7 +374,7 @@ class GameGoal(Page):
 
 class ProjectInformation(Page):
     form_model = 'player'
-    form_fields = ['task_load_time_project', 'task_end_time_project']
+    form_fields = ['task_load_time_project', 'task_finish_click_time_project', 'task_end_time_project']
 
     @staticmethod
     def is_displayed(player: Player):

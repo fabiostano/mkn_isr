@@ -92,6 +92,7 @@
 <!-- Logging fields -->
 <!-- Logging fields -->
 <input type="hidden" name="task_load_time_project" id="task_load_time_project" value=""/>
+<input type="hidden" name="task_finish_click_time_project" id="task_finish_click_time_project" value=""/>
 <input type="hidden" name="task_end_time_project" id="task_end_time_project" value=""/>
 
 <!-- Timeout message -->
@@ -121,6 +122,7 @@
         if (data.type === "go_to_next") {
             allReady = true;
             document.getElementById("warning-message").style.display = "none";
+            document.getElementById("task_end_time_project").value = Date.now();
             form.submit();
         } else if (data.type === "waiting") {
         }
@@ -138,7 +140,7 @@
             if (allReady) return;
             allReady = true;
 
-            document.getElementById("task_end_time_project").value = Date.now();
+            document.getElementById("task_finish_click_time_project").value = Date.now();
             button.disabled = true;
             button.style.backgroundColor = "#ccc";
             button.style.borderColor = "#ccc";
