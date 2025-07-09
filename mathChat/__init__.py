@@ -124,11 +124,6 @@ class Player(BasePlayer):
 
     ### Task Phase Survey
 
-    # ----- Task Importance ----- #
-    ti1 = make_7p_likert_field('... something important to me was at stake.')
-    ti2 = make_7p_likert_field('... I was careful to not make mistakes.')
-    ti3 = make_7p_likert_field('... I was worried about failing.')
-
     # ----- Perceived Task Complexity ----- #
     ptc1 = make_7p_likert_field('This task was a complex task.')
     ptc2 = make_7p_likert_field('This task was mentally demanding.')
