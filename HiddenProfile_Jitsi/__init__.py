@@ -396,6 +396,8 @@ class WaitForProjectInfo(WaitPage):
 
 class WaitForDecision(WaitPage):
     after_all_players_arrive = 'set_winning_project'
+    after_all_players_arrive = 'set_winning_factory'
+    after_all_players_arrive = 'set_winning_candidates'
 
 class Results(Page):
     def vars_for_template(player: Player):
