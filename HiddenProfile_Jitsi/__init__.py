@@ -430,9 +430,9 @@ class WaitForDecision(WaitPage):
 
         if condition == 'MED':
             set_winning_project(group)
-        elif condition == 'LOW':
+        elif condition == 'EASY':
             set_winning_factory(group)
-        elif condition == 'HIGH':
+        elif condition == 'HARD':
             set_winning_candidate(group)
         else:
             print(f"[Warnung] Unbekannte Bedingung: {condition}")
@@ -689,9 +689,9 @@ def set_winning_factory(group: Group):
 
     # Scoring berechnen
     for factory in factories:
-        build_score = normalize(factory['build_cost'], min(construction_cost), max(construction_cost), higher_is_better=False)
+        construction_score = normalize(factory['construction_cost'], min(construction_cost), max(construction_cost), higher_is_better=False)
         energy_score = normalize(factory['energy_cost'], min(energy_cost), max(energy_cost), higher_is_better=False)
-        factory['benefit'] = 0.5 * build_score + 0.5 * energy_score
+        factory['benefit'] = 0.5 * construction_score + 0.5 * energy_score
 
     # Ranking
     sorted_factories = sorted(factories, key=lambda x: x['benefit'], reverse=True)
