@@ -59,6 +59,8 @@ class Player(BasePlayer):
     personal_interest = models.StringField()
     shared_info = models.StringField()
     project_choice = models.StringField()
+    factory_choice = models.StringField()
+    candidate_choice = models.StringField()
     player_payoff = models.CurrencyField(initial=C.BASE_PAYOUT)
     next_ready = models.BooleanField(initial=False)
 
@@ -395,6 +397,8 @@ class WaitForProjectInfo(WaitPage):
 
 class WaitForDecision(WaitPage):
     after_all_players_arrive = 'set_winning_project'
+    after_all_players_arrive = 'set_winning_factory'
+    after_all_players_arrive = 'set_winning_candidates'
 
 class Results(Page):
     def vars_for_template(player: Player):
@@ -444,7 +448,6 @@ class GameGoal(Page):
     @staticmethod
     def is_displayed(player: Player):
         return True
-
 
 class ProjectInformation(Page):
     form_model = 'player'
@@ -556,6 +559,9 @@ def normalize(value, min_value, max_value, higher_is_better=True):
 
 
 def set_winning_project(group: Group):
+    if group.subsession.round_number != 1:
+        return
+
     projects = C.PROJECTS
 
     # Find min and max values for each metric
@@ -634,6 +640,9 @@ def set_winning_project(group: Group):
 
 
 def set_winning_factory(group: Group):
+    if group.subsession.round_number != 2:
+        return
+
     factories = C.FACTORIES
 
     # Werte extrahieren
@@ -675,6 +684,9 @@ def set_winning_factory(group: Group):
 
 
 def set_winning_candidates(group: Group):
+    if group.subsession.round_number != 3:
+        return
+
     candidates = C.CANDIDATES
 
     # Werte sammeln
