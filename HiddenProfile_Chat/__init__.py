@@ -1,4 +1,6 @@
 from otree.api import *
+import random
+from random import choice
 
 class C(BaseConstants):
     NAME_IN_URL = 'HiddenProfile_Chat'
@@ -45,6 +47,12 @@ class C(BaseConstants):
     ROLES = ['Chief Human Resources Officer', 'Chief Marketing Officer','Chief Financial Officer']
     TIMEOUT_SECONDS = 5 * 60  # 5 minutes in seconds
 
+    LATIN_SQUARE_ORDERS = [
+        ["EASY", "MED", "HARD"],
+        ["MED", "HARD", "EASY"],
+        ["HARD", "EASY", "MED"]
+    ]
+
 class Subsession(BaseSubsession):
     pass
 
@@ -64,8 +72,8 @@ class Player(BasePlayer):
     player_role = models.StringField()
     personal_interest = models.StringField()
     shared_info = models.StringField()
-    project_choice = models.StringField()
-    factory_choice = models.StringField()
+    project_choice = models.StringField(blank=True)
+    factory_choice = models.StringField(blank=True)
     candidate_choice = models.StringField(blank=True)
     player_payoff = models.CurrencyField(initial=C.BASE_PAYOUT)
     next_ready = models.BooleanField(initial=False)
@@ -267,9 +275,17 @@ class Player(BasePlayer):
 
 def creating_session(subsession: Subsession):
     for group in subsession.get_groups():
-        import random
         roles = C.ROLES[:]
         random.shuffle(roles)
+
+        # Draw once and store at the session level
+        if group.round_number == 1:
+            # Draw once and store at the session level
+            hp_condition_order = choice(C.LATIN_SQUARE_ORDERS)
+            print("Chosen Latin square for HP:", hp_condition_order)
+
+            for p in group.get_players():
+                p.participant.hp_condition_order = hp_condition_order
 
         for p in group.get_players():
             p.color = C.COLORMAP[p.id_in_group - 1]
@@ -287,10 +303,8 @@ class RoleAssignment(Page):
          return {
             'role': player.player_role,
             'personal_interest': player.personal_interest,
+             "round_nr": player.round_number
         }
-
-    def is_displayed(player: Player):
-        return player.round_number == 1
 
 class WaitForRoleAssignment(WaitPage):
     def is_displayed(self):
@@ -341,10 +355,6 @@ class ProjectDecision(Page):
     form_fields = ['project_choice']
 
     @staticmethod
-    def is_displayed(player: Player):
-        return True
-
-    @staticmethod
     def vars_for_template(player: Player):
         projects = C.PROJECTS
         return {
@@ -354,15 +364,13 @@ class ProjectDecision(Page):
         }
 
     def is_displayed(player: Player):
-        return player.round_number == 1
+        order = player.participant.hp_condition_order
+        # This page should appear when 'MED' is the current condition
+        return order[player.round_number - 1] == 'MED'
 
 class FactoryDecision(Page):
     form_model = 'player'
     form_fields = ['factory_choice']
-
-    @staticmethod
-    def is_displayed(player: Player):
-        return True
 
     @staticmethod
     def vars_for_template(player: Player):
@@ -374,15 +382,13 @@ class FactoryDecision(Page):
         }
 
     def is_displayed(player: Player):
-        return player.round_number == 2
+        order = player.participant.hp_condition_order
+        # This page should appear when 'EASY' is the current condition
+        return order[player.round_number - 1] == 'EASY'
 
 class CandidateDecision(Page):
     form_model = 'player'
     form_fields = ['candidate_choice']
-
-    @staticmethod
-    def is_displayed(player: Player):
-        return True
 
     @staticmethod
     def vars_for_template(player: Player):
@@ -394,7 +400,9 @@ class CandidateDecision(Page):
         }
 
     def is_displayed(player: Player):
-        return player.round_number == 3
+        order = player.participant.hp_condition_order
+        # This page should appear when 'HARD' is the current condition
+        return order[player.round_number - 1] == 'HARD'
 
 class WaitForProjectInfo(WaitPage):
     form_model = 'player'
@@ -464,7 +472,9 @@ class ProjectInformation(Page):
         return True
 
     def is_displayed(player: Player):
-        return player.round_number == 1
+        order = player.participant.hp_condition_order
+        # This page should appear when 'MED' is the current condition
+        return order[player.round_number - 1] == 'MED'
 
     @staticmethod
     def vars_for_template(player: Player):
@@ -486,17 +496,12 @@ class ProjectInformation(Page):
     @staticmethod
     def before_next_page(player: Player, timeout_happened):
         player.next_ready = False
-
 
 class FactoryInformation(Page):
     form_model = 'player'
     form_fields = ['task_load_time_project', 'task_finish_click_time_project', 'task_end_time_project']
 
     @staticmethod
-    def is_displayed(player: Player):
-        return True
-
-    @staticmethod
     def vars_for_template(player: Player):
         return {
             'role': player.player_role,
@@ -504,7 +509,9 @@ class FactoryInformation(Page):
         }
 
     def is_displayed(player: Player):
-        return player.round_number == 2
+        order = player.participant.hp_condition_order
+        # This page should appear when 'EASY' is the current condition
+        return order[player.round_number - 1] == 'EASY'
 
     @staticmethod
     def live_method(player: Player, data):
@@ -519,17 +526,12 @@ class FactoryInformation(Page):
     @staticmethod
     def before_next_page(player: Player, timeout_happened):
         player.next_ready = False
-
 
 class CandidateInformation(Page):
     form_model = 'player'
     form_fields = ['task_load_time_project', 'task_finish_click_time_project', 'task_end_time_project']
 
     @staticmethod
-    def is_displayed(player: Player):
-        return True
-
-    @staticmethod
     def vars_for_template(player: Player):
         return {
             'role': player.player_role,
@@ -537,7 +539,9 @@ class CandidateInformation(Page):
         }
 
     def is_displayed(player: Player):
-        return player.round_number == 3
+        order = player.participant.hp_condition_order
+        # This page should appear when 'HARD' is the current condition
+        return order[player.round_number - 1] == 'HARD'
 
     @staticmethod
     def live_method(player: Player, data):
@@ -552,7 +556,6 @@ class CandidateInformation(Page):
     @staticmethod
     def before_next_page(player: Player, timeout_happened):
         player.next_ready = False
-
 
 def normalize(value, min_value, max_value, higher_is_better=True):
     """
@@ -562,7 +565,6 @@ def normalize(value, min_value, max_value, higher_is_better=True):
         return 0
     normalized = (value - min_value) / (max_value - min_value) * 100
     return normalized if higher_is_better else (100 - normalized)
-
 
 def set_winning_project(group: Group):
     if group.subsession.round_number != 1:
@@ -644,7 +646,6 @@ def set_winning_project(group: Group):
     for player in group.get_players():
         player.player_payoff = group.project_profit
 
-
 def set_winning_factory(group: Group):
     if group.subsession.round_number != 2:
         return
@@ -687,7 +688,6 @@ def set_winning_factory(group: Group):
     # Auszahlung
     for player in group.get_players():
         player.player_payoff = group.factory_points
-
 
 def set_winning_candidate(group: Group):
     if group.subsession.round_number != 3:
