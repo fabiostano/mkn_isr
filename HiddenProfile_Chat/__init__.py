@@ -52,6 +52,12 @@ class Group(BaseGroup):
     chosen_project = models.StringField(initial=None)
     project_profit = models.CurrencyField(initial=0)
 
+    chosen_factory = models.StringField(initial=None)
+    factory_points = models.CurrencyField(initial=0)
+
+    chosen_candidate = models.StringField(initial=None)
+    candidate_points = models.CurrencyField(initial=0)
+
 class Player(BasePlayer):
     color = models.StringField(initial="none")
     chat_log = models.LongStringField(initial="", blank=True)
@@ -60,7 +66,7 @@ class Player(BasePlayer):
     shared_info = models.StringField()
     project_choice = models.StringField()
     factory_choice = models.StringField()
-    candidate_choice = models.StringField()
+    candidate_choice = models.StringField(blank=True)
     player_payoff = models.CurrencyField(initial=C.BASE_PAYOUT)
     next_ready = models.BooleanField(initial=False)
 
@@ -398,7 +404,7 @@ class WaitForProjectInfo(WaitPage):
 class WaitForDecision(WaitPage):
     after_all_players_arrive = 'set_winning_project'
     after_all_players_arrive = 'set_winning_factory'
-    after_all_players_arrive = 'set_winning_candidates'
+    after_all_players_arrive = 'set_winning_candidate'
 
 class Results(Page):
     def vars_for_template(player: Player):
@@ -683,7 +689,7 @@ def set_winning_factory(group: Group):
         player.player_payoff = group.factory_points
 
 
-def set_winning_candidates(group: Group):
+def set_winning_candidate(group: Group):
     if group.subsession.round_number != 3:
         return
 
@@ -699,37 +705,40 @@ def set_winning_candidates(group: Group):
     for c in candidates:
         growth_score = normalize(c['revenue_growth'], min(growth), max(growth), higher_is_better=True)
         margin_score = normalize(c['profit_margin'], min(margin), max(margin), higher_is_better=True)
-        satisfaction_score = normalize(c['customer_satisfaction'], min(satisfaction), max(satisfaction),
-                                       higher_is_better=True)
-        headcount_score = normalize(c['headcount'], min(headcount), max(headcount),
-                                    higher_is_better=False)  # weniger = besser
+        satisfaction_score = normalize(c['customer_satisfaction'], min(satisfaction), max(satisfaction), higher_is_better=True)
+        headcount_score = normalize(c['headcount'], min(headcount), max(headcount), higher_is_better=False)  # weniger = besser
         c['benefit'] = (
-                0.25 * growth_score +
-                0.25 * margin_score +
-                0.25 * satisfaction_score +
-                0.25 * headcount_score
+            0.25 * growth_score +
+            0.25 * margin_score +
+            0.25 * satisfaction_score +
+            0.25 * headcount_score
         )
 
-    # Zwei beste Kandidaten identifizieren
+    # Ranking
     sorted_candidates = sorted(candidates, key=lambda x: x['benefit'], reverse=True)
-    best_pair = [sorted_candidates[0]['name'], sorted_candidates[1]['name']]
+    candidate_ranking = {
+        sorted_candidates[0]['name']: 15,
+        sorted_candidates[1]['name']: 5,
+    }
 
-    # Spielerentscheidungen auswerten
-    correct_count = 0
-    for p in group.get_players():
-        if not p.candidate_choices:
-            continue
-        selected = p.candidate_choices.split(',')
-        if set(selected) == set(best_pair):
-            correct_count += 1
-
-    # Gruppenentscheidung
-    group.correct_bonus_decision = correct_count >= 2  # Mehrheit korrekt gewählt?
-    group.bonus_points = 10 if group.correct_bonus_decision else 0
+    # Abstimmungsauswertung
+    votes = [p.candidate_choice for p in group.get_players() if p.candidate_choice]
+    if votes:
+        vote_count = {f: votes.count(f) for f in set(votes)}
+        winning_candidate = [f for f, count in vote_count.items() if count >= 3]
+        if winning_candidate:
+            group.chosen_candidate = winning_candidate[0]
+            group.candidate_points = candidate_ranking.get(group.chosen_candidate, 0)
+        else:
+            group.chosen_candidate = "No consensus"
+            group.candidate_points = 0
+    else:
+        group.chosen_candidate = "No consensus"
+        group.candidate_points = 0
 
     # Auszahlung
-    for p in group.get_players():
-        p.player_payoff = group.bonus_points
+    for player in group.get_players():
+        player.player_payoff = group.candidate_points
 
 class TaskSurvey(Page):
     form_model = 'player'

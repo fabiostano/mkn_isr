@@ -21,9 +21,9 @@
     {% for candidate in candidates %}
         <div>
             <label>
-                <input type="checkbox" name="candidate_choices" value="{{ candidate.name }}">
-                <strong>{{ candidate.name }}</strong>
-            </label><br>
+                <input type="radio" name="candidate_choice" value="{{ candidate.name }}" required>
+            </label>
+            <strong>{{ candidate.name }}</strong><br>
         </div>
     {% endfor %}
 
@@ -35,4 +35,3 @@
 </div>
 <br/><br/>
 {% endblock %}
-
