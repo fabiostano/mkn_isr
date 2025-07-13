@@ -89,6 +89,11 @@ class Vorbereitung(Page):
 class Welcome(Page):
     form_model = 'player'
 
+    def vars_for_template(player):
+        return dict(
+            recordEEG=player.recordEEG
+        )
+
 class IntroQuestionnaire(Page):
     form_model = 'player'
     form_fields = ['gender', 'age', 'english', 'occupation', 'field_of_study', 'dominant_hand']
