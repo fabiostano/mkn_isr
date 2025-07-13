@@ -3,13 +3,13 @@ from otree.api import *
 class C(BaseConstants):
     NAME_IN_URL = 'HiddenProfile_Jitsi'
     PLAYERS_PER_GROUP = 3  # CHRO, CMO, CFO
-    NUM_ROUNDS = 1
+    NUM_ROUNDS = 3
     BASE_PAYOUT = 200
     TEAM_BONUS = 30
     DEPT_BONUS = 50
     MAX_INFO_SHARING_BONUS = 70
-    TASK_PREP_TIME_LIMIT = 5*60
-    TASK_TIME_LIMIT = 7*60  # 3 * 60  # Task Time
+    TASK_PREP_TIME_LIMIT = 3*60
+    TASK_TIME_LIMIT = 5*60  # 3 * 60  # Task Time
 
     COLORMAP = ['lightcoral', 'lightgreen', 'lightblue']
 
@@ -22,9 +22,29 @@ class C(BaseConstants):
          'criteria': 'market'}
     ]
 
+    FACTORIES = [
+        {'name': 'Factory A: United States', 'construction_cost': 280, 'energy_cost': 55, 'criteria': 'skills'},
+        {'name': 'Factory B: China', 'construction_cost': 190, 'energy_cost': 50, 'criteria': 'costs'},
+    ]
+
+    CANDIDATES = [
+        {'name': 'Candidate A: SBU Europe', 'headcount': 6.200, 'revenue_growth': 5, 'profit_margin': 16, 'customer_satisfaction': 83,
+         'criteria': 'operational efficiency'},
+        {'name': 'Candidate B: SBU Asia', 'headcount': 8.400, 'revenue_growth': 10, 'profit_margin': 14, 'customer_satisfaction': 79,
+         'criteria': 'scalability'},
+        {'name': 'Candidate 3: SBU Americas', 'headcount': 5.600, 'revenue_growth': 7, 'profit_margin': 18, 'customer_satisfaction': 88,
+         'criteria': 'customer engagement'},
+        {'name': 'Candidate 4: SBU Africa', 'headcount': 3.800, 'revenue_growth': 7, 'profit_margin': 10, 'customer_satisfaction': 72,
+        'criteria': 'workforce investments'},
+        {'name': 'Candidate 5: SBU Middle East', 'headcount': 5.200, 'revenue_growth': 4, 'profit_margin': 19, 'customer_satisfaction': 78,
+         'criteria': 'digital innovation'},
+        {'name': 'Candidate 6: SBU Australia', 'headcount': 2.1000, 'revenue_growth': 9, 'profit_margin': 17, 'customer_satisfaction': 86,
+         'criteria': 'agile product management'},
+    ]
+
     ROLES = ['Chief Human Resources Officer', 'Chief Marketing Officer',
              'Chief Financial Officer']
-    TIMEOUT_SECONDS = 7 * 60  # 7 minutes in seconds
+    TIMEOUT_SECONDS = 5 * 60  # 5 minutes in seconds
     SENTIMENT_UPDATE_INTERVAL = 15  # seconds
 
 class Subsession(BaseSubsession):
@@ -265,6 +285,9 @@ class RoleAssignment(Page):
             'personal_interest': player.personal_interest
         }
 
+    def is_displayed(player: Player):
+        return player.round_number == 1
+
 class WaitForRoleAssignment(WaitPage):
     def is_displayed(self):
         # This ensures that all players must pass through this wait page
@@ -302,7 +325,7 @@ class Discussion(Page):
             else:
                 return {player.id_in_group: {"type": "waiting"}}
 
-class Decision(Page):
+class ProjectDecision(Page):
     form_model = 'player'
     form_fields = ['project_choice']
 
@@ -318,6 +341,51 @@ class Decision(Page):
             'session_code': player.session.code,
             'group_id': player.group.id_in_subsession,
         }
+
+    def is_displayed(player: Player):
+        return player.round_number == 1
+
+
+class FactoryDecision(Page):
+    form_model = 'player'
+    form_fields = ['factory_choice']
+
+    @staticmethod
+    def is_displayed(player: Player):
+        return True
+
+    @staticmethod
+    def vars_for_template(player: Player):
+        factories = C.FACTORIES
+        return {
+            'factories': factories,
+            'session_code': player.session.code,
+            'group_id': player.group.id_in_subsession,
+        }
+
+    def is_displayed(player: Player):
+        return player.round_number == 2
+
+
+class CandidateDecision(Page):
+    form_model = 'player'
+    form_fields = ['candidate_choice']
+
+    @staticmethod
+    def is_displayed(player: Player):
+        return True
+
+    @staticmethod
+    def vars_for_template(player: Player):
+        candidates = C.CANDIDATES
+        return {
+            'candidates': candidates,
+            'session_code': player.session.code,
+            'group_id': player.group.id_in_subsession,
+        }
+
+    def is_displayed(player: Player):
+        return player.round_number == 3
 
 class WaitForProjectInfo(WaitPage):
     form_model = 'player'
@@ -339,6 +407,9 @@ class Introduction(Page):
     def is_displayed(player: Player):
         return True
 
+    def is_displayed(player: Player):
+        return player.round_number == 1
+
 class GameOverview(Page):
     @staticmethod
     def is_displayed(player: Player):
@@ -349,15 +420,24 @@ class Overview_1(Page):
     def is_displayed(player: Player):
         return True
 
+    def is_displayed(player: Player):
+        return player.round_number == 1
+
 class Overview_2(Page):
     @staticmethod
     def is_displayed(player: Player):
         return True
 
+    def is_displayed(player: Player):
+        return player.round_number == 1
+
 class Overview_3(Page):
     @staticmethod
     def is_displayed(player: Player):
         return True
+
+    def is_displayed(player: Player):
+        return player.round_number == 1
 
 class GameGoal(Page):
     @staticmethod
@@ -372,12 +452,79 @@ class ProjectInformation(Page):
     def is_displayed(player: Player):
         return True
 
+    def is_displayed(player: Player):
+        return player.round_number == 1
+
     @staticmethod
     def vars_for_template(player: Player):
         return {
             'role': player.player_role,
             'taskDuration': C.TASK_PREP_TIME_LIMIT,
         }
+
+    @staticmethod
+    def live_method(player: Player, data):
+        if data.get("type") == "next_clicked":
+            player.next_ready = True
+            all_ready = all(p.next_ready for p in player.group.get_players())
+            if all_ready:
+                return {p.id_in_group: {"type": "go_to_next"} for p in player.group.get_players()}
+            else:
+                return {player.id_in_group: {"type": "waiting"}}
+
+    @staticmethod
+    def before_next_page(player: Player, timeout_happened):
+        player.next_ready = False
+
+class FactoryInformation(Page):
+    form_model = 'player'
+    form_fields = ['task_load_time_project', 'task_finish_click_time_project','task_end_time_project']
+
+    @staticmethod
+    def is_displayed(player: Player):
+        return True
+
+    @staticmethod
+    def vars_for_template(player: Player):
+        return {
+            'role': player.player_role,
+            'taskDuration': C.TASK_PREP_TIME_LIMIT,
+        }
+
+    def is_displayed(player: Player):
+        return player.round_number == 2
+
+    @staticmethod
+    def live_method(player: Player, data):
+        if data.get("type") == "next_clicked":
+            player.next_ready = True
+            all_ready = all(p.next_ready for p in player.group.get_players())
+            if all_ready:
+                return {p.id_in_group: {"type": "go_to_next"} for p in player.group.get_players()}
+            else:
+                return {player.id_in_group: {"type": "waiting"}}
+
+    @staticmethod
+    def before_next_page(player: Player, timeout_happened):
+        player.next_ready = False
+
+class CandidateInformation(Page):
+    form_model = 'player'
+    form_fields = ['task_load_time_project', 'task_finish_click_time_project','task_end_time_project']
+
+    @staticmethod
+    def is_displayed(player: Player):
+        return True
+
+    @staticmethod
+    def vars_for_template(player: Player):
+        return {
+            'role': player.player_role,
+            'taskDuration': C.TASK_PREP_TIME_LIMIT,
+        }
+
+    def is_displayed(player: Player):
+        return player.round_number == 3
 
     @staticmethod
     def live_method(player: Player, data):
@@ -478,6 +625,88 @@ def set_winning_project(group: Group):
     # Update each player's payoff
     for player in group.get_players():
         player.player_payoff = group.project_profit
+
+def set_winning_factory(group: Group):
+    factories = C.FACTORIES
+
+    # Werte extrahieren
+    construction_cost = [f['construction_cost'] for f in factories]
+    energy_cost = [f['energy_cost'] for f in factories]
+
+    # Scoring berechnen
+    for factory in factories:
+        build_score = normalize(factory['build_cost'], min(construction_cost), max(construction_cost), higher_is_better=False)
+        energy_score = normalize(factory['energy_cost'], min(energy_cost), max(energy_cost), higher_is_better=False)
+        factory['benefit'] = 0.5 * build_score + 0.5 * energy_score
+
+    # Ranking
+    sorted_factories = sorted(factories, key=lambda x: x['benefit'], reverse=True)
+    factory_ranking = {
+        sorted_factories[0]['name']: 15,
+        sorted_factories[1]['name']: 5,
+    }
+
+    # Abstimmungsauswertung
+    votes = [p.factory_choice for p in group.get_players() if p.factory_choice]
+    if votes:
+        vote_count = {f: votes.count(f) for f in set(votes)}
+        winning_factory = [f for f, count in vote_count.items() if count >= 3]
+        if winning_factory:
+            group.chosen_factory = winning_factory[0]
+            group.factory_points = factory_ranking.get(group.chosen_factory, 0)
+        else:
+            group.chosen_factory = "No consensus"
+            group.factory_points = 0
+    else:
+        group.chosen_factory = "No consensus"
+        group.factory_points = 0
+
+    # Auszahlung
+    for player in group.get_players():
+        player.player_payoff = group.factory_points
+
+def set_winning_candidates(group: Group):
+    candidates = C.CANDIDATES
+
+    # Werte sammeln
+    growth = [c['revenue_growth'] for c in candidates]
+    margin = [c['profit_margin'] for c in candidates]
+    satisfaction = [c['customer_satisfaction'] for c in candidates]
+    headcount = [c['headcount'] for c in candidates]
+
+    # Scoring
+    for c in candidates:
+        growth_score = normalize(c['revenue_growth'], min(growth), max(growth), higher_is_better=True)
+        margin_score = normalize(c['profit_margin'], min(margin), max(margin), higher_is_better=True)
+        satisfaction_score = normalize(c['customer_satisfaction'], min(satisfaction), max(satisfaction), higher_is_better=True)
+        headcount_score = normalize(c['headcount'], min(headcount), max(headcount), higher_is_better=False)  # weniger = besser
+        c['benefit'] = (
+            0.25 * growth_score +
+            0.25 * margin_score +
+            0.25 * satisfaction_score +
+            0.25 * headcount_score
+        )
+
+    # Zwei beste Kandidaten identifizieren
+    sorted_candidates = sorted(candidates, key=lambda x: x['benefit'], reverse=True)
+    best_pair = [sorted_candidates[0]['name'], sorted_candidates[1]['name']]
+
+    # Spielerentscheidungen auswerten
+    correct_count = 0
+    for p in group.get_players():
+        if not p.candidate_choices:
+            continue
+        selected = p.candidate_choices.split(',')
+        if set(selected) == set(best_pair):
+            correct_count += 1
+
+    # Gruppenentscheidung
+    group.correct_bonus_decision = correct_count >= 2  # Mehrheit korrekt gewählt?
+    group.bonus_points = 10 if group.correct_bonus_decision else 0
+
+    # Auszahlung
+    for p in group.get_players():
+        p.player_payoff = group.bonus_points
 
 class TaskSurvey(Page):
     form_model = 'player'
@@ -602,10 +831,10 @@ class RestEyesOpen(Page):
 page_sequence = [Introduction,
                  Overview_1, Overview_2, Overview_3,
                  RoleAssignment,
-                 WaitForProjectInfo, ProjectInformation,
+                 WaitForProjectInfo, ProjectInformation, FactoryInformation, CandidateInformation,
                  WaitForRoleAssignment,
                  Discussion,
-                 Decision, WaitForDecision,
+                 ProjectDecision, FactoryDecision, CandidateDecision, WaitForDecision,
                  TaskSurvey, RestEyesOpen, TaskPhaseSurvey]
 
 
