@@ -881,10 +881,10 @@ class RestEyesOpen(Page):
 page_sequence = [Introduction,
                  Overview_1, Overview_2, Overview_3,
                  RoleAssignment,
-                 WaitForProjectInfo, ProjectInformation, FactoryInformation, CandidateInformation,
+                 WaitForProjectInfo, Project1Information, Project2Information, Project3Information,
                  WaitForRoleAssignment,
                  Discussion,
-                 ProjectDecision, FactoryDecision, CandidateDecision, WaitForDecision,
+                 Project1Decision, Project2Decision, Project3Decision, WaitForDecision,
                  TaskSurvey, RestEyesOpen, TaskPhaseSurvey]
 
 
