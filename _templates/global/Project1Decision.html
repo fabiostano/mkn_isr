@@ -18,12 +18,12 @@
     <p>Based on the discussion you just had, choose the project that you think is best for the company.</p>
 <form method="post">
 
-    {% for project1 in projects1 %}
+    {% for project in projects1 %}
         <div>
             <label>
-                <input type="radio" name="project1_choice" value="{{ project1.name }}" required>
+                <input type="radio" name="project1_choice" value="{{ project.name }}" required>
             </label>
-            <strong>{{ project1.name }}</strong><br>
+            <strong>{{ project.name }}</strong><br>
         </div>
     {% endfor %}
 

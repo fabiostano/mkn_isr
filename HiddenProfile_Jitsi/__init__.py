@@ -72,10 +72,10 @@ class Group(BaseGroup):
     project1_profit = models.CurrencyField(initial=0)
 
     chosen_project2 = models.StringField(initial=None)
-    project2_profit = models.CurrencyField(initial=0)
+    project2_points = models.CurrencyField(initial=0)
 
     chosen_project3 = models.StringField(initial=None)
-    project3_profit = models.CurrencyField(initial=0)
+    project3_points = models.CurrencyField(initial=0)
 
 class Player(BasePlayer):
     color = models.StringField(initial="none")
