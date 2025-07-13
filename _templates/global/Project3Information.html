@@ -24,70 +24,69 @@
         and remember the details</strong>, as the information will not be repeated later.
     <p/>
 
-    <h2>Candidate Descriptions</h2>
+    <h2>Project Descriptions</h2>
 
-    <p>At the end of the fiscal year, the company plans to <strong>award two exceptional business unit leaders</strong> with a significant performance-based bonus.
-    You are part of a decision committee tasked with identifying the two most deserving candidates. Each candidate leads a strategic business unit (SBU) in a different world region.</p>
+    <p>Your company wants to <strong>launch a new software tool</strong>. Please decide on the project that is expected to maximize the company's success.<p>
 
-    <p>Here’s a brief overview of each SBU:<p>
+    <p>Here’s a brief overview of each project:<p>
 
     <div class="project-description">
-        <h3>SBU Europe</h3>
-        <p>The European business unit focuses on mature markets with high operational efficiency and moderate growth strategies.<br>
-        The unit currently employs <strong>6.200 people</strong>.<br>
-        {% if role == 'Chief Financial Officer' %} It has achieved a <strong>revenue growth of 5%</strong> this year.<br>{% endif %}
-        {% if role == 'Chief Human Resources Officer' %} The unit has reached a <strong>profit margin of 16%</strong>.<br>{% endif %}
-        {% if role == 'Chief Marketing Officer' or role == 'Chief Human Resources Officer' %} Customer satisfaction is reported at <strong>83%</strong>.<br>{% endif %}
+        <h3>Project A: GreenLedger</h3>
+        <p>This project offers a sustainability-focused accounting tool that helps businesses track environmental metrics alongside financials. It is designed to support companies in meeting their ESG goals by providing transparent reporting and analytics. The tool integrates seamlessly with existing ERP systems to minimize disruption.<br>
+        {% if role == 'Chief Marketing Officer' or role == 'Chief Human Resources Officer' %} The project is expected to yield a profit of <strong>3 million €</strong> per year.<br>{% endif %}
+        {% if role == 'Chief Financial Officer' %} Market demand is projected at <strong>55.000 users</strong>.<br>{% endif %}
+        {% if role == 'Chief Human Resources Officer' %} The expected salary cost is <strong>58.000 €</strong> per year.<br>{% endif %}
+        Its environmental impact is rated at <strong>35 tons of CO₂ per year</strong>.<br>
         </p>
     </div>
 
     <div class="project-description">
-        <h3>SBU Asia</h3>
-        <p>This SBU operates in high-growth markets and focuses on scalability and digital innovation.<br>
-        {% if role == 'Chief Human Resources Officer' %} The business unit manages <strong>8.400 employees</strong>.<br>{% endif %}
-        {% if role == 'Chief Financial Officer' %} It has recorded a strong <strong>revenue growth of 10%</strong> this year.<br>{% endif %}
-        {% if role == 'Chief Financial Officer' or role == 'Chief Marketing Officer' %} Profit margin is currently <strong>14%</strong>.<br>{% endif %}
-        {% if role == 'Chief Marketing Officer' %} Customer satisfaction stands at <strong>79%</strong>.<br>{% endif %}
+        <h3>Project B: AssetPilot</h3>
+        <p>AssetPilot is designed to streamline fixed asset management with advanced AI forecasting and depreciation tracking. The software helps companies optimize asset utilization and reduce unnecessary capital expenditures. It offers detailed dashboards and predictive maintenance alerts.<br>
+        {% if role == 'Chief Human Resources Officer' %} The projected profit is <strong>5 million €</strong> per year.<br>{% endif %}
+        {% if role == 'Chief Financial Officer' %} The environmental impact is estimated at <strong>70 tons of CO₂</strong> annually.<br>{% endif %}
+        {% if role == 'Chief Financial Officer' or role == 'Chief Marketing Officer' %} Market demand is estimated at <strong>75.000 users</strong>.<br>{% endif %}
+        {% if role == 'Chief Marketing Officer' %} The annual salary cost is expected to be <strong>62.000 €</strong>.<br>{% endif %}
         </p>
     </div>
 
     <div class="project-description">
-        <h3>SBU Americas</h3>
-        <p>Focused on both North and South America, this unit is strong in customer engagement and regional adaptation.<br>
-        {% if role == 'Chief Human Resources Officer' %} The unit has a workforce of <strong>5.600 employees</strong>.<br>{% endif %}
-        {% if role == 'Chief Financial Officer' or role == 'Chief Human Resources Officer' %} Revenue has grown by <strong>7%</strong> this year.<br>{% endif %}
-        {% if role == 'Chief Financial Officer' %} The profit margin currently stands at <strong>12%</strong>.<br>{% endif %}
-        {% if role == 'Chief Marketing Officer' %} Customer satisfaction has reached <strong>88%</strong>.<br>{% endif %}
+        <h3>Project C: BrandVista</h3>
+            <p>This platform enhances brand visibility and positioning through real-time customer sentiment analysis. It aggregates data from social media, surveys, and sales to provide actionable marketing insights. The tool is tailored for fast-moving consumer goods companies aiming to increase market share.<br>
+        {% if role == 'Chief Human Resources Officer' %} Expected profit is <strong>4 million €</strong> per year.<br>{% endif %}
+        {% if role == 'Chief Financial Officer' or role == 'Chief Human Resources Officer' %} The environmental impact is estimated at <strong>65 tons of CO₂</strong> per year.<br>{% endif %}
+        {% if role == 'Chief Financial Officer' %} The salary cost is projected at <strong>60.000 €</strong> annually.<br>{% endif %}
+        {% if role == 'Chief Marketing Officer' %} Market demand is estimated at <strong>70.000 users</strong>.<br>{% endif %}
         </p>
     </div>
 
     <div class="project-description">
-        <h3>SBU Africa</h3>
-        <p>This unit is positioned in emerging markets with long-term potential and workforce investments.<br>
-        {% if role == 'Chief Human Resources Officer' %} It currently employs <strong>3.800 people</strong>.<br>{% endif %}
-        {% if role == 'Chief Financial Officer' or role == 'Chief Marketing Officer' %} The revenue growth this year is <strong>7%</strong>.<br>{% endif %}
-        The profit margin of the unit is <strong>10%</strong>.<br>
-        {% if role == 'Chief Marketing Officer' %} Customer satisfaction is reported at <strong>72%</strong>.<br>{% endif %}
+        <h3>Project D: AuditAce</h3>
+         <p>AuditAce offers an AI-based solution for internal audits and risk control optimization. It automates compliance checks and identifies potential fraud patterns with high accuracy. The software helps reduce audit costs while improving regulatory adherence.<br>
+        {% if role == 'Chief Human Resources Officer' %} The forecasted profit is <strong>6 million €</strong> annually.<br>{% endif %}
+        {% if role == 'Chief Financial Officer' %} Environmental impact is expected to be <strong>80 tons of CO₂</strong>.<br>{% endif %}
+        {% if role == 'Chief Financial Officer' or role == 'Chief Marketing Officer' %} The salary cost amounts to <strong>56.000 €</strong> per year.<br>{% endif %}
+        {% if role == 'Chief Marketing Officer' %} Market demand is estimated at <strong>80.000 users in Germany</strong>.<br>{% endif %}
         </p>
     </div>
 
     <div class="project-description">
-        <h3>SBU Middle East</h3>
-        <p>Operating in high-margin sectors, this unit focuses on energy and digital finance innovation.<br>
-        {% if role == 'Chief Human Resources Officer' %} The SBU employs <strong>5.200 people</strong>.<br>{% endif %}
-        The revenue growth for the current year is <strong>4%</strong>.<br>
-        {% if role == 'Chief Financial Officer' or role == 'Chief Human Resources Officer' %} It has achieved a <strong>profit margin of 19%</strong>.<br>{% endif %}
-        {% if role == 'Chief Marketing Officer' %} Customer satisfaction currently stands at <strong>78%</strong>.<br>{% endif %}
+        <h3>Project E: PayFlex</h3>
+            <p>PayFlex modernizes payroll systems with flexible benefits administration and mobile access. It enables employees to customize their compensation packages and manage payments conveniently. The system integrates with HR software to streamline payroll processing.<br>
+        {% if role == 'Chief Human Resources Officer' %} The expected profit is <strong>3 million €</strong> annually.<br>{% endif %}
+        {% if role == 'Chief Financial Officer' or role == 'Chief Marketing Officer' %} Market demand stands at <strong>65.000 users</strong>.<br>{% endif %}
+        The salary cost is <strong>54.000 €</strong>.<br>
+        {% if role == 'Chief Marketing Officer' %} Environmental impact is <strong>55 tons of CO₂</strong>.<br>{% endif %}
         </p>
     </div>
 
     <div class="project-description">
-        <h3>SBU Australia</h3>
-        <p>This unit emphasizes agile product development and work-life balance in a smaller, competitive market.<br>
-        {% if role == 'Chief Human Resources Officer' %} The unit operates with just <strong>2.100 employees</strong>, making it highly efficient.<br>{% endif %}
-        {% if role == 'Chief Financial Officer' %} It has achieved a <strong>revenue growth of 9%</strong> this year.<br>{% endif %}
-        {% if role == 'Chief Financial Officer' or role == 'Chief Marketing Officer' %} Its profit margin stands at <strong>17%</strong>.<br>{% endif %}
-        {% if role == 'Chief Marketing Officer' %} Customer satisfaction is measured at <strong>86%</strong>.<br>{% endif %}
+        <h3>Project F: ComplyNow</h3>
+         <p>This tool supports regulatory compliance and generates automated legal reporting. It helps companies stay up-to-date with changing regulations and avoid costly penalties. The platform offers customizable compliance workflows for various industries.<br>
+        {% if role == 'Chief Human Resources Officer' %} Expected profit is <strong>2 million €</strong>.<br>{% endif %}
+        Market demand is estimated at <strong>45.000 users in Germany</strong>.<br>
+        {% if role == 'Chief Financial Officer' or role == 'Chief Human Resources Officer' %} The salary cost is <strong>52.000 €</strong>.<br>{% endif %}
+        {% if role == 'Chief Marketing Officer' %} Environmental impact is <strong>50 tons of CO₂</strong>.<br>{% endif %}
         </p>
     </div>
 

@@ -25,23 +25,25 @@ class C(BaseConstants):
     ]
 
     PROJECTS2 = [
-        {'name': 'Factory A: United States', 'construction_cost': 280, 'energy_cost': 55, 'criteria': 'skills'},
-        {'name': 'Factory B: China', 'construction_cost': 190, 'energy_cost': 50, 'criteria': 'costs'},
+        {'name': 'Project A: SkillBridge', 'market_demand': 50.000, 'salary_cost': 48.000,
+         'criteria': 'green'},
+        {'name': 'Project B: InsightFlow', 'market_demand': 65.000, 'salary_cost': 52.000,
+         'criteria': 'balanced'}
     ]
 
     PROJECTS3 = [
-        {'name': 'Candidate A: SBU Europe', 'headcount': 6.200, 'revenue_growth': 5, 'profit_margin': 16, 'customer_satisfaction': 83,
-         'criteria': 'operational efficiency'},
-        {'name': 'Candidate B: SBU Asia', 'headcount': 8.400, 'revenue_growth': 10, 'profit_margin': 14, 'customer_satisfaction': 79,
-         'criteria': 'scalability'},
-        {'name': 'Candidate 3: SBU Americas', 'headcount': 5.600, 'revenue_growth': 7, 'profit_margin': 18, 'customer_satisfaction': 88,
-         'criteria': 'customer engagement'},
-        {'name': 'Candidate 4: SBU Africa', 'headcount': 3.800, 'revenue_growth': 7, 'profit_margin': 10, 'customer_satisfaction': 72,
-        'criteria': 'workforce investments'},
-        {'name': 'Candidate 5: SBU Middle East', 'headcount': 5.200, 'revenue_growth': 4, 'profit_margin': 19, 'customer_satisfaction': 78,
-         'criteria': 'digital innovation'},
-        {'name': 'Candidate 6: SBU Australia', 'headcount': 2.1000, 'revenue_growth': 9, 'profit_margin': 17, 'customer_satisfaction': 86,
-         'criteria': 'agile product management'},
+        {'name': 'Project A: GreenLedger', 'profit': 3, 'env_impact': 35, 'market_demand': 55.000, 'salary_cost': 58.000,
+         'criteria': 'sustainability'},
+        {'name': 'Project B: AssetPilot', 'profit': 5, 'env_impact': 70, 'market_demand': 75.000, 'salary_cost': 62.000,
+         'criteria': 'efficiency'},
+        {'name': 'Project C: BrandVista', 'profit': 4, 'env_impact': 65, 'market_demand': 70.000, 'salary_cost': 60.000,
+         'criteria': 'demand_leader'},
+        {'name': 'Project D: AuditAce', 'profit': 6, 'env_impact': 80, 'market_demand': 80.000, 'salary_cost': 56.000,
+         'criteria': 'profit_maximization'},
+        {'name': 'Project E: PayFlex', 'profit': 3, 'env_impact': 55, 'market_demand': 65.000, 'salary_cost': 54.000,
+         'criteria': 'balanced'},
+        {'name': 'Project F: ComplyNow', 'profit': 2, 'env_impact': 50, 'market_demand': 45.000, 'salary_cost': 52.000,
+         'criteria': 'risk_compliance'}
     ]
 
     ROLES = ['Chief Human Resources Officer', 'Chief Marketing Officer','Chief Financial Officer']
@@ -61,10 +63,10 @@ class Group(BaseGroup):
     project1_profit = models.CurrencyField(initial=0)
 
     chosen_project2 = models.StringField(initial=None)
-    project2_points = models.CurrencyField(initial=0)
+    project2_profit = models.CurrencyField(initial=0)
 
     chosen_project3 = models.StringField(initial=None)
-    project3_points = models.CurrencyField(initial=0)
+    project3_profit = models.CurrencyField(initial=0)
 
 class Player(BasePlayer):
     color = models.StringField(initial="none")
@@ -656,97 +658,140 @@ def set_winning_project1(group: Group):
         player.player_payoff = group.project1_profit
 
 def set_winning_project2(group: Group):
-    if group.subsession.round_number != 2:
+    if group.subsession.round_number != 1:
         return
 
     projects2 = C.PROJECTS2
 
-    # Werte extrahieren
-    construction_cost = [p['construction_cost'] for p in projects2]
-    energy_cost = [p['energy_cost'] for p in projects2]
+    # Werte extrahieren (nur die vorhandenen Variablen)
+    market_demand_values = [p['market_demand'] for p in projects2]
+    salary_values = [p['salary_cost'] for p in projects2]
 
-    # Scoring berechnen
+    # Normalisierte Scores berechnen
     for project2 in projects2:
-        construction_score = normalize(project2['construction_cost'], min(construction_cost), max(construction_cost), higher_is_better=False)
-        energy_score = normalize(project2['energy_cost'], min(energy_cost), max(energy_cost), higher_is_better=False)
-        project2['benefit'] = 0.5 * construction_score + 0.5 * energy_score
+        market_score = normalize(
+            project2['market_demand'],
+            min(market_demand_values),
+            max(market_demand_values),
+            higher_is_better=True
+        )
 
-    # Ranking
+        salary_score = normalize(
+            project2['salary_cost'],
+            min(salary_values),
+            max(salary_values),
+            higher_is_better=False
+        )
+
+        project2['benefit'] = 0.5 * market_score + 0.5 * salary_score
+
+    # Projekte nach Benefit sortieren
     sorted_projects2 = sorted(projects2, key=lambda x: x['benefit'], reverse=True)
+
     project2_ranking = {
         sorted_projects2[0]['name']: 15,
         sorted_projects2[1]['name']: 5,
     }
 
-    # Abstimmungsauswertung
+    # Gewinner ermitteln aus den Spielerwahlen
     votes = [p.project2_choice for p in group.get_players() if p.project2_choice]
     if votes:
-        vote_count = {f: votes.count(f) for f in set(votes)}
-        winning_project2 = [f for f, count in vote_count.items() if count >= 3]
+        vote_count = {proj: votes.count(proj) for proj in set(votes)}
+        winning_project2 = [proj for proj, count in vote_count.items() if count >= 3]
+
         if winning_project2:
             group.chosen_project2 = winning_project2[0]
-            group.project2_points = project2_ranking.get(group.chosen_project2, 0)
+            group.project2_profit = project2_ranking[group.chosen_project2]
         else:
             group.chosen_project2 = "No consensus"
-            group.project2_points = 0
+            group.project2_profit = 0
     else:
         group.chosen_project2 = "No consensus"
-        group.project2_points = 0
+        group.project2_profit = 0
 
-    # Auszahlung
     for player in group.get_players():
-        player.player_payoff = group.project2_points
+        player.player_payoff = group.project2_profit
+
 
 def set_winning_project3(group: Group):
-    if group.subsession.round_number != 3:
+    if group.subsession.round_number != 1:
         return
 
     projects3 = C.PROJECTS3
 
-    # Werte sammeln
-    growth = [p['revenue_growth'] for p in projects3]
-    margin = [p['profit_margin'] for p in projects3]
-    satisfaction = [p['customer_satisfaction'] for p in projects3]
-    headcount = [p['headcount'] for p in projects3]
+    # Werte extrahieren
+    profit_values = [p['profit'] for p in projects3]
+    env_impact_values = [p['env_impact'] for p in projects3]
+    market_demand_values = [p['market_demand'] for p in projects3]
+    salary_values = [p['salary_cost'] for p in projects3]
 
-    # Scoring
-    for p in projects3:
-        growth_score = normalize(p['revenue_growth'], min(growth), max(growth), higher_is_better=True)
-        margin_score = normalize(p['profit_margin'], min(margin), max(margin), higher_is_better=True)
-        satisfaction_score = normalize(p['customer_satisfaction'], min(satisfaction), max(satisfaction), higher_is_better=True)
-        headcount_score = normalize(p['headcount'], min(headcount), max(headcount), higher_is_better=False)  # weniger = besser
-        p['benefit'] = (
-            0.25 * growth_score +
-            0.25 * margin_score +
-            0.25 * satisfaction_score +
-            0.25 * headcount_score
+    # Normalisierte Scores berechnen
+    for project3 in projects3:
+        profit_score = normalize(
+            project3['profit'],
+            min(profit_values),
+            max(profit_values),
+            higher_is_better=True
         )
 
-    # Ranking
+        env_score = normalize(
+            project3['env_impact'],
+            min(env_impact_values),
+            max(env_impact_values),
+            higher_is_better=False
+        )
+
+        market_score = normalize(
+            project3['market_demand'],
+            min(market_demand_values),
+            max(market_demand_values),
+            higher_is_better=True
+        )
+
+        salary_score = normalize(
+            project3['salary_cost'],
+            min(salary_values),
+            max(salary_values),
+            higher_is_better=False
+        )
+
+        project3['benefit'] = (
+            0.25 * profit_score +
+            0.25 * env_score +
+            0.25 * market_score +
+            0.25 * salary_score
+        )
+
+    # Sortieren nach Benefit
     sorted_projects3 = sorted(projects3, key=lambda x: x['benefit'], reverse=True)
+
     project3_ranking = {
         sorted_projects3[0]['name']: 15,
-        sorted_projects3[1]['name']: 5,
+        sorted_projects3[1]['name']: 10,
+        sorted_projects3[2]['name']: 10,
+        sorted_projects3[3]['name']: 10,
+        sorted_projects3[4]['name']: 10,
+        sorted_projects3[5]['name']: 5,
     }
 
-    # Abstimmungsauswertung
+    # Gewinner ermitteln
     votes = [p.project3_choice for p in group.get_players() if p.project3_choice]
     if votes:
-        vote_count = {f: votes.count(f) for f in set(votes)}
-        winning_project3 = [f for f, count in vote_count.items() if count >= 3]
+        vote_count = {proj: votes.count(proj) for proj in set(votes)}
+        winning_project3 = [proj for proj, count in vote_count.items() if count >= 3]
+
         if winning_project3:
             group.chosen_project3 = winning_project3[0]
-            group.project3_points = project3_ranking.get(group.chosen_project3, 0)
+            group.project3_profit = project3_ranking[group.chosen_project3]
         else:
             group.chosen_project3 = "No consensus"
-            group.project3_points = 0
+            group.project3_profit = 0
     else:
         group.chosen_project3 = "No consensus"
-        group.project3_points = 0
+        group.project3_profit = 0
 
-    # Auszahlung
     for player in group.get_players():
-        player.player_payoff = group.project3_points
+        player.player_payoff = group.project3_profit
 
 class TaskSurvey(Page):
     form_model = 'player'

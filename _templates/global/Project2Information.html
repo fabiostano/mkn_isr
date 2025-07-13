@@ -19,30 +19,31 @@
         You now have <b style="color: red">3 minutes</b> to review the information below.
     </p>
     <p>
-        Dear <strong>{{ role }}</strong>, only you possess the information below, so it is essential that you share it with the rest of the team to achieve an optimal decision for the company.
-        Make sure to <strong>pay close attention and remember the details</strong>, as the information will not be repeated later.
+        Dear <strong>{{ role }}</strong>, only you possess the information below, so it is essential that you share it
+        with the rest of the team to achieve an optimal decision for the company. Make sure to <strong>pay close attention
+        and remember the details</strong>, as the information will not be repeated later.
     <p/>
 
     <h2>Project Descriptions</h2>
 
-    <p>Your company is planning to <strong>expand its production capacity</strong> by building a new manufacturing facility. Please decide on the site that is expected to be most beneficial for the company in the long run.</p>
+    <p>Your company wants to <strong>launch a new software tool</strong>. Please decide on the project that is expected to maximize the company's success.<p>
 
-    <p>Here’s a brief overview of the two location alternatives:<p>
+    <p>Here’s a brief overview of each project:<p>
 
     <div class="project-description">
-        <h3>Factory A: Steel Plant in the United States</h3>
-        <p>This option proposes building a high-tech steel manufacturing facility in the Midwest region of the United States. The location offers proximity to skilled labor and political stability, opposing stricter construction regulations and higher wages.
-            The estimated <strong>construction cost</strong> is <strong>280 million €</strong>.
-            {% if role == 'Chief Marketing Officer' %} The expected <strong>annual energy cost</strong> is <strong>55 million €</strong>. </p>
-            {% endif %}
+        <h3>Project A: SkillBridge</h3>
+        <p>SkillBridge is a talent development platform that enables employees to acquire cross-functional skills through microlearning and mentoring modules. It’s designed to foster internal mobility, increase retention, and build a resilient workforce aligned with future business needs.<br>
+        {% if role == 'Chief Financial Officer' %} The estimated <strong>annual salary cost</strong> for implementing SkillBridge is <strong>48.000€</strong>.<br>{% endif %}
+        {% if role == 'Chief Marketing Officer Officer' %} SkillBridge is estimated to achieve <strong>50.000 users in Germany</strong>.<br>{% endif %}
+        </p>
     </div>
 
     <div class="project-description">
-        <h3>Factory B: Steel Plant in China</h3>
-        <p>This alternative involves opening a new steel plant in China’s coastal industrial region. The location benefits from lower labor costs, relaxed construction regulations, and direct access to export markets.
-            {% if role == 'Chief Financial Officer' %} The estimated <strong>construction cost</strong> is <strong>190 million €</strong>.
-            {% elif role == 'Chief Human Resources Officer' %} The expected <strong>annual energy cost</strong> is <strong>50 million €</strong>. </p>
-            {% endif %}
+        <h3>Project B: InsightFlow</h3>
+        <p>InsightFlow is a data analytics dashboard that integrates key operational KPIs across departments. With its intuitive interface and real-time visualization capabilities, InsightFlow enhances strategic decision-making and aligns teams toward shared performance goals.<br>
+        This project is expected to reach <strong>65.000 users in Germany</strong>.<br>
+        {% if role == 'Chief Human Resources Officer' %} The estimated <strong>annual salary cost</strong> for InsightFlow is <strong>52.000€</strong>.<br>{% endif %}
+        </p>
     </div>
 
     <hr>
