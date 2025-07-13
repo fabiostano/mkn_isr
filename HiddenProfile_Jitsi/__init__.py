@@ -60,6 +60,8 @@ class Player(BasePlayer):
     personal_interest = models.StringField()
     shared_info = models.StringField()
     project_choice = models.StringField()
+    factory_choice = models.StringField()
+    candidate_choice = models.StringField()
     player_payoff = models.CurrencyField(initial=C.BASE_PAYOUT)
     next_ready = models.BooleanField(initial=False)
 
