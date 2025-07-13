@@ -1,0 +1,211 @@
+{% extends "global/Page.html" %}
+
+{% block title %}
+    CANDIDATE INFORMATION
+{% endblock %}
+
+{% block content %}
+
+<style>
+     .content-box {
+        border: 1px solid #ccc;
+        padding: 10px;
+        background-color: #f9f9f9;
+    }
+</style>
+
+<div class="content-box">
+    <p>
+        You now have <b style="color: red">3 minutes</b> to review the information below.
+    </p>
+    <p>
+        Dear <strong>{{ role }}</strong>, only you possess the information below, so it is essential that you share it
+        with the rest of the team to achieve an optimal decision for the company. Make sure to <strong>pay close attention
+        and remember the details</strong>, as the information will not be repeated later.
+    <p/>
+
+    <h2>Project Descriptions</h2>
+
+    <p>At the end of the fiscal year, the company plans to <strong>award two exceptional business unit leaders</strong> with a significant performance-based bonus.
+    You are part of a decision committee tasked with identifying the two most deserving candidates. Each candidate leads a strategic business unit (SBU) in a different world region.</p>
+
+    <p>Here’s a brief overview of each SBU:<p>
+
+    <div class="project-description">
+        <h3>SBU Europe</h3>
+        <p>The European business unit focuses on mature markets with high operational efficiency and moderate growth strategies.<br>
+        The unit currently employs <strong>6.200 people</strong>.<br>
+        {% if role == 'Chief Financial Officer' %} It has achieved a <strong>revenue growth of 5%</strong> this year.<br>{% endif %}
+        {% if role == 'Chief Human Resources Officer' %} The unit has reached a <strong>profit margin of 16%</strong>.<br>{% endif %}
+        {% if role == 'Chief Marketing Officer' or role == 'Chief Human Resources Officer' %} Customer satisfaction is reported at <strong>83%</strong>.<br>{% endif %}
+        </p>
+    </div>
+
+    <div class="project-description">
+        <h3>SBU Asia</h3>
+        <p>This SBU operates in high-growth markets and focuses on scalability and digital innovation.<br>
+        {% if role == 'Chief Human Resources Officer' %} The business unit manages <strong>8.400 employees</strong>.<br>{% endif %}
+        {% if role == 'Chief Financial Officer' %} It has recorded a strong <strong>revenue growth of 10%</strong> this year.<br>{% endif %}
+        {% if role == 'Chief Financial Officer' or role == 'Chief Marketing Officer' %} Profit margin is currently <strong>14%</strong>.<br>{% endif %}
+        {% if role == 'Chief Marketing Officer' %} Customer satisfaction stands at <strong>79%</strong>.<br>{% endif %}
+        </p>
+    </div>
+
+    <div class="project-description">
+        <h3>SBU Americas</h3>
+        <p>Focused on both North and South America, this unit is strong in customer engagement and regional adaptation.<br>
+        {% if role == 'Chief Human Resources Officer' %} The unit has a workforce of <strong>5.600 employees</strong>.<br>{% endif %}
+        {% if role == 'Chief Financial Officer' or role == 'Chief Human Resources Officer' %} Revenue has grown by <strong>7%</strong> this year.<br>{% endif %}
+        {% if role == 'Chief Financial Officer' %} The profit margin currently stands at <strong>18%</strong>.<br>{% endif %}
+        {% if role == 'Chief Marketing Officer' %} Customer satisfaction has reached <strong>88%</strong>.<br>{% endif %}
+        </p>
+    </div>
+
+    <div class="project-description">
+        <h3>SBU Africa</h3>
+        <p>This unit is positioned in emerging markets with long-term potential and workforce investments.<br>
+        {% if role == 'Chief Human Resources Officer' %} It currently employs <strong>3.800 people</strong>.<br>{% endif %}
+        {% if role == 'Chief Financial Officer' or role == 'Chief Marketing Officer' %} The revenue growth this year is <strong>7%</strong>.<br>{% endif %}
+        The profit margin of the unit is <strong>10%</strong>.<br>
+        {% if role == 'Chief Marketing Officer' %} Customer satisfaction is reported at <strong>72%</strong>.<br>{% endif %}
+        </p>
+    </div>
+
+    <div class="project-description">
+        <h3>SBU Middle East</h3>
+        <p>Operating in high-margin sectors, this unit focuses on energy and digital finance innovation.<br>
+        {% if role == 'Chief Human Resources Officer' %} The SBU employs <strong>5.200 people</strong>.<br>{% endif %}
+        The revenue growth for the current year is <strong>4%</strong>.<br>
+        {% if role == 'Chief Financial Officer' or role == 'Chief Human Resources Officer' %} It has achieved a <strong>profit margin of 19%</strong>.<br>{% endif %}
+        {% if role == 'Chief Marketing Officer' %} Customer satisfaction currently stands at <strong>78%</strong>.<br>{% endif %}
+        </p>
+    </div>
+
+    <div class="project-description">
+        <h3>SBU Australia</h3>
+        <p>This unit emphasizes agile product development and work-life balance in a smaller, competitive market.<br>
+        {% if role == 'Chief Human Resources Officer' %} The unit operates with just <strong>2.100 employees</strong>, making it highly efficient.<br>{% endif %}
+        {% if role == 'Chief Financial Officer' %} It has achieved a <strong>revenue growth of 9%</strong> this year.<br>{% endif %}
+        {% if role == 'Chief Financial Officer' or role == 'Chief Marketing Officer' %} Its profit margin stands at <strong>17%</strong>.<br>{% endif %}
+        {% if role == 'Chief Marketing Officer' %} Customer satisfaction is measured at <strong>86%</strong>.<br>{% endif %}
+        </p>
+    </div>
+
+    <h2>Decision Task</h2>
+    <p>Remember, the project with the highest total attribute scores is considered the optimal choice for the company. Please also consider that for some dimensions, higher attribute scores may relate to lower given values (e.g. headcount numbers).</p>
+
+    <style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        tr:hover {
+            background-color: #e2e2e2;
+        }
+    </style>
+
+    <p>Take a moment to review the project details. This information will be essential for your upcoming discussion with the team.</p>
+
+    <p>Once you feel prepared, click the next button below to proceed to the next step.</p>
+</div>
+
+<br/><br/>
+
+<!-- Logging fields -->
+<!-- Logging fields -->
+<input type="hidden" name="task_load_time_project" id="task_load_time_project" value=""/>
+<input type="hidden" name="task_finish_click_time_project" id="task_finish_click_time_project" value=""/>
+<input type="hidden" name="task_end_time_project" id="task_end_time_project" value=""/>
+
+<!-- Timeout message -->
+<div class="text-center mt-3" id="warning-message" style="display: none; color: darkorange; font-weight: bold;">
+    You have 1 minute left!
+</div>
+
+<!-- Next Button -->
+<div class="d-flex justify-content-center mt-4">
+    <button id="nextbtn" class="otree-btn-next btn btn-primary next-button otree-next-button">Next</button>
+</div>
+
+<!-- Waiting message -->
+<div class="text-center mt-3" id="waiting-message" style="display: none;">
+    Waiting for the other participants...
+</div>
+
+<script>
+    const taskDuration = {{ taskDuration }} * 1000;
+    const warningTime = 60 * 1000;
+
+    let timeoutIdWarning = null;
+    let timeoutIdEnd = null;
+    let allReady = false;
+
+    function liveRecv(data) {
+        if (data.type === "go_to_next") {
+            allReady = true;
+            document.getElementById("warning-message").style.display = "none";
+            document.getElementById("task_end_time_project").value = Date.now();
+            form.submit();
+        } else if (data.type === "waiting") {
+        }
+    }
+
+    document.addEventListener("DOMContentLoaded", function () {
+        const form = document.querySelector("form");
+        document.getElementById("task_load_time_project").value = Date.now();
+
+        const button = document.getElementById("nextbtn");
+        const waitingMessage = document.getElementById("waiting-message");
+        const warningMessage = document.getElementById("warning-message");
+
+        function handleNextClick() {
+            if (allReady) return;
+            allReady = true;
+
+            document.getElementById("task_finish_click_time_project").value = Date.now();
+            button.disabled = true;
+            button.style.backgroundColor = "#ccc";
+            button.style.borderColor = "#ccc";
+            button.style.color = "#666";
+            button.style.cursor = "not-allowed";
+            waitingMessage.style.display = "block";
+            warningMessage.style.display = "none";
+            liveSend({ type: "next_clicked" });
+
+            clearTimeout(timeoutIdWarning);
+            clearTimeout(timeoutIdEnd);
+        }
+
+        button.addEventListener("click", function (e) {
+            e.preventDefault();
+            handleNextClick();
+        });
+
+        timeoutIdWarning = setTimeout(() => {
+            if (!allReady) {
+                warningMessage.style.display = "block";
+            }
+        }, taskDuration - warningTime);
+
+        timeoutIdEnd = setTimeout(() => {
+            if (!allReady) {
+                liveSend({ type: "next_clicked" });
+            }
+        }, taskDuration);
+    });
+</script>
+
+
+{% endblock %}

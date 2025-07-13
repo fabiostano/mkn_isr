@@ -1,0 +1,38 @@
+{% extends "global/Page.html" %}
+
+{% block title %}
+    CANDIDATE DECISION
+{% endblock %}
+
+{% block content %}
+
+<style>
+     .content-box {
+        border: 1px solid #ccc;
+        padding: 10px;
+        background-color: #f9f9f9;
+    }
+</style>
+
+<div class="content-box">
+    <p>Based on the discussion you just had, choose the two candidates that you think did the most for the company.</p>
+<form method="post">
+
+    {% for candidate in candidates %}
+        <div>
+            <label>
+                <input type="checkbox" name="candidate_choices" value="{{ candidate.name }}">
+                <strong>Candidate {{ candidate.name }}</strong>
+            </label><br>
+        </div>
+    {% endfor %}
+
+    <!-- Display form field errors -->
+    {{ formfield_errors 'candidate_choice' }}
+
+    <button type="submit">Submit</button>
+</form>
+</div>
+<br/><br/>
+{% endblock %}
+
