@@ -15,24 +15,23 @@
 </style>
 
 <div class="content-box">
-    <p>Based on the discussion you just had, choose the factory location that you think is best for the company.</p>
+    <p>Based on the discussion you just had, choose the project that you think is best for the company.</p>
 <form method="post">
 
-    {% for factory in factories %}
+    {% for project1 in projects2 %}
         <div>
             <label>
-                <input type="radio" name="factory_choice" value="{{ factory.name }}" required>
+                <input type="radio" name="project2_choice" value="{{ project2.name }}" required>
             </label>
-            <strong>{{ factory.name }}</strong><br>
+            <strong>{{ project2.name }}</strong><br>
         </div>
     {% endfor %}
 
     <!-- Display form field errors -->
-    {{ formfield_errors 'factory_choice' }}
+    {{ formfield_errors 'project2_choice' }}
 
     <button type="submit">Submit</button>
 </form>
 </div>
 <br/><br/>
 {% endblock %}
-

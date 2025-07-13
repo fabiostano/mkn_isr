@@ -15,7 +15,7 @@ class C(BaseConstants):
 
     COLORMAP = ['lightcoral', 'lightgreen', 'lightblue']
 
-    PROJECTS = [
+    PROJECTS1 = [
         {'name': 'Project A: EcoTrack', 'profit': 4, 'env_impact': 60, 'market_demand': 70.000, 'salary_cost': 50.000,
          'criteria': 'environmental'},
         {'name': 'Project B: TalentSphere', 'profit': 3, 'env_impact': 95, 'market_demand': 80.000, 'salary_cost': 60.000,
@@ -24,12 +24,12 @@ class C(BaseConstants):
          'criteria': 'market'}
     ]
 
-    FACTORIES = [
+    PROJECTS2 = [
         {'name': 'Factory A: United States', 'construction_cost': 280, 'energy_cost': 55, 'criteria': 'skills'},
         {'name': 'Factory B: China', 'construction_cost': 190, 'energy_cost': 50, 'criteria': 'costs'},
     ]
 
-    CANDIDATES = [
+    PROJECTS3 = [
         {'name': 'Candidate A: SBU Europe', 'headcount': 6.200, 'revenue_growth': 5, 'profit_margin': 16, 'customer_satisfaction': 83,
          'criteria': 'operational efficiency'},
         {'name': 'Candidate B: SBU Asia', 'headcount': 8.400, 'revenue_growth': 10, 'profit_margin': 14, 'customer_satisfaction': 79,
@@ -57,14 +57,14 @@ class Subsession(BaseSubsession):
     pass
 
 class Group(BaseGroup):
-    chosen_project = models.StringField(initial=None)
-    project_profit = models.CurrencyField(initial=0)
+    chosen_project1 = models.StringField(initial=None)
+    project1_profit = models.CurrencyField(initial=0)
 
-    chosen_factory = models.StringField(initial=None)
-    factory_points = models.CurrencyField(initial=0)
+    chosen_project2 = models.StringField(initial=None)
+    project2_profit = models.CurrencyField(initial=0)
 
-    chosen_candidate = models.StringField(initial=None)
-    candidate_points = models.CurrencyField(initial=0)
+    chosen_project3 = models.StringField(initial=None)
+    project3_profit = models.CurrencyField(initial=0)
 
 class Player(BasePlayer):
     color = models.StringField(initial="none")
@@ -72,9 +72,9 @@ class Player(BasePlayer):
     player_role = models.StringField()
     personal_interest = models.StringField()
     shared_info = models.StringField()
-    project_choice = models.StringField(blank=True)
-    factory_choice = models.StringField(blank=True)
-    candidate_choice = models.StringField(blank=True)
+    project1_choice = models.StringField(blank=True)
+    project2_choice = models.StringField(blank=True)
+    project3_choice = models.StringField(blank=True)
     player_payoff = models.CurrencyField(initial=C.BASE_PAYOUT)
     next_ready = models.BooleanField(initial=False)
 
@@ -350,15 +350,15 @@ class Discussion(Page):
 
         return {}
 
-class ProjectDecision(Page):
+class Project1Decision(Page):
     form_model = 'player'
-    form_fields = ['project_choice']
+    form_fields = ['project1_choice']
 
     @staticmethod
     def vars_for_template(player: Player):
-        projects = C.PROJECTS
+        projects1 = C.PROJECTS1
         return {
-            'projects': projects,
+            'projects1': projects1,
             'session_code': player.session.code,
             'group_id': player.group.id_in_subsession,
         }
@@ -368,15 +368,15 @@ class ProjectDecision(Page):
         # This page should appear when 'MED' is the current condition
         return order[player.round_number - 1] == 'MED'
 
-class FactoryDecision(Page):
+class Project2Decision(Page):
     form_model = 'player'
-    form_fields = ['factory_choice']
+    form_fields = ['project2_choice']
 
     @staticmethod
     def vars_for_template(player: Player):
-        factories = C.FACTORIES
+        projects2 = C.PROJECTS2
         return {
-            'factories': factories,
+            'projects2': projects2,
             'session_code': player.session.code,
             'group_id': player.group.id_in_subsession,
         }
@@ -386,15 +386,15 @@ class FactoryDecision(Page):
         # This page should appear when 'EASY' is the current condition
         return order[player.round_number - 1] == 'EASY'
 
-class CandidateDecision(Page):
+class Project3Decision(Page):
     form_model = 'player'
-    form_fields = ['candidate_choice']
+    form_fields = ['project3_choice']
 
     @staticmethod
     def vars_for_template(player: Player):
-        candidates = C.CANDIDATES
+        projects3 = C.PROJECTS3
         return {
-            'candidates': candidates,
+            'projects3': projects3,
             'session_code': player.session.code,
             'group_id': player.group.id_in_subsession,
         }
@@ -415,11 +415,11 @@ class WaitForDecision(WaitPage):
         condition = player.participant.hp_condition_order[player.round_number - 1]
 
         if condition == 'MED':
-            set_winning_project(group)
+            set_winning_project1(group)
         elif condition == 'EASY':
-            set_winning_factory(group)
+            set_winning_project2(group)
         elif condition == 'HARD':
-            set_winning_candidate(group)
+            set_winning_project3(group)
         else:
             print(f"[Warnung] Unbekannte Bedingung: {condition}")
 
@@ -472,7 +472,7 @@ class GameGoal(Page):
     def is_displayed(player: Player):
         return True
 
-class ProjectInformation(Page):
+class Project1Information(Page):
     form_model = 'player'
     form_fields = ['task_load_time_project', 'task_finish_click_time_project', 'task_end_time_project']
 
@@ -506,7 +506,7 @@ class ProjectInformation(Page):
     def before_next_page(player: Player, timeout_happened):
         player.next_ready = False
 
-class FactoryInformation(Page):
+class Project2Information(Page):
     form_model = 'player'
     form_fields = ['task_load_time_project', 'task_finish_click_time_project', 'task_end_time_project']
 
@@ -536,7 +536,7 @@ class FactoryInformation(Page):
     def before_next_page(player: Player, timeout_happened):
         player.next_ready = False
 
-class CandidateInformation(Page):
+class Project3Information(Page):
     form_model = 'player'
     form_fields = ['task_load_time_project', 'task_finish_click_time_project', 'task_end_time_project']
 
@@ -575,51 +575,51 @@ def normalize(value, min_value, max_value, higher_is_better=True):
     normalized = (value - min_value) / (max_value - min_value) * 100
     return normalized if higher_is_better else (100 - normalized)
 
-def set_winning_project(group: Group):
+def set_winning_project1(group: Group):
     if group.subsession.round_number != 1:
         return
 
-    projects = C.PROJECTS
+    projects1 = C.PROJECTS1
 
     # Find min and max values for each metric
-    profit_values = [p['profit'] for p in projects]
-    env_impact_values = [p['env_impact'] for p in projects]
-    market_demand_values = [p['market_demand'] for p in projects]
-    salary_values = [p['salary_cost'] for p in projects]
+    profit_values = [p['profit'] for p in projects1]
+    env_impact_values = [p['env_impact'] for p in projects1]
+    market_demand_values = [p['market_demand'] for p in projects1]
+    salary_values = [p['salary_cost'] for p in projects1]
 
     # Calculate normalized scores for each project
-    for project in projects:
+    for project1 in projects1:
         # Normalize each metric (note higher_is_better=False for costs and environmental impact)
         profit_score = normalize(
-            project['profit'],
+            project1['profit'],
             min(profit_values),
             max(profit_values),
             higher_is_better=True
         )
 
         env_score = normalize(
-            project['env_impact'],
+            project1['env_impact'],
             min(env_impact_values),
             max(env_impact_values),
             higher_is_better=False  # Lower environmental impact is better
         )
 
         market_score = normalize(
-            project['market_demand'],
+            project1['market_demand'],
             min(market_demand_values),
             max(market_demand_values),
             higher_is_better=True
         )
 
         salary_score = normalize(
-            project['salary_cost'],
+            project1['salary_cost'],
             min(salary_values),
             max(salary_values),
             higher_is_better=False  # Lower salary cost is better
         )
 
         # Calculate weighted benefit (adjust weights based on importance)
-        project['benefit'] = (
+        project1['benefit'] = (
                 0.25 * profit_score +
                 0.25 * env_score +
                 0.25 * market_score +
@@ -627,95 +627,95 @@ def set_winning_project(group: Group):
         )
 
     # Rest of the voting logic remains the same
-    sorted_projects = sorted(projects, key=lambda x: x['benefit'], reverse=True)
+    sorted_projects1 = sorted(projects1, key=lambda x: x['benefit'], reverse=True)
 
-    project_ranking = {
-        sorted_projects[0]['name']: 15,  # Best project
-        sorted_projects[1]['name']: 10,  # Second best
-        sorted_projects[2]['name']: 5,  # Worst
+    project1_ranking = {
+        sorted_projects1[0]['name']: 15,  # Best project
+        sorted_projects1[1]['name']: 10,  # Second best
+        sorted_projects1[2]['name']: 5,  # Worst
     }
 
     # Determine the chosen project from players' choices
-    votes = [p.project_choice for p in group.get_players() if p.project_choice]
+    votes = [p.project1_choice for p in group.get_players() if p.project1_choice]
     if votes:
         vote_count = {proj: votes.count(proj) for proj in set(votes)}
-        winning_project = [proj for proj, count in vote_count.items() if count >= 3]
+        winning_project1 = [proj for proj, count in vote_count.items() if count >= 3]
 
-        if winning_project:
-            group.chosen_project = winning_project[0]
-            group.project_profit = project_ranking[group.chosen_project]
+        if winning_project1:
+            group.chosen_project1 = winning_project1[0]
+            group.project1_profit = project1_ranking[group.chosen_project1]
         else:
-            group.chosen_project = "No consensus"
-            group.project_profit = 0
+            group.chosen_project1 = "No consensus"
+            group.project1_profit = 0
     else:
-        group.chosen_project = "No consensus"
-        group.project_profit = 0
+        group.chosen_project1 = "No consensus"
+        group.project1_profit = 0
 
     # Update each player's payoff
     for player in group.get_players():
-        player.player_payoff = group.project_profit
+        player.player_payoff = group.project1_profit
 
-def set_winning_factory(group: Group):
+def set_winning_project2(group: Group):
     if group.subsession.round_number != 2:
         return
 
-    factories = C.FACTORIES
+    projects2 = C.PROJECTS2
 
     # Werte extrahieren
-    construction_cost = [f['construction_cost'] for f in factories]
-    energy_cost = [f['energy_cost'] for f in factories]
+    construction_cost = [p['construction_cost'] for p in projects2]
+    energy_cost = [p['energy_cost'] for p in projects2]
 
     # Scoring berechnen
-    for factory in factories:
-        construction_score = normalize(factory['construction_cost'], min(construction_cost), max(construction_cost), higher_is_better=False)
-        energy_score = normalize(factory['energy_cost'], min(energy_cost), max(energy_cost), higher_is_better=False)
-        factory['benefit'] = 0.5 * construction_score + 0.5 * energy_score
+    for project2 in projects2:
+        construction_score = normalize(project2['construction_cost'], min(construction_cost), max(construction_cost), higher_is_better=False)
+        energy_score = normalize(project2['energy_cost'], min(energy_cost), max(energy_cost), higher_is_better=False)
+        project2['benefit'] = 0.5 * construction_score + 0.5 * energy_score
 
     # Ranking
-    sorted_factories = sorted(factories, key=lambda x: x['benefit'], reverse=True)
-    factory_ranking = {
-        sorted_factories[0]['name']: 15,
-        sorted_factories[1]['name']: 5,
+    sorted_projects2 = sorted(projects2, key=lambda x: x['benefit'], reverse=True)
+    project2_ranking = {
+        sorted_projects2[0]['name']: 15,
+        sorted_projects2[1]['name']: 5,
     }
 
     # Abstimmungsauswertung
-    votes = [p.factory_choice for p in group.get_players() if p.factory_choice]
+    votes = [p.project2_choice for p in group.get_players() if p.project2_choice]
     if votes:
         vote_count = {f: votes.count(f) for f in set(votes)}
-        winning_factory = [f for f, count in vote_count.items() if count >= 3]
-        if winning_factory:
-            group.chosen_factory = winning_factory[0]
-            group.factory_points = factory_ranking.get(group.chosen_factory, 0)
+        winning_project2 = [f for f, count in vote_count.items() if count >= 3]
+        if winning_project2:
+            group.chosen_project2 = winning_project2[0]
+            group.project2_points = project2_ranking.get(group.chosen_project2, 0)
         else:
-            group.chosen_factory = "No consensus"
-            group.factory_points = 0
+            group.chosen_project2 = "No consensus"
+            group.project2_points = 0
     else:
-        group.chosen_factory = "No consensus"
-        group.factory_points = 0
+        group.chosen_project2 = "No consensus"
+        group.project2_points = 0
 
     # Auszahlung
     for player in group.get_players():
-        player.player_payoff = group.factory_points
+        player.player_payoff = group.project2_points
 
-def set_winning_candidate(group: Group):
+def set_winning_project3(group: Group):
     if group.subsession.round_number != 3:
         return
 
-    candidates = C.CANDIDATES
+    projects3 = C.PROJECTS3
 
     # Werte sammeln
-    growth = [c['revenue_growth'] for c in candidates]
-    margin = [c['profit_margin'] for c in candidates]
-    satisfaction = [c['customer_satisfaction'] for c in candidates]
-    headcount = [c['headcount'] for c in candidates]
+    growth = [p['revenue_growth'] for p in projects3]
+    margin = [p['profit_margin'] for p in projects3]
+    satisfaction = [p['customer_satisfaction'] for p in projects3]
+    headcount = [p['headcount'] for p in projects3]
 
     # Scoring
-    for c in candidates:
-        growth_score = normalize(c['revenue_growth'], min(growth), max(growth), higher_is_better=True)
-        margin_score = normalize(c['profit_margin'], min(margin), max(margin), higher_is_better=True)
-        satisfaction_score = normalize(c['customer_satisfaction'], min(satisfaction), max(satisfaction), higher_is_better=True)
-        headcount_score = normalize(c['headcount'], min(headcount), max(headcount), higher_is_better=False)  # weniger = besser
-        c['benefit'] = (
+    for p in projects3:
+        growth_score = normalize(p['revenue_growth'], min(growth), max(growth), higher_is_better=True)
+        margin_score = normalize(p['profit_margin'], min(margin), max(margin), higher_is_better=True)
+        satisfaction_score = normalize(p['customer_satisfaction'], min(satisfaction), max(satisfaction), higher_is_better=True)
+        headcount_score = normalize(p['headcount'], min(headcount), max(headcount), higher_is_better=False)  # weniger = besser
+        p['benefit'] = (
             0.25 * growth_score +
             0.25 * margin_score +
             0.25 * satisfaction_score +
@@ -723,30 +723,30 @@ def set_winning_candidate(group: Group):
         )
 
     # Ranking
-    sorted_candidates = sorted(candidates, key=lambda x: x['benefit'], reverse=True)
-    candidate_ranking = {
-        sorted_candidates[0]['name']: 15,
-        sorted_candidates[1]['name']: 5,
+    sorted_projects3 = sorted(projects3, key=lambda x: x['benefit'], reverse=True)
+    project3_ranking = {
+        sorted_projects3[0]['name']: 15,
+        sorted_projects3[1]['name']: 5,
     }
 
     # Abstimmungsauswertung
-    votes = [p.candidate_choice for p in group.get_players() if p.candidate_choice]
+    votes = [p.project3_choice for p in group.get_players() if p.project3_choice]
     if votes:
         vote_count = {f: votes.count(f) for f in set(votes)}
-        winning_candidate = [f for f, count in vote_count.items() if count >= 3]
-        if winning_candidate:
-            group.chosen_candidate = winning_candidate[0]
-            group.candidate_points = candidate_ranking.get(group.chosen_candidate, 0)
+        winning_project3 = [f for f, count in vote_count.items() if count >= 3]
+        if winning_project3:
+            group.chosen_project3 = winning_project3[0]
+            group.project3_points = project3_ranking.get(group.chosen_project3, 0)
         else:
-            group.chosen_candidate = "No consensus"
-            group.candidate_points = 0
+            group.chosen_project3 = "No consensus"
+            group.project3_points = 0
     else:
-        group.chosen_candidate = "No consensus"
-        group.candidate_points = 0
+        group.chosen_project3 = "No consensus"
+        group.project3_points = 0
 
     # Auszahlung
     for player in group.get_players():
-        player.player_payoff = group.candidate_points
+        player.player_payoff = group.project3_points
 
 class TaskSurvey(Page):
     form_model = 'player'
@@ -871,9 +871,9 @@ class RestEyesOpen(Page):
 page_sequence = [Introduction,
                  Overview_1, Overview_2, Overview_3,
                  RoleAssignment,
-                 WaitForProjectInfo, ProjectInformation, FactoryInformation, CandidateInformation,
+                 WaitForProjectInfo, Project1Information, Project2Information, Project3Information,
                  WaitForRoleAssignment,
                  Discussion,
-                 ProjectDecision, FactoryDecision, CandidateDecision, WaitForDecision,
+                 Project1Decision, Project2Decision, Project3Decision, WaitForDecision,
                  TaskSurvey, RestEyesOpen, TaskPhaseSurvey]
 
