@@ -410,9 +410,18 @@ class WaitForProjectInfo(WaitPage):
     body_text = "You will be redirected automatically."
 
 class WaitForDecision(WaitPage):
-    after_all_players_arrive = 'set_winning_project'
-    after_all_players_arrive = 'set_winning_factory'
-    after_all_players_arrive = 'set_winning_candidate'
+    def after_all_players_arrive(group: Group):
+        player = group.get_players()[0]  # alle Spieler haben dieselbe Reihenfolge
+        condition = player.participant.hp_condition_order[player.round_number - 1]
+
+        if condition == 'MED':
+            set_winning_project(group)
+        elif condition == 'LOW':
+            set_winning_factory(group)
+        elif condition == 'HIGH':
+            set_winning_candidate(group)
+        else:
+            print(f"[Warnung] Unbekannte Bedingung: {condition}")
 
 class Results(Page):
     def vars_for_template(player: Player):
