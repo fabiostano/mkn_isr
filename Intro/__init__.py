@@ -23,10 +23,16 @@ def creating_session(subsession):
         group.custom_group_id = random_code()
 
 class Player(BasePlayer):
-    booth = models.StringField(
-        label='Which KD2Lab booth is this?',
-        choices=["A11", "A12", "A13", "A14", "A15", "A16", "A17", "A18", "A19"],
+    recordEEG = models.BooleanField(
+        choices=[[True, 'Yes'], [False, 'No']],
+        widget=widgets.RadioSelect,
+        label='Are you going to record EEG on this PC?'
     )
+
+    # booth = models.StringField(
+    #     label='Which KD2Lab booth is this?',
+    #     choices=["A11", "A12", "A13", "A14", "A15", "A16", "A17", "A18", "A19"],
+    # )
 
     token = models.StringField(
         label='Please enter your study token here:'
@@ -99,12 +105,32 @@ class RestEyesClosed(Page):
     form_model = 'player'
     form_fields = ['rest_actions_ec']
 
-class Setup(Page):
+class ID(Page):
     form_model = 'player'
 
     @staticmethod
     def get_form_fields(player: Player):
-        setup_fields = ['token', 'booth']
+        setup_fields = ['token'] # , 'booth'
         return setup_fields
 
-page_sequence = [Setup, Vorbereitung, Welcome, IntroQuestionnaire, StateQuestionnaire, RestEyesOpen, RestEyesClosed]
+class InitDevices(Page):
+    form_model = 'player'
+
+    @staticmethod
+    def get_form_fields(player: Player):
+        return ['recordEEG']
+
+class EEGSetup(Page):
+    form_model = 'player'
+
+    def vars_for_template(player):
+        return dict(
+            token=player.token
+        )
+
+    def is_displayed(player):
+        return player.recordEEG is True
+
+page_sequence = [InitDevices, ID, EEGSetup,
+                 Vorbereitung, Welcome,
+                 IntroQuestionnaire, StateQuestionnaire, RestEyesOpen, RestEyesClosed]

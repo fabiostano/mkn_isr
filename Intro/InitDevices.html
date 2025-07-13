@@ -1,0 +1,29 @@
+{{ extends 'global/Page.html' }}
+
+{{ block title }}
+
+    <div class="d-flex justify-content-center" style="margin-top: -50px">
+        <h2 style="margin-bottom:20px">DEVICES</h2>
+    </div>
+
+{{ endblock }}
+
+{{ block content }}
+
+    <div class="explanation-container">
+        <p>{{ form.recordEEG.label }}</p>
+        {{ form.recordEEG }}
+    <hr>
+    <p>Please click this button to check that you can hear sound:</p>
+    <p><button class="btn btn-danger" id="bellRepeatButton" onclick="ringBell()" type="button">Play the bell sound!</button></p>
+    <script>
+    function ringBell(){
+        const audio = new Audio('http://expeeeriments.io/writingHome/bell.mp3');
+        audio.play();
+    }
+    </script>
+    <div class="d-flex justify-content-center">
+        <button class="otree-btn-next btn btn-primary next-button otree-next-button">Next</button>
+    </div>
+
+{{ endblock }}
