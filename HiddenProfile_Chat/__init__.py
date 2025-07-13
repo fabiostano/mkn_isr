@@ -447,7 +447,6 @@ class GameGoal(Page):
     def is_displayed(player: Player):
         return True
 
-
 class ProjectInformation(Page):
     form_model = 'player'
     form_fields = ['task_load_time_project', 'task_finish_click_time_project', 'task_end_time_project']
@@ -558,6 +557,9 @@ def normalize(value, min_value, max_value, higher_is_better=True):
 
 
 def set_winning_project(group: Group):
+    if group.subsession.round_number != 1:
+        return
+
     projects = C.PROJECTS
 
     # Find min and max values for each metric
@@ -636,6 +638,9 @@ def set_winning_project(group: Group):
 
 
 def set_winning_factory(group: Group):
+    if group.subsession.round_number != 2:
+        return
+
     factories = C.FACTORIES
 
     # Werte extrahieren
@@ -677,6 +682,9 @@ def set_winning_factory(group: Group):
 
 
 def set_winning_candidates(group: Group):
+    if group.subsession.round_number != 3:
+        return
+
     candidates = C.CANDIDATES
 
     # Werte sammeln

@@ -552,6 +552,9 @@ def normalize(value, min_value, max_value, higher_is_better=True):
     return normalized if higher_is_better else (100 - normalized)
 
 def set_winning_project(group: Group):
+    if group.subsession.round_number != 1:
+        return
+
     projects = C.PROJECTS
     
     # Find min and max values for each metric
@@ -629,6 +632,9 @@ def set_winning_project(group: Group):
         player.player_payoff = group.project_profit
 
 def set_winning_factory(group: Group):
+    if group.subsession.round_number != 2:
+        return
+
     factories = C.FACTORIES
 
     # Werte extrahieren
@@ -668,6 +674,9 @@ def set_winning_factory(group: Group):
         player.player_payoff = group.factory_points
 
 def set_winning_candidates(group: Group):
+    if group.subsession.round_number != 3:
+        return
+
     candidates = C.CANDIDATES
 
     # Werte sammeln
