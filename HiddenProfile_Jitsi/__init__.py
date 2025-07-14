@@ -25,9 +25,9 @@ class C(BaseConstants):
     ]
 
     PROJECTS2 = [
-        {'name': 'Project A: SkillBridge', 'market_demand': 50.000, 'salary_cost': 48.000,
+        {'name': 'Project A: SkillBridge', 'market_demand': 50.000, 'salary_cost': 52.000,
          'criteria': 'green'},
-        {'name': 'Project B: InsightFlow', 'market_demand': 65.000, 'salary_cost': 52.000,
+        {'name': 'Project B: InsightFlow', 'market_demand': 65.000, 'salary_cost': 48.000,
          'criteria': 'balanced'}
     ]
 
