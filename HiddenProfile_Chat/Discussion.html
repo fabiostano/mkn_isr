@@ -200,6 +200,7 @@
 <script>
     function liveRecv(data) {
         if (data.type === "go_to_next") {
+            document.getElementById("task_end_time_discussion").value = Date.now();
             form.submit();
         } else if (data.type === "waiting") {
         } else if (data.info_type === "chat_message") {
@@ -245,6 +246,7 @@
         const warningMessage = document.getElementById("warning-message");
 
         function handleNextClick() {
+            document.getElementById("task_finish_click_time_discussion").value = Date.now();
             button.disabled = true;
             button.style.backgroundColor = "#ccc";
             button.style.borderColor = "#ccc";
@@ -257,7 +259,6 @@
 
         button.addEventListener("click", function (e) {
             e.preventDefault();
-            document.getElementById("task_finish_click_time_discussion").value = Date.now();
             handleNextClick();
         });
 
@@ -269,7 +270,6 @@
 
         timeoutEnd = setTimeout(() => {
             if (!allReady) {
-                document.getElementById("task_end_time_discussion").value = Date.now();
                 handleNextClick();
             }
         }, taskDuration); // = 7 Minuten
