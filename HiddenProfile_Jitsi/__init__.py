@@ -16,33 +16,33 @@ class C(BaseConstants):
     COLORMAP = ['lightcoral', 'lightgreen', 'lightblue']
 
     PROJECTS1 = [
-        {'name': 'Project A: EcoTrack', 'profit': 4, 'env_impact': 60, 'market_demand': 70.000, 'salary_cost': 50.000,
+        {'name': 'Project A: EcoTrack', 'profit': 4, 'env_impact': 50, 'market_demand': 70.000, 'salary_cost': 50.000,
          'criteria': 'environmental'},
-        {'name': 'Project B: TalentSphere', 'profit': 3, 'env_impact': 95, 'market_demand': 80.000, 'salary_cost': 60.000,
+        {'name': 'Project B: TalentSphere', 'profit': 3, 'env_impact': 55, 'market_demand': 80.000, 'salary_cost': 55.000,
          'criteria': 'salary'},
-        {'name': 'Project C: MarketPulse', 'profit': 2, 'env_impact': 40, 'market_demand': 60.000, 'salary_cost': 55.000,
+        {'name': 'Project C: MarketPulse', 'profit': 2, 'env_impact': 40, 'market_demand': 70.000, 'salary_cost': 55.000,
          'criteria': 'market'}
     ]
 
     PROJECTS2 = [
-        {'name': 'Project A: SkillBridge', 'market_demand': 50.000, 'salary_cost': 52.000,
+        {'name': 'Project A: SkillBridge', 'market_demand': 50.000, 'profit': 4,
          'criteria': 'green'},
-        {'name': 'Project B: InsightFlow', 'market_demand': 65.000, 'salary_cost': 48.000,
+        {'name': 'Project B: InsightFlow', 'market_demand': 65.000, 'profit': 5,
          'criteria': 'balanced'}
     ]
 
     PROJECTS3 = [
-        {'name': 'Project A: GreenLedger', 'profit': 3, 'env_impact': 35, 'market_demand': 55.000, 'salary_cost': 58.000,
+        {'name': 'Project A: GreenLedger', 'profit': 3, 'env_impact': 35, 'market_demand': 55.000, 'salary_cost': 60.000,
          'criteria': 'sustainability'},
-        {'name': 'Project B: AssetPilot', 'profit': 5, 'env_impact': 70, 'market_demand': 75.000, 'salary_cost': 62.000,
+        {'name': 'Project B: AssetPilot', 'profit': 5, 'env_impact': 65, 'market_demand': 75.000, 'salary_cost': 62.000,
          'criteria': 'efficiency'},
-        {'name': 'Project C: BrandVista', 'profit': 4, 'env_impact': 65, 'market_demand': 70.000, 'salary_cost': 60.000,
+        {'name': 'Project C: BrandVista', 'profit': 5, 'env_impact': 65, 'market_demand': 70.000, 'salary_cost': 60.000,
          'criteria': 'demand_leader'},
         {'name': 'Project D: AuditAce', 'profit': 6, 'env_impact': 80, 'market_demand': 80.000, 'salary_cost': 56.000,
          'criteria': 'profit_maximization'},
-        {'name': 'Project E: PayFlex', 'profit': 3, 'env_impact': 55, 'market_demand': 65.000, 'salary_cost': 54.000,
+        {'name': 'Project E: PayFlex', 'profit': 3, 'env_impact': 50, 'market_demand': 75.000, 'salary_cost': 56.000,
          'criteria': 'balanced'},
-        {'name': 'Project F: ComplyNow', 'profit': 2, 'env_impact': 50, 'market_demand': 45.000, 'salary_cost': 52.000,
+        {'name': 'Project F: ComplyNow', 'profit': 2, 'env_impact': 50, 'market_demand': 55.000, 'salary_cost': 52.000,
          'criteria': 'risk_compliance'}
     ]
 
@@ -667,7 +667,7 @@ def set_winning_project2(group: Group):
 
     # Werte extrahieren (nur die vorhandenen Variablen)
     market_demand_values = [p['market_demand'] for p in projects2]
-    salary_values = [p['salary_cost'] for p in projects2]
+    profit_values = [p['profit'] for p in projects2]
 
     # Normalisierte Scores berechnen
     for project2 in projects2:
@@ -678,14 +678,14 @@ def set_winning_project2(group: Group):
             higher_is_better=True
         )
 
-        salary_score = normalize(
-            project2['salary_cost'],
-            min(salary_values),
-            max(salary_values),
-            higher_is_better=False
+        profit_score = normalize(
+            project2['profit'],
+            min(profit_values),
+            max(profit_values),
+            higher_is_better=True
         )
 
-        project2['benefit'] = 0.5 * market_score + 0.5 * salary_score
+        project2['benefit'] = 0.5 * market_score + 0.5 * profit_score
 
     # Projekte nach Benefit sortieren
     sorted_projects2 = sorted(projects2, key=lambda x: x['benefit'], reverse=True)
