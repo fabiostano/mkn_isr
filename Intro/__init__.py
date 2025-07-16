@@ -125,6 +125,16 @@ class InitDevices(Page):
     def get_form_fields(player: Player):
         return ['recordEEG']
 
+class JitsiInit(Page):
+    form_model = 'player'
+
+    def vars_for_template(player):
+        return dict(
+            id = player.id_in_group,
+            color=player.id_in_group,
+            room_id=player.group.id
+        )
+
 class EEGSetup(Page):
     form_model = 'player'
 
@@ -136,6 +146,6 @@ class EEGSetup(Page):
     def is_displayed(player):
         return player.recordEEG is True
 
-page_sequence = [InitDevices, ID, EEGSetup,
+page_sequence = [JitsiInit, InitDevices, ID, EEGSetup,
                  Vorbereitung, Welcome,
                  IntroQuestionnaire, StateQuestionnaire, RestEyesOpen, RestEyesClosed]

@@ -761,23 +761,52 @@
         width:  1000,   // anpassen je nach px größe
         height: 480,   // anpassen je nach px größe
         configOverwrite: {
-            hideConferenceTimer: true,
-            disableFilmstripAutohiding: true,
-            toolbarButtons: [],
             prejoinConfig: {
                 enabled: false,
             },
-            disableSelfView: false,
             startWithAudioMuted: false,
             startWithVideoMuted: false,
+            disableSelfView: false,
+            disableSelfViewSettings: true,
+            disableModeratorIndicator: true,
+            disableSelfDemote: true,
+            speakerStats: {
+                disabled: true
+            },
+            connectionIndicators: {
+                disabled: true,
+                disableDetails: true,
+                inactiveDisabled: true
+            },
+            toolbarButtons: [],
+            buttonsWithNotifyClick: [],
+            participantMenuButtonsWithNotifyClick: [],
+            disableLocalVideoFlip: true,
+            hideDominantSpeakerBadge: true,
+            hideConferenceTimer: true,
+            hideConferenceSubject: true,
+            hideRecordingLabel: true,
+            readOnlyName: true,
+            /**
+            disableFilmstripAutohiding: true,
             filmstrip: {
                 disableResizable: true,
+                // disabled: true,
+                alwaysShowResizeBar: false
             },
-        },
-        branding: {
-            disableDeepLinking: true,
-            disableBranding: true,
-            disableLogo: true,
+            disableResponsiveTiles: true,
+            disable1On1Mode: true,
+            deeplinking: {
+                disabled: true,
+                hideLogo: true,
+            },
+            defaultLogoUrl: '',
+            branding: {
+                disableDeepLinking: true,
+                disableBranding: true,
+                disableLogo: true,
+            },
+            **/
         },
         parentNode: document.getElementById("jitsi-surface"),  // wenn div anders benannt, dann hier anpassen
         userInfo: {
