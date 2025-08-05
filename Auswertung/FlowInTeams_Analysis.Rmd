@@ -1,0 +1,2280 @@
+---
+title: "R Notebook"
+output:
+  html_document:
+    df_print: paged
+---
+
+Setup & Import
+
+```{r}
+library(tidyverse)
+library(lme4)
+library(lmerTest)
+library(sjPlot)
+library(data.table)
+library(dplyr)
+library(plyr)
+library(tidyr)
+library(ggplot2)
+library(stringr)
+library(readr)
+library(psych)
+library(performance)
+library(corrr)
+library(purrr)
+library(corrplot)
+
+data <- read.csv("otree_cleaned1.csv")
+```
+
+Descriptive statistics
+
+```{r}
+# Demografische Übersicht
+demographics <- data %>%
+  summarise(
+    # Geschlecht
+    female_pct = mean(Intro.1.player.gender == "Female", na.rm = TRUE) * 100,
+    male_pct = mean(Intro.1.player.gender == "Male", na.rm = TRUE) * 100,
+    # Alter
+    age_mean = mean(Intro.1.player.age, na.rm = TRUE),
+    age_sd = sd(Intro.1.player.age, na.rm = TRUE),
+    # Händigkeit
+    right_handed_pct = mean(Intro.1.player.dominant_hand == "Right", na.rm = TRUE) * 100
+  )
+
+print(round(demographics, 1))
+
+# Englischkenntnisse detailliert
+cat("\nEnglischkenntnisse:\n")
+english_table <- prop.table(table(data$Intro.1.player.english)) * 100
+print(round(english_table, 1))
+
+# Occupation und Field of Study - nur Top 5
+cat("\nTop 5 Occupations:\n")
+head(sort(table(data$Intro.1.player.occupation), decreasing = TRUE), 5)
+
+cat("\nTop 5 Fields of Study:\n")
+head(sort(table(data$Intro.1.player.field_of_study), decreasing = TRUE), 5)
+```
+
+Manipulation checks for team goal, team member independence, and ability to coordinate work
+
+```{r}
+# mathChat - Interdependence
+int_mathChat <- data %>%
+  select(mathChat.6.player.int1, mathChat.6.player.int2, mathChat.6.player.int3)
+alpha(int_mathChat, check.keys=TRUE)
+
+# mathChat - Common Goal
+cg_mathChat <- data %>%
+  select(mathChat.6.player.cg1, mathChat.6.player.cg2, mathChat.6.player.cg3, 
+         mathChat.6.player.cg4, mathChat.6.player.cg5, mathChat.6.player.cg6)
+alpha(cg_mathChat, check.keys=TRUE)
+
+# mathChat - Means for Coordination
+mc_mathChat <- data %>%
+  select(mathChat.6.player.mc1, mathChat.6.player.mc2)
+alpha(mc_mathChat, check.keys=TRUE) 
+
+# mathJitsi - Interdependence
+int_mathJitsi <- data %>%
+  select(mathJitsi.6.player.int1, mathJitsi.6.player.int2, mathJitsi.6.player.int3)
+alpha(int_mathJitsi, check.keys=TRUE)
+
+# mathJitsi - Common Goal
+cg_mathJitsi <- data %>%
+  select(mathJitsi.6.player.cg1, mathJitsi.6.player.cg2, mathJitsi.6.player.cg3, 
+         mathJitsi.6.player.cg4, mathJitsi.6.player.cg5, mathJitsi.6.player.cg6)
+alpha(cg_mathJitsi, check.keys=TRUE)
+
+# mathJitsi - Means for Coordination
+mc_mathJitsi <- data %>%
+  select(mathJitsi.6.player.mc1, mathJitsi.6.player.mc2)
+alpha(mc_mathJitsi, check.keys=TRUE) 
+
+# HiddenProfile_Chat - Interdependence
+int_HiddenProfile_Chat <- data %>%
+  select(HiddenProfile_Chat.3.player.int1, HiddenProfile_Chat.3.player.int2, HiddenProfile_Chat.3.player.int3)
+alpha(int_HiddenProfile_Chat, check.keys=TRUE)
+
+# HiddenProfile_Chat - Common Goal
+cg_HiddenProfile_Chat <- data %>%
+  select(HiddenProfile_Chat.3.player.cg1, HiddenProfile_Chat.3.player.cg2, HiddenProfile_Chat.3.player.cg3, 
+         HiddenProfile_Chat.3.player.cg4, HiddenProfile_Chat.3.player.cg5, HiddenProfile_Chat.3.player.cg6)
+alpha(cg_HiddenProfile_Chat, check.keys=TRUE)
+
+# HiddenProfile_Chat - Means for Coordination
+mc_HiddenProfile_Chat <- data %>%
+  select(HiddenProfile_Chat.3.player.mc1, HiddenProfile_Chat.3.player.mc2)
+alpha(mc_HiddenProfile_Chat, check.keys=TRUE) 
+
+# HiddenProfile_Jitsi - Interdependence
+int_HiddenProfile_Jitsi <- data %>%
+  select(HiddenProfile_Jitsi.3.player.int1, HiddenProfile_Jitsi.3.player.int2, HiddenProfile_Jitsi.3.player.int3)
+alpha(int_HiddenProfile_Jitsi, check.keys=TRUE)
+
+# HiddenProfile_Jitsi - Common Goal
+cg_HiddenProfile_Jitsi <- data %>%
+  select(HiddenProfile_Jitsi.3.player.cg1, HiddenProfile_Jitsi.3.player.cg2, HiddenProfile_Jitsi.3.player.cg3, 
+         HiddenProfile_Jitsi.3.player.cg4, HiddenProfile_Jitsi.3.player.cg5, HiddenProfile_Jitsi.3.player.cg6)
+alpha(cg_HiddenProfile_Jitsi, check.keys=TRUE)
+
+# HiddenProfile_Jitsi - Means for Coordination
+mc_HiddenProfile_Jitsi <- data %>%
+  select(HiddenProfile_Jitsi.3.player.mc1, HiddenProfile_Jitsi.3.player.mc2)
+alpha(mc_HiddenProfile_Jitsi, check.keys=TRUE) 
+
+# Items umpolen (nur die mit negativem Vorzeichen aus der Alpha-Analyse)
+data <- data %>%
+  mutate(
+    # mathChat Items umpolen:
+    mathChat.6.player.int1_rev = 8 - mathChat.6.player.int1,
+    mathChat.6.player.cg1_rev = 8 - mathChat.6.player.cg1,
+    mathChat.6.player.cg3_rev = 8 - mathChat.6.player.cg3,
+    mathChat.6.player.cg5_rev = 8 - mathChat.6.player.cg5,
+    mathChat.6.player.mc1_rev = 8 - mathChat.6.player.mc1
+  )
+
+# Skalenmittelwerte je Konstrukt pro Treatment
+data <- data %>%
+  mutate(
+    mc_mathChat = rowMeans(select(., mathChat.6.player.mc1_rev, mathChat.6.player.mc2), na.rm = TRUE),
+    mc_mathJitsi = rowMeans(select(., mathJitsi.6.player.mc1, mathJitsi.6.player.mc2), na.rm = TRUE),
+    mc_hpChat = rowMeans(select(., HiddenProfile_Chat.3.player.mc1, HiddenProfile_Chat.3.player.mc2), na.rm = TRUE),
+    mc_hpJitsi = rowMeans(select(., HiddenProfile_Jitsi.3.player.mc1, HiddenProfile_Jitsi.3.player.mc2), na.rm = TRUE),
+
+    int_mathChat = rowMeans(select(., mathChat.6.player.int1_rev, mathChat.6.player.int2, mathChat.6.player.int3), na.rm = TRUE),
+    int_mathJitsi = rowMeans(select(., mathJitsi.6.player.int1, mathJitsi.6.player.int2, mathJitsi.6.player.int3), na.rm = TRUE),
+    int_hpChat = rowMeans(select(., HiddenProfile_Chat.3.player.int1, HiddenProfile_Chat.3.player.int2, HiddenProfile_Chat.3.player.int3), na.rm = TRUE),
+    int_hpJitsi = rowMeans(select(., HiddenProfile_Jitsi.3.player.int1, HiddenProfile_Jitsi.3.player.int2, HiddenProfile_Jitsi.3.player.int3), na.rm = TRUE),
+
+    cg_mathChat = rowMeans(select(., mathChat.6.player.cg1_rev, mathChat.6.player.cg2, mathChat.6.player.cg3_rev, 
+                                  mathChat.6.player.cg4, mathChat.6.player.cg5_rev, mathChat.6.player.cg6), na.rm = TRUE),
+    cg_mathJitsi = rowMeans(select(., starts_with("mathJitsi.6.player.cg")), na.rm = TRUE),
+    cg_hpChat = rowMeans(select(., starts_with("HiddenProfile_Chat.3.player.cg")), na.rm = TRUE),
+    cg_hpJitsi = rowMeans(select(., starts_with("HiddenProfile_Jitsi.3.player.cg")), na.rm = TRUE)
+  )
+
+mc_long <- data %>%
+  select(mc_mathChat, mc_mathJitsi, mc_hpChat, mc_hpJitsi) %>%
+  pivot_longer(cols = everything(), names_to = "Treatment", values_to = "Score") %>%
+  mutate(Treatment = recode(Treatment,
+                            mc_mathChat = "Math – Chat",
+                            mc_mathJitsi = "Math – Jitsi",
+                            mc_hpChat = "HiddenProfile – Chat",
+                            mc_hpJitsi = "HiddenProfile – Jitsi"))
+
+ggplot(mc_long, aes(x = Treatment, y = Score)) +
+  geom_boxplot(fill = "skyblue", alpha = 0.7) +
+  theme_minimal() +
+  labs(title = "Means for Coordination (MC) – nach Treatment",
+       y = "Skalenwert (1–7)", x = NULL) +
+  ylim(1, 7)
+
+int_long <- data %>%
+  select(int_mathChat, int_mathJitsi, int_hpChat, int_hpJitsi) %>%
+  pivot_longer(cols = everything(), names_to = "Treatment", values_to = "Score") %>%
+  mutate(Treatment = recode(Treatment,
+                            int_mathChat = "Math – Chat",
+                            int_mathJitsi = "Math – Jitsi",
+                            int_hpChat = "HiddenProfile – Chat",
+                            int_hpJitsi = "HiddenProfile – Jitsi"))
+
+ggplot(int_long, aes(x = Treatment, y = Score)) +
+  geom_boxplot(fill = "orchid", alpha = 0.7) +
+  theme_minimal() +
+  labs(title = "Team Member Interdependence (INT) – nach Treatment",
+       y = "Skalenwert (1–7)", x = NULL) +
+  ylim(1, 7)
+
+cg_long <- data %>%
+  select(cg_mathChat, cg_mathJitsi, cg_hpChat, cg_hpJitsi) %>%
+  pivot_longer(cols = everything(), names_to = "Treatment", values_to = "Score") %>%
+  mutate(Treatment = recode(Treatment,
+                            cg_mathChat = "Math – Chat",
+                            cg_mathJitsi = "Math – Jitsi",
+                            cg_hpChat = "HiddenProfile – Chat",
+                            cg_hpJitsi = "HiddenProfile – Jitsi"))
+
+ggplot(cg_long, aes(x = Treatment, y = Score)) +
+  geom_boxplot(fill = "seagreen3", alpha = 0.7) +
+  theme_minimal() +
+  labs(title = "Common Goal (CG) – nach Treatment",
+       y = "Skalenwert (1–7)", x = NULL) +
+  ylim(1, 7)
+
+```
+
+Manipulation check for difficulty
+
+```{r}
+# Funktion um z.B. "['A', 'O', 'F', 'B']" in echten Vektor zu verwandeln
+parse_order_string <- function(s) {
+  s %>%
+    str_remove_all("\\[|\\]|'|\"") %>%
+    str_split(",\\s*") %>%
+    unlist()
+}
+
+# Mapping Math-Codes zu Labels
+map_math_difficulty <- function(code) {
+  recode(code,
+         "B" = "Easy",
+         "A" = "Optimal_Selected",
+         "F" = "Optimal_Calibrated",
+         "O" = "Hard")
+}
+
+data <- data %>%
+  mutate(
+    math_order = map(as.character(participant.condition_order), parse_order_string) %>%
+                   map(~ map_chr(.x, map_math_difficulty)),
+    hp_order   = map(as.character(participant.hp_condition_order), parse_order_string) %>%
+                   map(str_to_title)
+  )
+
+# MATH TASK
+math_difficulty_long <- data %>%
+  select(participant.code, math_order,
+         starts_with("mathChat.3.player.csb"),
+         starts_with("mathChat.4.player.csb"),
+         starts_with("mathChat.5.player.csb"),
+         starts_with("mathChat.6.player.csb"),
+         starts_with("mathJitsi.3.player.csb"),
+         starts_with("mathJitsi.4.player.csb"),
+         starts_with("mathJitsi.5.player.csb"),
+         starts_with("mathJitsi.6.player.csb")) %>%
+  pivot_longer(cols = -c(participant.code, math_order),
+               names_to = "var", values_to = "csb") %>%
+  mutate(
+    round = str_extract(var, "\\d+"),
+    comm = ifelse(str_detect(var, "Chat"), "Chat", "Jitsi"),
+    index = as.integer(round) - 2,  # weil math.3 = erste relevante Runde
+    difficulty = map2_chr(math_order, index, ~ .x[.y])
+  ) %>%
+  drop_na(csb)
+
+# HP TASK
+hp_difficulty_long <- data %>%
+  select(participant.code, hp_order,
+         starts_with("HiddenProfile_Chat."),
+         starts_with("HiddenProfile_Jitsi.")) %>%
+  pivot_longer(cols = matches("HiddenProfile_.*\\.player\\.csb[12]"),
+               names_to = "var", values_to = "csb") %>%
+  mutate(
+    round = str_extract(var, "(?<=\\.)\\d+"),
+    comm = ifelse(str_detect(var, "Chat"), "Chat", "Jitsi"),
+    index = as.integer(round),  # hier ist Runde = Index
+    difficulty = map2_chr(hp_order, index, ~ .x[.y])
+  ) %>%
+  drop_na(csb)
+
+# X-Achse splitten in zwei ästhetischere Achsen:
+ggplot(math_difficulty_long, aes(x = difficulty, y = csb, fill = comm)) +
+  geom_boxplot(position = position_dodge(width = 0.75)) +
+  labs(title = "Math Task", x = "Difficulty", y = "Subjective Difficulty") +
+  theme_minimal()
+
+ggplot(hp_difficulty_long, aes(x = difficulty, y = csb, fill = comm)) +
+  geom_boxplot(position = position_dodge(width = 0.75)) +
+  labs(title = "Hidden Profile Task", x = "Difficulty", y = "Subjective Difficulty") +
+  theme_minimal()
+
+```
+
+Internal consistency check for flow construct and flow score calculation
+
+```{r}
+# Reihenfolge-Parsing-Helfer
+parse_order_string <- function(s) {
+  s %>%
+    str_remove_all("\\[|\\]|'|\"") %>%
+    str_split(",\\s*") %>%
+    unlist()
+}
+
+# Reihenfolgen extrahieren
+data <- data %>%
+  mutate(
+    math_order = map(participant.condition_order, parse_order_string),
+    hp_order   = map(participant.hp_condition_order, parse_order_string)
+  )
+
+# Funktion zum Remappen der Items von Runde -> Schwierigkeitsstufe
+remap_fss_items <- function(df, prefix, rounds, difficulty_map) {
+  out <- list()
+  for (i in seq_along(rounds)) {
+    r <- rounds[i]
+    diff_code <- difficulty_map[i]
+    for (j in 1:10) {
+      old_name <- sprintf("%s.%d.player.fss%02d", prefix, r, j)
+      new_name <- sprintf("%s.%s.player.fss%02d", prefix, diff_code, j)
+      out[[new_name]] <- if (old_name %in% names(df)) df[[old_name]][1] else NA
+    }
+  }
+  # Eine Zeile mit vielen Spalten zurückgeben
+  return(as_tibble(out))
+}
+
+# Spaltennamen für Mathe-Items extrahieren
+math_cols <- names(data)[startsWith(names(data), "math")]
+
+# Mathe-Daten remappen
+math_data <- data %>%
+  mutate(math_items = pmap(
+    c(list(math_order), select(., all_of(math_cols))),
+    function(order, ...) {
+      df <- tibble(...)
+      bind_cols(
+        remap_fss_items(df, "mathJitsi", 3:6, order),
+        remap_fss_items(df, "mathChat", 3:6, order)
+      )
+    }
+  ))
+
+# Spaltennamen für Hidden Profile-Items extrahieren
+hp_cols <- names(data)[startsWith(names(data), "HiddenProfile_")]
+
+# HP-Daten remappen
+hp_data <- data %>%
+  mutate(hp_items = pmap(
+    c(list(hp_order), select(., all_of(hp_cols))),
+    function(order, ...) {
+      df <- tibble(...)
+      bind_cols(
+        remap_fss_items(df, "HiddenProfile_Jitsi", 1:3, order),
+        remap_fss_items(df, "HiddenProfile_Chat", 1:3, order)
+      )
+    }
+  ))
+
+# Funktion für Cronbach's Alpha und Mittelwert
+aggregate_flow <- function(df, prefix, difficulties) {
+  results <- list()
+  
+  # NEU: Alpha-Ausgabe Header
+  cat("\n=== Cronbach's Alpha für", prefix, "===\n")
+  
+  for (d in difficulties) {
+    for (comm in c("Chat", "Jitsi")) {
+      # Prefix korrekt setzen – für HiddenProfile mit Unterstrich
+      full_prefix <- if (prefix == "HiddenProfile") {
+        paste0(prefix, "_", comm)
+      } else {
+        paste0(prefix, comm)
+      }
+      
+      items <- sprintf("%s.%s.player.fss%02d", full_prefix, d, 1:10)
+      valid_items <- items[items %in% names(df)]
+      
+      if (length(valid_items) >= 2) {
+        item_df <- df[valid_items]
+        alpha_val <- tryCatch(psych::alpha(item_df)$total$raw_alpha, error = function(e) NA)
+        scale_mean <- rowMeans(item_df, na.rm = TRUE)
+        
+        # NEU: Alpha-Wert ausgeben
+        scale_name <- paste0(prefix, "_", d, "_", comm)
+        if (!is.na(alpha_val)) {
+          cat(sprintf("%-20s: α = %.3f\n", scale_name, alpha_val))
+        } else {
+          cat(sprintf("%-20s: α = NA\n", scale_name))
+        }
+        
+      } else {
+        alpha_val <- NA
+        scale_mean <- rep(NA, nrow(df))
+        
+        # NEU: Ausgabe für zu wenige Items
+        scale_name <- paste0(prefix, "_", d, "_", comm)
+        cat(sprintf("%-20s: α = NA (nur %d Items)\n", scale_name, length(valid_items)))
+      }
+      
+      col_name <- paste0("fss_", prefix, "_", d, "_", comm)
+      results[[col_name]] <- scale_mean
+    }
+  }
+  as.data.frame(results)
+}
+
+
+full_items <- bind_cols(
+  data["participant.code"],
+  map_dfr(math_data$math_items, identity),
+  map_dfr(hp_data$hp_items, identity)
+)
+
+# Skalen berechnen
+math_scores <- aggregate_flow(full_items, "math", c("A", "O", "F", "B"))
+hp_scores   <- aggregate_flow(full_items, "HiddenProfile", c("EASY", "MED", "HARD"))
+
+# Enddatensatz mit allen Skalen
+flow_scores <- bind_cols(full_items["participant.code"], math_scores, hp_scores)
+
+# Wide → Long
+flow_scores_long <- flow_scores %>%
+  pivot_longer(
+    cols = -participant.code,
+    names_to = "scale_name",
+    values_to = "flow_score"
+  )
+
+# Zerlegen von scale_name in task, difficulty, comm
+flow_scores_long <- flow_scores_long %>%
+  separate(scale_name, into = c("fss", "task", "difficulty", "comm"), sep = "_", remove = TRUE) %>%
+  select(-fss)
+
+# NaN-Zeilen rausfiltern: nur tatsächliche Kommunikationsbedingung behalten
+flow_scores_long <- flow_scores_long %>%
+  filter(!is.na(flow_score))
+
+data <- data %>%
+  mutate(
+    math_order = map(participant.condition_order, parse_order_string),
+    hp_order   = map(participant.hp_condition_order, parse_order_string)
+  )
+
+# condition_order ergänzen
+flow_scores_long <- flow_scores_long %>%
+  left_join(data %>% select(participant.code, participant.condition_order), by = "participant.code") %>%
+  mutate(condition_order = participant.condition_order) %>%
+  select(-participant.condition_order)
+
+# condition_order ergänzen
+flow_scores_long <- flow_scores_long %>%
+  left_join(data %>% select(participant.code, participant.hp_condition_order), by = "participant.code") %>%
+  mutate(hp_condition_order = participant.hp_condition_order) %>%
+  select(-participant.hp_condition_order)
+
+# Team-ID erzeugen (falls noch nicht erfolgt)
+data <- data %>%
+  mutate(team_id = paste(session.code, Intro.1.group.custom_group_id, sep = "_"))
+
+# Team-ID ergänzen
+flow_scores_long <- flow_scores_long %>%
+  left_join(data %>% select(participant.code, team_id), by = "participant.code")
+
+# Einheitliche Schreibweise für spätere Filter
+flow_scores_long <- flow_scores_long %>%
+  mutate(
+    task = recode(task,
+                  "math" = "Math",
+                  "HiddenProfile" = "HP"),
+    difficulty = recode(difficulty,
+                        "B" = "Easy",
+                        "A" = "Optimal_Selected",
+                        "F" = "Optimal_Calibrated",
+                        "O" = "Hard",
+                        "EASY" = "Easy",
+                        "MED" = "Medium",
+                        "HARD" = "Hard")
+  )
+
+# Jetzt den Long-Datensatz als neuen flow_scores verwenden
+flow_scores <- flow_scores_long
+
+flow_scores <- flow_scores %>%
+  mutate(
+    order = case_when(
+      task == "Math" ~ condition_order,
+      task == "HP"   ~ hp_condition_order,
+      TRUE           ~ NA_character_
+    )
+  ) %>%
+  select(-condition_order, -hp_condition_order)
+
+# Boxplot erstellen
+ggplot(flow_scores, aes(x = interaction(task, comm, sep = " - "), y = flow_score, fill = task)) +
+  geom_boxplot(outlier.shape = NA, alpha = 0.7) +
+  geom_jitter(width = 0.2, alpha = 0.4, color = "black", size = 1) +
+  labs(
+    title = "Flow-Scores nach Experimentalbedingung",
+    x = "Bedingung (Task - Medium)",
+    y = "Flow-Score"
+  ) +
+  scale_fill_brewer(palette = "Set2") +
+  theme_minimal(base_size = 14) +
+  theme(legend.position = "none")
+
+math_subset <- flow_scores %>% filter(task == "Math")
+t.test(flow_score ~ comm, data = math_subset)
+
+hp_subset <- flow_scores %>% filter(task == "HP")
+t.test(flow_score ~ comm, data = hp_subset)
+
+jitsi_subset <- flow_scores %>% filter(comm == "Jitsi")
+t.test(flow_score ~ task, data = jitsi_subset)
+
+chat_subset <- flow_scores %>% filter(comm == "Chat")
+t.test(flow_score ~ task, data = chat_subset)
+
+```
+
+Flow proneness consistency check and score calculation
+
+```{r}
+# Flow Proneness Items
+flowp_items <- data %>%
+  select(participant.code,
+         starts_with("Outro.1.player.fpw"),
+         starts_with("Outro.1.player.fph"),
+         starts_with("Outro.1.player.fpl"))
+
+flowp_items <- flowp_items %>%
+  mutate(
+    `Outro.1.player.fpl1` = 6 - `Outro.1.player.fpl1`,
+    `Outro.1.player.fph1` = 6 - `Outro.1.player.fph1`,
+    `Outro.1.player.fpw1` = 6 - `Outro.1.player.fpw1`
+  )
+
+# Prüfe interne Konsistenz pro Dimension
+alpha_work <- psych::alpha(flowp_items %>% select(starts_with("Outro.1.player.fpw")))
+alpha_household <- psych::alpha(flowp_items %>% select(starts_with("Outro.1.player.fph")))
+alpha_leisure <- psych::alpha(flowp_items %>% select(starts_with("Outro.1.player.fpl")))
+
+# Aggregiere zu drei Scores + Gesamtwert
+flow_proneness_scores <- flowp_items %>%
+  mutate(
+    fp_work = rowMeans(select(., starts_with("Outro.1.player.fpw")), na.rm = TRUE),
+    fp_household = rowMeans(select(., starts_with("Outro.1.player.fph")), na.rm = TRUE),
+    fp_leisure = rowMeans(select(., starts_with("Outro.1.player.fpl")), na.rm = TRUE)
+  ) %>%
+  mutate(fp_total = rowMeans(select(., fp_work, fp_household, fp_leisure), na.rm = TRUE)) %>%
+  select(participant.code, fp_total)
+
+flow_scores <- flow_scores %>%
+  left_join(flow_proneness_scores, by = "participant.code")
+```
+
+Linear mixed model for flow with individual-level variables (level-1) nested within teams (level-2), Calculation of Goodness-of-Fit criteria AIC, BIC, Marginal R2 and Conditional R2
+
+```{r}
+# Filter: Nur Mathe-Task
+flow_scores_math <- flow_scores %>% 
+  filter(task == "Math")
+
+# Modell-Datensatz vorbereiten
+model_data_math <- flow_scores_math %>%
+  mutate(
+    synchronicity = ifelse(comm == "Jitsi", "High", "Low"),
+    synchronicity = factor(synchronicity, levels = c("Low", "High")),
+    difficulty = factor(difficulty, levels = c("Easy", "Optimal_Selected", "Optimal_Calibrated", "Hard"))
+  )
+
+# Modell 1: Synchronicity + Difficulty
+model_math_1 <- lmer(
+  flow_score ~ synchronicity + difficulty + 
+    (1 | team_id) + (1 | participant.code),
+  data = model_data_math
+)
+summary(model_math_1)
+
+# Modell 2: Interaktion hinzufügen
+model_math_2 <- lmer(
+  flow_score ~ synchronicity * difficulty + 
+    (1 | team_id) + (1 | participant.code),
+  data = model_data_math
+)
+summary(model_math_2)
+
+# Modell 3: Zusätzlich Flow Proneness & Condition Order
+model_math_3 <- lmer(
+  flow_score ~ synchronicity * difficulty + 
+    fp_total + order +
+    (1 | team_id) + (1 | participant.code),
+  data = model_data_math
+)
+summary(model_math_3)
+
+# AIC und BIC vergleichen
+AIC(model_math_1, model_math_2, model_math_3)
+BIC(model_math_1, model_math_2, model_math_3)
+
+# Marginal und Conditional R²
+r2_math_1 <- r2(model_math_1)
+r2_math_2 <- r2(model_math_2)
+r2_math_3 <- r2(model_math_3)
+
+r2_math_1
+r2_math_2
+r2_math_3
+
+# Filter: Nur HP-Task
+flow_scores_hp <- flow_scores %>% 
+  filter(task == "HP")
+
+# Modell-Datensatz vorbereiten
+model_data_hp <- flow_scores_hp %>%
+  mutate(
+    synchronicity = ifelse(comm == "Jitsi", "High", "Low"),
+    synchronicity = factor(synchronicity, levels = c("Low", "High")),
+    difficulty = factor(difficulty, levels = c("Easy", "Medium", "Hard"))  # HP hat nur 3 Stufen
+  )
+
+# Modell 1: Synchronicity + Difficulty
+model_hp_1 <- lmer(
+  flow_score ~ synchronicity + difficulty + 
+    (1 | team_id) + (1 | participant.code),
+  data = model_data_hp
+)
+summary(model_hp_1)
+
+# Modell 2: Interaktion hinzufügen
+model_hp_2 <- lmer(
+  flow_score ~ synchronicity * difficulty + 
+    (1 | team_id) + (1 | participant.code),
+  data = model_data_hp
+)
+summary(model_hp_2)
+
+# Modell 3: Zusätzlich Flow Proneness & Condition Order
+model_hp_3 <- lmer(
+  flow_score ~ synchronicity * difficulty + 
+    fp_total + order +
+    (1 | team_id) + (1 | participant.code),
+  data = model_data_hp
+)
+summary(model_hp_3)
+
+# AIC und BIC vergleichen
+AIC(model_hp_1, model_hp_2, model_hp_3)
+BIC(model_hp_1, model_hp_2, model_hp_3)
+
+# Marginal und Conditional R²
+r2_hp_1 <- r2(model_hp_1)
+r2_hp_2 <- r2(model_hp_2)
+r2_hp_3 <- r2(model_hp_3)
+
+r2_hp_1
+r2_hp_2
+r2_hp_3
+
+```
+
+
+Shared flow calculation via Intra-class coefficient (univariate and multivariate)
+
+```{r}
+# Univariate ICC (Math)
+icc_model_math <- lmer(flow_score ~ 1 + (1 | team_id) + (1 | participant.code), data = model_data_math)
+icc_math_overall <- icc(icc_model_math)
+print(icc_math_overall)
+
+# Multivariate ICCs nach Schwierigkeit (Math)
+compute_icc_math <- function(level_name) {
+  subset_data <- model_data_math %>% filter(difficulty == level_name)
+  model <- lmer(flow_score ~ 1 + (1 | team_id), data = subset_data)
+  icc(model)
+}
+
+icc_math_easy     <- compute_icc_math("Easy")
+icc_math_opt_sel  <- compute_icc_math("Optimal_Selected")
+icc_math_opt_cal  <- compute_icc_math("Optimal_Calibrated")
+icc_math_hard     <- compute_icc_math("Hard")
+
+# Ergebnisse anzeigen
+icc_math_easy
+icc_math_opt_sel
+icc_math_opt_cal
+icc_math_hard
+
+# Univariate ICC (HP)
+icc_model_hp <- lmer(flow_score ~ 1 + (1 | team_id) + (1 | participant.code), data = model_data_hp)
+icc_hp_overall <- icc(icc_model_hp)
+print(icc_hp_overall)
+
+# Multivariate ICCs nach Schwierigkeit (HP)
+compute_icc_hp <- function(level_name) {
+  subset_data <- model_data_hp %>% filter(difficulty == level_name)
+  model <- lmer(flow_score ~ 1 + (1 | team_id), data = subset_data)
+  icc(model)
+}
+
+icc_hp_easy   <- compute_icc_hp("Easy")
+icc_hp_medium <- compute_icc_hp("Medium")
+icc_hp_hard   <- compute_icc_hp("Hard")
+
+# Ergebnisse anzeigen
+icc_hp_easy
+icc_hp_medium
+icc_hp_hard
+
+```
+
+Correlation of flow with anticipated mediators
+
+```{r}
+# Master Thesis Analysis: Flow Mediation durch Team Composition, Information Sharing und Emotional Synchrony
+# Separate Analysen für Math und Hidden Profile Tasks
+
+library(dplyr)
+library(corrplot)
+library(psych)
+library(lme4)
+library(ggplot2)
+library(tidyr)
+
+# Konflikt zwischen plyr und dplyr lösen - dplyr Funktionen explizit verwenden
+summarise <- dplyr::summarise
+mutate <- dplyr::mutate
+select <- dplyr::select
+
+# Annahme: data und flow_scores DataFrames sind bereits geladen
+# data <- read.csv("your_data.csv")
+# flow_scores <- read.csv("flow_scores.csv")
+
+# ================================================================================
+# TEIL 1: DATENAUFBEREITUNG
+# ================================================================================
+
+# Funktion zur Extraktion und Verarbeitung der Team Composition Daten
+extract_team_composition <- function(data) {
+  # Team Composition Items (einmal pro Aufgabentyp erhoben)
+  # tsz = team size, td = team diversity, tsc = team skills complementary
+  tc_vars <- c("tsz1", "tsz2", "tsz3", "td1", "td2", "td3", "tsc1", "tsc2", "tsc3")
+  
+  tc_data <- data %>%
+    select(participant.code, contains("player")) %>%
+    select(participant.code, matches("(mathJitsi|mathChat|HiddenProfile_Jitsi|HiddenProfile_Chat).*\\.(tsz1|tsz2|tsz3|td1|td2|td3|tsc1|tsc2|tsc3)$"))
+  
+  # Umstrukturierung für bessere Verarbeitung
+  tc_long <- tc_data %>%
+    pivot_longer(cols = -participant.code, 
+                 names_to = "variable", 
+                 values_to = "value") %>%
+    filter(!is.na(value)) %>%
+    mutate(
+      task = case_when(
+        grepl("^math", variable) ~ "Math",
+        grepl("^HiddenProfile", variable) ~ "HP"
+      ),
+      comm = case_when(
+        grepl("Jitsi", variable) ~ "Jitsi",
+        grepl("Chat", variable) ~ "Chat"
+      ),
+      dimension = case_when(
+        grepl("tsz", variable) ~ "team_size",
+        grepl("td", variable) ~ "team_diversity", 
+        grepl("tsc", variable) ~ "team_skills_complementary"
+      ),
+      item = gsub(".*\\.(tsz|td|tsc)(\\d+)$", "\\2", variable)
+    )
+  
+  return(tc_long)
+}
+
+# Funktion zur Extraktion von Information Sharing Daten
+extract_information_sharing <- function(data) {
+  is_data <- data %>%
+    select(participant.code, contains("player")) %>%
+    select(participant.code, matches("(mathJitsi|mathChat|HiddenProfile_Jitsi|HiddenProfile_Chat).*\\.(info1|info2)$"))
+  
+  is_long <- is_data %>%
+    pivot_longer(cols = -participant.code, 
+                 names_to = "variable", 
+                 values_to = "value") %>%
+    filter(!is.na(value)) %>%
+    mutate(
+      task = case_when(
+        grepl("^math", variable) ~ "Math",
+        grepl("^HiddenProfile", variable) ~ "HP"
+      ),
+      comm = case_when(
+        grepl("Jitsi", variable) ~ "Jitsi",
+        grepl("Chat", variable) ~ "Chat"
+      ),
+      round = gsub(".*\\.(\\d+)\\.player.*", "\\1", variable),
+      item = gsub(".*\\.(info)(\\d+)$", "\\2", variable)
+    )
+  
+  return(is_long)
+}
+
+# Funktion zur Extraktion von Emotional Synchrony Daten
+extract_emotional_synchrony <- function(data) {
+  # ec = emotional contagion, es = emotional synchrony
+  es_data <- data %>%
+    select(participant.code, contains("player")) %>%
+    select(participant.code, matches("(mathJitsi|mathChat|HiddenProfile_Jitsi|HiddenProfile_Chat).*\\.(ec1|es1)$"))
+  
+  es_long <- es_data %>%
+    pivot_longer(cols = -participant.code, 
+                 names_to = "variable", 
+                 values_to = "value") %>%
+    filter(!is.na(value)) %>%
+    mutate(
+      task = case_when(
+        grepl("^math", variable) ~ "Math",
+        grepl("^HiddenProfile", variable) ~ "HP"
+      ),
+      comm = case_when(
+        grepl("Jitsi", variable) ~ "Jitsi",
+        grepl("Chat", variable) ~ "Chat"
+      ),
+      round = gsub(".*\\.(\\d+)\\.player.*", "\\1", variable),
+      item_type = case_when(
+        grepl("ec1", variable) ~ "emotional_contagion",
+        grepl("es1", variable) ~ "emotional_synchrony"
+      )
+    )
+  
+  return(es_long)
+}
+
+# Datenextraktion durchführen
+tc_long <- extract_team_composition(data)
+is_long <- extract_information_sharing(data)
+es_long <- extract_emotional_synchrony(data)
+
+# ================================================================================
+# TEIL 2: RELIABILITÄTSANALYSEN UND AGGREGATION
+# ================================================================================
+
+# Team Composition: Reliabilität prüfen und aggregieren
+tc_reliability <- tc_long %>%
+  dplyr::group_by(participant.code, task, comm, dimension) %>%
+  dplyr::summarise(
+    n_items = dplyr::n(),
+    mean_score = mean(value, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+print("Team Composition Reliabilität (nach Dimension):")
+print(tc_reliability)
+
+# Team Composition Scores aggregieren (KORRIGIERT)
+tc_scores <- tc_long %>%
+  dplyr::group_by(participant.code, task, comm, dimension) %>%
+  dplyr::summarise(score = mean(value, na.rm = TRUE), .groups = "keep") %>%
+  dplyr::ungroup() %>%
+  tidyr::pivot_wider(names_from = dimension, values_from = score) %>%
+  dplyr::mutate(team_composition_score = rowMeans(dplyr::select(., team_size, team_diversity, team_skills_complementary), na.rm = TRUE))
+
+# Information Sharing: Korrelation und Aggregation
+# info = information sharing
+
+is_wide_test <- is_long %>%
+  tidyr::pivot_wider(names_from = item, values_from = value, names_prefix = "info")
+
+is_correlation <- is_wide_test %>%
+  dplyr::group_by(task, comm) %>%
+  dplyr::summarise(
+    n_total = dplyr::n(),
+    n_info1 = sum(!is.na(info1)),
+    n_info2 = sum(!is.na(info2)),
+    n_pairs = sum(!is.na(info1) & !is.na(info2)),
+    correlation = ifelse(n_pairs >= 3, 
+                        cor(info1, info2, use = "complete.obs"), 
+                        NA_real_),
+    .groups = "drop"
+  )
+
+print("Information Sharing Korrelationen:")
+print(is_correlation)
+
+# Information Sharing aggregieren
+is_scores <- is_long %>%
+  group_by(participant.code, task, comm, round) %>%
+  summarise(round_score = mean(value, na.rm = TRUE), .groups = "drop") %>%
+  group_by(participant.code, task, comm) %>%
+  summarise(information_sharing_score = mean(round_score, na.rm = TRUE), .groups = "drop")
+
+# Emotional Synchrony: Korrelation und Aggregation
+# ec = emotional contagion, es = emotional synchrony
+es_correlation <- es_long %>%
+  tidyr::pivot_wider(names_from = item_type, values_from = value) %>%
+  dplyr::group_by(task, comm) %>%
+  dplyr::summarise(
+    n_total = dplyr::n(),
+    n_ec = sum(!is.na(emotional_contagion)),
+    n_es = sum(!is.na(emotional_synchrony)),
+    n_pairs = sum(!is.na(emotional_contagion) & !is.na(emotional_synchrony)),
+    correlation = ifelse(n_pairs >= 3, 
+                        cor(emotional_contagion, emotional_synchrony, use = "complete.obs"), 
+                        NA_real_),
+    .groups = "drop"
+  )
+
+print("Emotional Synchrony Korrelationen:")
+print(es_correlation)
+
+# Zusätzlich: Schaue dir die Rohdaten an
+print("Emotional Synchrony Rohdaten-Check:")
+es_check <- es_long %>%
+  dplyr::group_by(task, comm, item_type) %>%
+  dplyr::summarise(
+    n_total = dplyr::n(),
+    n_valid = sum(!is.na(value)),
+    n_missing = sum(is.na(value)),
+    .groups = "drop"
+  )
+print(es_check)
+
+# Emotional Synchrony aggregieren
+es_scores <- es_long %>%
+  group_by(participant.code, task, comm, round) %>%
+  summarise(round_score = mean(value, na.rm = TRUE), .groups = "drop") %>%
+  group_by(participant.code, task, comm) %>%
+  summarise(emotional_synchrony_score = mean(round_score, na.rm = TRUE), .groups = "drop")
+
+# ================================================================================
+# TEIL 3: HAUPTDATENSATZ ERSTELLEN
+# ================================================================================
+
+# Alle Scores zusammenfügen
+mediation_data <- tc_scores %>%
+  select(participant.code, task, comm, team_composition_score) %>%
+  left_join(is_scores, by = c("participant.code", "task", "comm")) %>%
+  left_join(es_scores, by = c("participant.code", "task", "comm")) %>%
+  # Mit Flow Scores verbinden
+  left_join(
+    flow_scores %>%
+      group_by(participant.code, task, comm) %>%
+      summarise(mean_flow_score = mean(flow_score, na.rm = TRUE), .groups = "drop"),
+    by = c("participant.code", "task", "comm")
+  ) %>%
+  # Synchronicity Variable hinzufügen
+  mutate(
+    synchronicity = case_when(
+      comm == "Jitsi" ~ "High",
+      comm == "Chat" ~ "Low"
+    )
+  )
+
+# ================================================================================
+# TEIL 4: EXPLORATIVE ANALYSEN - GETRENNT FÜR MATH UND HIDDEN PROFILE
+# ================================================================================
+
+# ---- MATH TASK ANALYSE ----
+print("=== MATH TASK ANALYSE ===")
+
+math_data <- mediation_data %>% filter(task == "Math")
+
+# Deskriptive Statistiken
+math_descriptives <- math_data %>%
+  group_by(comm) %>%
+  summarise(
+    n = n(),
+    across(c(team_composition_score, information_sharing_score, 
+             emotional_synchrony_score, mean_flow_score), 
+           list(mean = ~mean(.x, na.rm = TRUE), 
+                sd = ~sd(.x, na.rm = TRUE)), 
+           .names = "{.col}_{.fn}"),
+    .groups = "drop"
+  )
+
+print("Math Task - Deskriptive Statistiken:")
+print(math_descriptives)
+
+# Korrelationsmatrix für Math
+math_cor_vars <- c("team_composition_score", "information_sharing_score", 
+                   "emotional_synchrony_score", "mean_flow_score")
+math_cor_matrix <- cor(math_data[math_cor_vars], use = "complete.obs")
+
+print("Math Task - Korrelationsmatrix:")
+print(round(math_cor_matrix, 3))
+
+# Korrelationsplot
+corrplot(math_cor_matrix, method = "color", type = "upper", 
+         title = "Math Task - Korrelationen", mar = c(0,0,2,0))
+
+# Regressionsanalysen für Math
+# Basis-Modell: Synchronicity -> Flow
+math_model_base <- lm(mean_flow_score ~ synchronicity, data = math_data)
+
+# Erweiterte Modelle mit Mediatoren
+math_model_tc <- lm(mean_flow_score ~ synchronicity + team_composition_score, data = math_data)
+math_model_is <- lm(mean_flow_score ~ synchronicity + information_sharing_score, data = math_data)
+math_model_es <- lm(mean_flow_score ~ synchronicity + emotional_synchrony_score, data = math_data)
+math_model_full <- lm(mean_flow_score ~ synchronicity + team_composition_score + 
+                      information_sharing_score + emotional_synchrony_score, data = math_data)
+
+# Mediator-Modelle (Synchronicity -> Mediatoren)
+math_mediator_tc <- lm(team_composition_score ~ synchronicity, data = math_data)
+math_mediator_is <- lm(information_sharing_score ~ synchronicity, data = math_data)
+math_mediator_es <- lm(emotional_synchrony_score ~ synchronicity, data = math_data)
+
+print("Math Task - Modell-Ergebnisse:")
+print("Basis-Modell (Synchronicity -> Flow):")
+print(summary(math_model_base))
+print("Vollständiges Modell:")
+print(summary(math_model_full))
+
+# ---- HIDDEN PROFILE TASK ANALYSE ----
+print("\n=== HIDDEN PROFILE TASK ANALYSE ===")
+
+hp_data <- mediation_data %>% filter(task == "HP")
+
+# Deskriptive Statistiken
+hp_descriptives <- hp_data %>%
+  group_by(comm) %>%
+  summarise(
+    n = n(),
+    across(c(team_composition_score, information_sharing_score, 
+             emotional_synchrony_score, mean_flow_score), 
+           list(mean = ~mean(.x, na.rm = TRUE), 
+                sd = ~sd(.x, na.rm = TRUE)), 
+           .names = "{.col}_{.fn}"),
+    .groups = "drop"
+  )
+
+print("Hidden Profile Task - Deskriptive Statistiken:")
+print(hp_descriptives)
+
+# Korrelationsmatrix für Hidden Profile
+hp_cor_matrix <- cor(hp_data[math_cor_vars], use = "complete.obs")
+
+print("Hidden Profile Task - Korrelationsmatrix:")
+print(round(hp_cor_matrix, 3))
+
+# Korrelationsplot
+corrplot(hp_cor_matrix, method = "color", type = "upper", 
+         title = "Hidden Profile Task - Korrelationen", mar = c(0,0,2,0))
+
+# Regressionsanalysen für Hidden Profile
+# Basis-Modell: Synchronicity -> Flow
+hp_model_base <- lm(mean_flow_score ~ synchronicity, data = hp_data)
+
+# Erweiterte Modelle mit Mediatoren
+hp_model_tc <- lm(mean_flow_score ~ synchronicity + team_composition_score, data = hp_data)
+hp_model_is <- lm(mean_flow_score ~ synchronicity + information_sharing_score, data = hp_data)
+hp_model_es <- lm(mean_flow_score ~ synchronicity + emotional_synchrony_score, data = hp_data)
+hp_model_full <- lm(mean_flow_score ~ synchronicity + team_composition_score + 
+                    information_sharing_score + emotional_synchrony_score, data = hp_data)
+
+# Mediator-Modelle (Synchronicity -> Mediatoren)
+hp_mediator_tc <- lm(team_composition_score ~ synchronicity, data = hp_data)
+hp_mediator_is <- lm(information_sharing_score ~ synchronicity, data = hp_data)
+hp_mediator_es <- lm(emotional_synchrony_score ~ synchronicity, data = hp_data)
+
+print("Hidden Profile Task - Modell-Ergebnisse:")
+print("Basis-Modell (Synchronicity -> Flow):")
+print(summary(hp_model_base))
+print("Vollständiges Modell:")
+print(summary(hp_model_full))
+
+# ================================================================================
+# TEIL 5: MEDIATION ANALYSE (vereinfacht)
+# ================================================================================
+
+# Funktion für einfache Mediation (Baron & Kenny Ansatz)
+simple_mediation_test <- function(data, mediator_name) {
+  # Schritt 1: X -> Y (Total Effect)
+  model_c <- lm(mean_flow_score ~ synchronicity, data = data)
+  
+  # Schritt 2: X -> M (a path)
+  model_a <- lm(get(mediator_name) ~ synchronicity, data = data)
+  
+  # Schritt 3: X + M -> Y (Direct Effect)
+  formula_str <- paste("mean_flow_score ~ synchronicity +", mediator_name)
+  model_b <- lm(as.formula(formula_str), data = data)
+  
+  # Ergebnisse sammeln
+  results <- list(
+    mediator = mediator_name,
+    total_effect = summary(model_c)$coefficients["synchronicityLow", "Estimate"],
+    total_effect_p = summary(model_c)$coefficients["synchronicityLow", "Pr(>|t|)"],
+    a_path = summary(model_a)$coefficients["synchronicityLow", "Estimate"],
+    a_path_p = summary(model_a)$coefficients["synchronicityLow", "Pr(>|t|)"],
+    b_path = summary(model_b)$coefficients[mediator_name, "Estimate"],
+    b_path_p = summary(model_b)$coefficients[mediator_name, "Pr(>|t|)"],
+    direct_effect = summary(model_b)$coefficients["synchronicityLow", "Estimate"],
+    direct_effect_p = summary(model_b)$coefficients["synchronicityLow", "Pr(>|t|)"]
+  )
+  
+  # Indirekte Effekt
+  results$indirect_effect <- results$a_path * results$b_path
+  
+  return(results)
+}
+
+# Mediation Tests für Math Task
+print("\n=== MEDIATION ANALYSEN - MATH TASK ===")
+math_mediation_tc <- simple_mediation_test(math_data, "team_composition_score")
+math_mediation_is <- simple_mediation_test(math_data, "information_sharing_score")
+math_mediation_es <- simple_mediation_test(math_data, "emotional_synchrony_score")
+
+mediation_results_math <- data.frame(
+  Mediator = c("Team Composition", "Information Sharing", "Emotional Synchrony"),
+  Total_Effect = c(math_mediation_tc$total_effect, math_mediation_is$total_effect, math_mediation_es$total_effect),
+  Direct_Effect = c(math_mediation_tc$direct_effect, math_mediation_is$direct_effect, math_mediation_es$direct_effect),
+  Indirect_Effect = c(math_mediation_tc$indirect_effect, math_mediation_is$indirect_effect, math_mediation_es$indirect_effect),
+  A_Path = c(math_mediation_tc$a_path, math_mediation_is$a_path, math_mediation_es$a_path),
+  B_Path = c(math_mediation_tc$b_path, math_mediation_is$b_path, math_mediation_es$b_path)
+)
+
+print("Math Task - Mediation Ergebnisse:")
+# Nur die numerischen Spalten runden
+mediation_results_math_rounded <- mediation_results_math
+mediation_results_math_rounded[, 2:6] <- round(mediation_results_math[, 2:6], 4)
+print(mediation_results_math_rounded)
+
+# Mediation Tests für Hidden Profile Task  
+print("\n=== MEDIATION ANALYSEN - HIDDEN PROFILE TASK ===")
+hp_mediation_tc <- simple_mediation_test(hp_data, "team_composition_score")
+hp_mediation_is <- simple_mediation_test(hp_data, "information_sharing_score")
+hp_mediation_es <- simple_mediation_test(hp_data, "emotional_synchrony_score")
+
+mediation_results_hp <- data.frame(
+  Mediator = c("Team Composition", "Information Sharing", "Emotional Synchrony"),
+  Total_Effect = c(hp_mediation_tc$total_effect, hp_mediation_is$total_effect, hp_mediation_es$total_effect),
+  Direct_Effect = c(hp_mediation_tc$direct_effect, hp_mediation_is$direct_effect, hp_mediation_es$direct_effect),
+  Indirect_Effect = c(hp_mediation_tc$indirect_effect, hp_mediation_is$indirect_effect, hp_mediation_es$indirect_effect),
+  A_Path = c(hp_mediation_tc$a_path, hp_mediation_is$a_path, hp_mediation_es$a_path),
+  B_Path = c(hp_mediation_tc$b_path, hp_mediation_is$b_path, hp_mediation_es$b_path)
+)
+
+print("Hidden Profile Task - Mediation Ergebnisse:")
+# Nur die numerischen Spalten runden
+mediation_results_hp_rounded <- mediation_results_hp
+mediation_results_hp_rounded[, 2:6] <- round(mediation_results_hp[, 2:6], 4)
+print(mediation_results_hp_rounded)
+
+# ================================================================================
+# TEIL 6: VISUALISIERUNGEN
+# ================================================================================
+
+# Vergleich der Mediator-Werte zwischen den Kommunikationsformen
+mediation_plot_data <- mediation_data %>%
+  pivot_longer(cols = c(team_composition_score, information_sharing_score, emotional_synchrony_score),
+               names_to = "mediator", values_to = "score") %>%
+  mutate(mediator = case_when(
+    mediator == "team_composition_score" ~ "Team Composition",
+    mediator == "information_sharing_score" ~ "Information Sharing", 
+    mediator == "emotional_synchrony_score" ~ "Emotional Synchrony"
+  ))
+
+# Plot für Math Task
+ggplot(mediation_plot_data %>% filter(task == "Math"), 
+       aes(x = mediator, y = score, fill = comm)) +
+  geom_boxplot() +
+  labs(title = "Math Task - Mediator Scores by Communication Medium",
+       x = "Mediator", y = "Score", fill = "Communication") +
+  theme_minimal()
+
+# Plot für Hidden Profile Task
+ggplot(mediation_plot_data %>% filter(task == "HP"), 
+       aes(x = mediator, y = score, fill = comm)) +
+  geom_boxplot() +
+  labs(title = "Hidden Profile Task - Mediator Scores by Communication Medium",
+       x = "Mediator", y = "Score", fill = "Communication") +
+  theme_minimal()
+
+# Zusammenfassung der wichtigsten Erkenntnisse
+print("\n=== ZUSAMMENFASSUNG ===")
+print("1. Reliabilitätsanalysen der Items durchgeführt")
+print("2. Korrelationsanalysen für Information Sharing und Emotional Synchrony")
+print("3. Aggregation zu finalen Scores für jeden Mediator")
+print("4. Separate explorative Analysen für Math und Hidden Profile Tasks")
+print("5. Einfache Mediationsanalysen nach Baron & Kenny")
+print("6. Visualisierungen der Unterschiede zwischen Kommunikationsmedien")
+
+# Datensatz für weitere Analysen speichern
+# write.csv(mediation_data, "mediation_analysis_data.csv", row.names = FALSE)
+```
+
+Regression of flow on familiarity scores
+
+```{r}
+# --- 1. Korrelationsanalysen für Familiarity-Variablen ----------------------
+
+# Math Jitsi
+math_jitsi_fam <- data %>%
+  select(starts_with("mathJitsi.6.player.fam")) %>%
+  select(contains("lightcoral"), contains("lightgreen"), contains("lightblue"))
+
+cor_math_jitsi <- cor(math_jitsi_fam, use = "pairwise.complete.obs")
+print("Correlation Matrix - Math Jitsi:")
+print(round(cor_math_jitsi, 3))
+
+# Math Chat
+math_chat_fam <- data %>%
+  select(starts_with("mathChat.6.player.fam")) %>%
+  select(contains("lightcoral"), contains("lightgreen"), contains("lightblue"))
+
+cor_math_chat <- cor(math_chat_fam, use = "pairwise.complete.obs")
+print("\nCorrelation Matrix - Math Chat:")
+print(round(cor_math_chat, 3))
+
+# HP Jitsi
+hp_jitsi_fam <- data %>%
+  select(starts_with("HiddenProfile_Jitsi.3.player.fam")) %>%
+  select(contains("lightcoral"), contains("lightgreen"), contains("lightblue"))
+
+cor_hp_jitsi <- cor(hp_jitsi_fam, use = "pairwise.complete.obs")
+print("\nCorrelation Matrix - HP Jitsi:")
+print(round(cor_hp_jitsi, 3))
+
+# HP Chat
+hp_chat_fam <- data %>%
+  select(starts_with("HiddenProfile_Chat.3.player.fam")) %>%
+  select(contains("lightcoral"), contains("lightgreen"), contains("lightblue"))
+
+cor_hp_chat <- cor(hp_chat_fam, use = "pairwise.complete.obs")
+print("\nCorrelation Matrix - HP Chat:")
+print(round(cor_hp_chat, 3))
+
+# --- 2. Familiarity: Aggregation pro Farbe (fam1 & fam2 mitteln) ----------------------
+
+data <- data %>%
+  mutate(
+    # Math – Jitsi
+    fam_mathJitsi_coral = rowMeans(select(., mathJitsi.6.player.fam1_lightcoral, mathJitsi.6.player.fam2_lightcoral), na.rm = TRUE),
+    fam_mathJitsi_green = rowMeans(select(., mathJitsi.6.player.fam1_lightgreen, mathJitsi.6.player.fam2_lightgreen), na.rm = TRUE),
+    fam_mathJitsi_blue  = rowMeans(select(., mathJitsi.6.player.fam1_lightblue,  mathJitsi.6.player.fam2_lightblue),  na.rm = TRUE),
+    
+    # Math – Chat
+    fam_mathChat_coral = rowMeans(select(., mathChat.6.player.fam1_lightcoral, mathChat.6.player.fam2_lightcoral), na.rm = TRUE),
+    fam_mathChat_green = rowMeans(select(., mathChat.6.player.fam1_lightgreen, mathChat.6.player.fam2_lightgreen), na.rm = TRUE),
+    fam_mathChat_blue  = rowMeans(select(., mathChat.6.player.fam1_lightblue,  mathChat.6.player.fam2_lightblue),  na.rm = TRUE),
+
+    # HP – Jitsi
+    fam_hpJitsi_coral = rowMeans(select(., HiddenProfile_Jitsi.3.player.fam1_lightcoral, HiddenProfile_Jitsi.3.player.fam2_lightcoral), na.rm = TRUE),
+    fam_hpJitsi_green = rowMeans(select(., HiddenProfile_Jitsi.3.player.fam1_lightgreen, HiddenProfile_Jitsi.3.player.fam2_lightgreen), na.rm = TRUE),
+    fam_hpJitsi_blue  = rowMeans(select(., HiddenProfile_Jitsi.3.player.fam1_lightblue,  HiddenProfile_Jitsi.3.player.fam2_lightblue),  na.rm = TRUE),
+
+    # HP – Chat
+    fam_hpChat_coral = rowMeans(select(., HiddenProfile_Chat.3.player.fam1_lightcoral, HiddenProfile_Chat.3.player.fam2_lightcoral), na.rm = TRUE),
+    fam_hpChat_green = rowMeans(select(., HiddenProfile_Chat.3.player.fam1_lightgreen, HiddenProfile_Chat.3.player.fam2_lightgreen), na.rm = TRUE),
+    fam_hpChat_blue  = rowMeans(select(., HiddenProfile_Chat.3.player.fam1_lightblue,  HiddenProfile_Chat.3.player.fam2_lightblue),  na.rm = TRUE)
+  )
+
+# --- 3. Familiarity: Aggregation pro Bedingung (über die zwei befüllten Farben) -------
+
+data <- data %>%
+  mutate(
+    fam_mathJitsi = rowMeans(select(., fam_mathJitsi_coral, fam_mathJitsi_green, fam_mathJitsi_blue), na.rm = TRUE),
+    fam_mathChat  = rowMeans(select(., fam_mathChat_coral, fam_mathChat_green, fam_mathChat_blue), na.rm = TRUE),
+    fam_hpJitsi   = rowMeans(select(., fam_hpJitsi_coral, fam_hpJitsi_green, fam_hpJitsi_blue), na.rm = TRUE),
+    fam_hpChat    = rowMeans(select(., fam_hpChat_coral, fam_hpChat_green, fam_hpChat_blue), na.rm = TRUE)
+  )
+
+# --- 4. Recognition: Kategorisierung für Analyse ---------------
+
+data <- data %>%
+  mutate(
+    # Individual recognition scores
+    rec_coral = Outro.1.player.rec_lightcoral,
+    rec_green = Outro.1.player.rec_lightgreen,
+    rec_blue  = Outro.1.player.rec_lightblue
+  ) %>%
+  mutate(
+    # Mean recognition across teammates
+    rec_mean = rowMeans(select(., rec_coral, rec_green, rec_blue), na.rm = TRUE),
+    
+    # Count how many teammates were known (>4 on 7-point scale)
+    rec_count = rowSums(select(., rec_coral, rec_green, rec_blue) > 4, na.rm = TRUE),
+    
+    # Categorical variable
+    rec_category = case_when(
+      rec_count == 0 ~ "Nobody known",
+      rec_count == 1 ~ "One person known",
+      rec_count == 2 ~ "Both known",
+      TRUE ~ NA_character_
+    )
+  )
+
+# --- 5. Deskriptive Statistiken ---------------
+
+# Recognition categories
+print("\n--- Recognition Categories ---")
+table(data$rec_category)
+
+# Familiarity means by condition
+print("\n--- Mean Familiarity by Condition ---")
+data %>%
+  summarise(
+    MathJitsi = mean(fam_mathJitsi, na.rm = TRUE),
+    MathChat = mean(fam_mathChat, na.rm = TRUE),
+    HPJitsi = mean(fam_hpJitsi, na.rm = TRUE),
+    HPChat = mean(fam_hpChat, na.rm = TRUE)
+  ) %>%
+  print()
+
+# --- 6. Long format for regression analyses ---------------
+
+# Da die Flow-Scores in einem separaten Dataframe sind, müssen wir anders vorgehen
+# Erst aggregieren wir die Flow-Scores pro Bedingung (über alle Schwierigkeiten)
+
+print("\n--- Aggregating flow scores ---")
+flow_aggregated <- flow_scores %>%
+  group_by(participant.code, task, comm) %>%
+  summarise(
+    flow_score = mean(flow_score, na.rm = TRUE),
+    n_difficulties = n(),  # Anzahl der Schwierigkeitsstufen
+    .groups = 'drop'
+  )
+
+print("Sample of aggregated flow scores:")
+print(head(flow_aggregated))
+
+# Erstelle das Long-Format für Familiarity
+familiarity_long <- data %>%
+  select(participant.code,
+         fam_mathJitsi, fam_mathChat, fam_hpJitsi, fam_hpChat,
+         rec_mean, rec_count, rec_category) %>%
+  pivot_longer(
+    cols = starts_with("fam_"),
+    names_to = "condition",
+    values_to = "familiarity"
+  ) %>%
+  mutate(
+    task = case_when(
+      str_detect(condition, "math") ~ "Math", 
+      TRUE ~ "HP"  # HP wie in flow_scores
+    ),
+    comm = case_when(
+      str_detect(condition, "Chat") ~ "Chat", 
+      TRUE ~ "Jitsi"
+    )
+  )
+
+# Merge mit Flow-Scores
+familiarity_long <- familiarity_long %>%
+  left_join(
+    flow_aggregated %>% select(participant.code, task, comm, flow_score),
+    by = c("participant.code", "task", "comm")
+  ) %>%
+  drop_na(flow_score)
+
+# Check wie viele Zeilen wir haben
+print(paste("\nRows in familiarity_long:", nrow(familiarity_long)))
+print(paste("Unique participants:", n_distinct(familiarity_long$participant.code)))
+
+# Überprüfe die Verteilung
+print("\nDistribution by condition:")
+print(table(familiarity_long$task, familiarity_long$comm))
+
+# --- 7. Regression Models ---------------
+
+print("\n--- Model A: Basic (Familiarity + Recognition) ---")
+model_a <- lm(flow_score ~ familiarity + rec_mean, data = familiarity_long)
+summary(model_a)
+
+print("\n--- Model B: With Task and Communication ---")
+model_b <- lm(flow_score ~ familiarity + rec_mean + task + comm, data = familiarity_long)
+summary(model_b)
+
+print("\n--- Model C: With Interactions ---")
+model_c <- lm(flow_score ~ familiarity * comm + rec_mean * comm + task, data = familiarity_long)
+summary(model_c)
+
+print("\n--- Model D: Recognition Categories ---")
+model_d <- lm(flow_score ~ familiarity + rec_category + task + comm, data = familiarity_long)
+summary(model_d)
+
+print("\n--- Model E: Non-linear Recognition Effect ---")
+model_e <- lm(flow_score ~ familiarity + rec_count + I(rec_count^2) + task + comm, data = familiarity_long)
+summary(model_e)
+
+# --- 8. Visualizations ---------------
+
+# Plot 1: Familiarity vs Flow by Communication Type
+p1 <- ggplot(familiarity_long, aes(x = familiarity, y = flow_score, color = comm)) +
+  geom_point(alpha = 0.6) +
+  geom_smooth(method = "lm", se = TRUE) +
+  facet_wrap(~ task) +
+  labs(
+    title = "Familiarity vs. Flow by Communication Type and Task",
+    x = "Familiarity with Teammates (during task)",
+    y = "Flow Score",
+    color = "Communication"
+  ) +
+  theme_minimal()
+
+print(p1)
+
+# Plot 2: Recognition Categories and Flow
+p2 <- ggplot(familiarity_long, aes(x = rec_category, y = flow_score, fill = rec_category)) +
+  geom_boxplot(alpha = 0.7) +
+  geom_jitter(width = 0.2, alpha = 0.3) +
+  facet_grid(task ~ comm) +
+  labs(
+    title = "Flow by Prior Recognition of Teammates",
+    x = "Prior Recognition",
+    y = "Flow Score"
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+print(p2)
+
+# Plot 3: Recognition Mean vs Flow
+p3 <- ggplot(familiarity_long, aes(x = rec_mean, y = flow_score)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(method = "lm", se = TRUE) +
+  facet_grid(task ~ comm) +
+  labs(
+    title = "Mean Prior Recognition vs. Flow",
+    x = "Mean Recognition Score",
+    y = "Flow Score"
+  ) +
+  theme_minimal()
+
+print(p3)
+
+# --- 9. Additional Analyses ---------------
+
+# Check if recognition effect differs by communication type
+print("\n--- Model F: Recognition × Communication Interaction ---")
+model_f <- lm(flow_score ~ familiarity + rec_mean * comm + task, data = familiarity_long)
+summary(model_f)
+
+# Correlation between familiarity and recognition
+print("\n--- Correlation: Familiarity vs Recognition ---")
+cor.test(familiarity_long$familiarity, familiarity_long$rec_mean)
+
+# Mean flow by recognition categories
+print("\n--- Mean Flow by Recognition Category ---")
+familiarity_long %>%
+  group_by(rec_category) %>%
+  summarise(
+    mean_flow = mean(flow_score, na.rm = TRUE),
+    sd_flow = sd(flow_score, na.rm = TRUE),
+    n = n()
+  ) %>%
+  print()
+
+```
+
+Regression of flow on gender distribution
+
+```{r}
+# --- Team Gender Composition Analysis ---
+
+# 1. Team-ID ist bereits in data vorhanden (erstellt mit session.code + group.custom_group_id)
+print("Checking for team_id in data:")
+print("team_id" %in% names(data))
+
+# 2. Teamzusammensetzung berechnen
+team_gender_composition <- data %>%
+  select(participant.code, team_id, gender = Intro.1.player.gender) %>%
+  filter(!is.na(gender), !is.na(team_id)) %>%
+  group_by(team_id) %>%
+  summarise(
+    n_members = n(),
+    n_male = sum(gender == "Male", na.rm = TRUE),
+    n_female = sum(gender == "Female", na.rm = TRUE),
+    n_other = sum(!gender %in% c("Male", "Female"), na.rm = TRUE),
+    unique_genders = n_distinct(gender),
+    .groups = "drop"
+  ) %>%
+  mutate(
+    gender_comp = case_when(
+      n_male == n_members ~ "all_male",
+      n_female == n_members ~ "all_female",
+      n_male > 0 & n_female > 0 ~ "mixed",
+      TRUE ~ "other"
+    )
+  )
+
+# 3. Check der Verteilung
+print("\nTeam Gender Composition Distribution:")
+table(team_gender_composition$gender_comp)
+
+# 4. Gender composition zu flow_scores hinzufügen
+flow_scores_gender <- flow_scores %>%
+  left_join(team_gender_composition %>% select(team_id, gender_comp), 
+            by = "team_id")
+
+# 5. Visualisierung: Boxplot
+p1 <- ggplot(flow_scores_gender, aes(x = gender_comp, y = flow_score, fill = gender_comp)) +
+  geom_boxplot(alpha = 0.7) +
+  geom_jitter(width = 0.2, alpha = 0.3) +
+  labs(
+    title = "Flow Scores by Team Gender Composition",
+    x = "Team Gender Composition",
+    y = "Flow Score",
+    fill = "Gender Composition"
+  ) +
+  theme_minimal() +
+  scale_fill_brewer(palette = "Set2")
+
+print(p1)
+
+# 6. Visualisierung nach Task und Communication
+p2 <- ggplot(flow_scores_gender, aes(x = gender_comp, y = flow_score, fill = gender_comp)) +
+  geom_boxplot(alpha = 0.7) +
+  facet_grid(task ~ comm) +
+  labs(
+    title = "Flow Scores by Gender Composition, Task and Communication",
+    x = "Team Gender Composition",
+    y = "Flow Score",
+    fill = "Gender Composition"
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  scale_fill_brewer(palette = "Set2")
+
+print(p2)
+
+# 7. Statistische Modelle
+
+# Basis-Modell
+print("\n--- Model 1: Gender Composition Only ---")
+model_gender <- lm(flow_score ~ gender_comp, data = flow_scores_gender)
+summary(model_gender)
+
+# Mit Task und Communication
+print("\n--- Model 2: Gender Comp + Task + Communication ---")
+model_gender_task <- lm(flow_score ~ gender_comp + task + comm, data = flow_scores_gender)
+summary(model_gender_task)
+
+# Mit Schwierigkeit
+print("\n--- Model 3: Gender Comp + Difficulty ---")
+model_gender_diff <- lm(flow_score ~ gender_comp + difficulty, data = flow_scores_gender)
+summary(model_gender_diff)
+
+# Volles Modell mit Interaktionen
+print("\n--- Model 4: Full Model with Interactions ---")
+model_gender_full <- lm(flow_score ~ gender_comp * task + comm + difficulty, 
+                       data = flow_scores_gender)
+summary(model_gender_full)
+
+# 8. Deskriptive Statistiken
+print("\n--- Mean Flow by Gender Composition ---")
+flow_scores_gender %>%
+  group_by(gender_comp) %>%
+  summarise(
+    mean_flow = mean(flow_score, na.rm = TRUE),
+    sd_flow = sd(flow_score, na.rm = TRUE),
+    n = n(),
+    n_teams = n_distinct(team_id)
+  ) %>%
+  print()
+
+# 9. ANOVA für Gruppenunterschiede
+print("\n--- ANOVA: Gender Composition ---")
+anova_gender <- aov(flow_score ~ gender_comp, data = flow_scores_gender)
+summary(anova_gender)
+
+# Post-hoc Test falls signifikant
+if(summary(anova_gender)[[1]][["Pr(>F)"]][1] < 0.05) {
+  print("\n--- Post-hoc Test (Tukey HSD) ---")
+  TukeyHSD(anova_gender)
+}
+
+# 10. Zusätzlich: Gender composition zu familiarity_long hinzufügen
+familiarity_long_gender <- familiarity_long %>%
+  left_join(flow_scores %>% select(participant.code, team_id) %>% distinct(), 
+            by = "participant.code") %>%
+  left_join(team_gender_composition %>% select(team_id, gender_comp), 
+            by = "team_id")
+
+# Model mit Familiarity und Gender Composition
+print("\n--- Model 5: Familiarity + Gender Composition ---")
+model_fam_gender <- lm(flow_score ~ familiarity + rec_mean + gender_comp + task + comm, 
+                      data = familiarity_long_gender)
+summary(model_fam_gender)
+
+# Visualisierung: Familiarity vs Flow nach Gender Composition
+p3 <- ggplot(familiarity_long_gender, aes(x = familiarity, y = flow_score, color = gender_comp)) +
+  geom_point(alpha = 0.6) +
+  geom_smooth(method = "lm", se = TRUE) +
+  facet_wrap(~ task) +
+  labs(
+    title = "Familiarity vs. Flow by Gender Composition",
+    x = "Familiarity with Teammates",
+    y = "Flow Score",
+    color = "Gender Composition"
+  ) +
+  theme_minimal() +
+  scale_color_brewer(palette = "Set2")
+
+print(p3)
+
+# Erweiterte Analyse: Gender Composition Effekte mit Mediatoren und Familiarity
+
+# ================================================================================
+# TEIL 1: DATEN VORBEREITEN
+# ================================================================================
+
+# Gender Composition zu mediation_data hinzufügen
+mediation_data_gender <- mediation_data %>%
+  left_join(
+    data %>% select(participant.code, team_id) %>% distinct(),
+    by = "participant.code"
+  ) %>%
+  left_join(
+    team_gender_composition %>% select(team_id, gender_comp),
+    by = "team_id" 
+  )
+
+# Familiarity Daten hinzufügen (aggregiert über Farben)
+familiarity_summary <- data %>%
+  mutate(
+    fam_mathJitsi = rowMeans(select(., fam_mathJitsi_coral, fam_mathJitsi_green, fam_mathJitsi_blue), na.rm = TRUE),
+    fam_mathChat = rowMeans(select(., fam_mathChat_coral, fam_mathChat_green, fam_mathChat_blue), na.rm = TRUE),
+    fam_hpJitsi = rowMeans(select(., fam_hpJitsi_coral, fam_hpJitsi_green, fam_hpJitsi_blue), na.rm = TRUE),
+    fam_hpChat = rowMeans(select(., fam_hpChat_coral, fam_hpChat_green, fam_hpChat_blue), na.rm = TRUE)
+  ) %>%
+  select(participant.code, starts_with("fam_")) %>%
+  pivot_longer(
+    cols = starts_with("fam_"),
+    names_to = "condition",
+    values_to = "familiarity"
+  ) %>%
+  mutate(
+    task = case_when(
+      str_detect(condition, "math") ~ "Math",
+      TRUE ~ "HP"
+    ),
+    comm = case_when(
+      str_detect(condition, "Chat") ~ "Chat",
+      TRUE ~ "Jitsi"
+    )
+  )
+
+# Alles zusammenführen
+analysis_data <- mediation_data_gender %>%
+  left_join(
+    familiarity_summary %>% select(participant.code, task, comm, familiarity),
+    by = c("participant.code", "task", "comm")
+  ) %>%
+  # Recognition hinzufügen
+  left_join(
+    data %>% select(participant.code, rec_mean, rec_count, rec_category),
+    by = "participant.code"
+  )
+
+# ================================================================================
+# TEIL 2: GENDER COMPOSITION EFFEKT AUFSCHLÜSSELN
+# ================================================================================
+
+print("=== GENDER COMPOSITION ANALYSE ===\n")
+
+# 2.1 Deskriptive Statistiken für alle Variablen nach Gender Composition
+gender_descriptives <- analysis_data %>%
+  group_by(gender_comp) %>%
+  summarise(
+    n = n(),
+    # Flow
+    flow_mean = mean(mean_flow_score, na.rm = TRUE),
+    flow_sd = sd(mean_flow_score, na.rm = TRUE),
+    # Mediatoren
+    tc_mean = mean(team_composition_score, na.rm = TRUE),
+    is_mean = mean(information_sharing_score, na.rm = TRUE),
+    es_mean = mean(emotional_synchrony_score, na.rm = TRUE),
+    # Familiarity
+    fam_mean = mean(familiarity, na.rm = TRUE),
+    rec_mean_avg = mean(rec_mean, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+print("Deskriptive Statistiken nach Gender Composition:")
+print(gender_descriptives)
+
+# 2.2 Unterschiede zwischen Tasks
+gender_task_descriptives <- analysis_data %>%
+  group_by(gender_comp, task) %>%
+  summarise(
+    n = n(),
+    flow_mean = mean(mean_flow_score, na.rm = TRUE),
+    flow_sd = sd(mean_flow_score, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+print("\nFlow nach Gender Composition und Task:")
+print(gender_task_descriptives)
+
+# ================================================================================
+# TEIL 3: MEDIATIONSANALYSE - WARUM HABEN ALL-MALE TEAMS HÖHEREN FLOW?
+# ================================================================================
+
+print("\n=== MEDIATIONSANALYSE: GENDER COMPOSITION -> MEDIATOREN -> FLOW ===\n")
+
+# 3.1 Prüfe ob Gender Composition die Mediatoren beeinflusst
+mediator_models <- list(
+  tc = lm(team_composition_score ~ gender_comp, data = analysis_data),
+  is = lm(information_sharing_score ~ gender_comp, data = analysis_data),
+  es = lm(emotional_synchrony_score ~ gender_comp, data = analysis_data),
+  fam = lm(familiarity ~ gender_comp, data = analysis_data)
+)
+
+print("Gender Composition -> Mediatoren:")
+for(mediator in names(mediator_models)) {
+  print(paste("\n", mediator, ":"))
+  print(summary(mediator_models[[mediator]])$coefficients)
+}
+
+# 3.2 Schrittweise Modelle mit Mediatoren
+model_base <- lm(mean_flow_score ~ gender_comp, data = analysis_data)
+model_tc <- lm(mean_flow_score ~ gender_comp + team_composition_score, data = analysis_data)
+model_is <- lm(mean_flow_score ~ gender_comp + information_sharing_score, data = analysis_data)
+model_es <- lm(mean_flow_score ~ gender_comp + emotional_synchrony_score, data = analysis_data)
+model_fam <- lm(mean_flow_score ~ gender_comp + familiarity + rec_mean, data = analysis_data)
+model_full <- lm(mean_flow_score ~ gender_comp + team_composition_score + 
+                 information_sharing_score + emotional_synchrony_score + 
+                 familiarity + rec_mean, data = analysis_data)
+
+print("\nModellvergleich - Wie verändert sich der Gender Effect?")
+print("Base Model (nur Gender):")
+print(summary(model_base)$coefficients)
+print("\nMit allen Mediatoren:")
+print(summary(model_full)$coefficients)
+
+# ================================================================================
+# TEIL 4: INTERAKTIONSEFFEKTE
+# ================================================================================
+
+print("\n=== INTERAKTIONSANALYSEN ===\n")
+
+# 4.1 Gender × Task Interaktion
+model_gender_task <- lm(mean_flow_score ~ gender_comp * task, data = analysis_data)
+print("Gender × Task Interaktion:")
+print(summary(model_gender_task))
+
+# 4.2 Gender × Communication Interaktion
+model_gender_comm <- lm(mean_flow_score ~ gender_comp * comm, data = analysis_data)
+print("\nGender × Communication Interaktion:")
+print(summary(model_gender_comm))
+
+# 4.3 Gender × Familiarity Interaktion
+model_gender_fam <- lm(mean_flow_score ~ gender_comp * familiarity, data = analysis_data)
+print("\nGender × Familiarity Interaktion:")
+print(summary(model_gender_fam))
+
+# ================================================================================
+# TEIL 5: TASK-SPEZIFISCHE ANALYSEN
+# ================================================================================
+
+print("\n=== TASK-SPEZIFISCHE GENDER EFFEKTE ===\n")
+
+# Math Task
+math_gender_data <- analysis_data %>% filter(task == "Math")
+math_gender_model <- lm(mean_flow_score ~ gender_comp + team_composition_score + 
+                       information_sharing_score + emotional_synchrony_score + 
+                       familiarity, data = math_gender_data)
+print("MATH TASK - Gender Effect mit Mediatoren:")
+print(summary(math_gender_model))
+
+# HP Task
+hp_gender_data <- analysis_data %>% filter(task == "HP")
+hp_gender_model <- lm(mean_flow_score ~ gender_comp + team_composition_score + 
+                     information_sharing_score + emotional_synchrony_score + 
+                     familiarity, data = hp_gender_data)
+print("\nHP TASK - Gender Effect mit Mediatoren:")
+print(summary(hp_gender_model))
+
+# ================================================================================
+# TEIL 6: VISUALISIERUNGEN
+# ================================================================================
+
+# 6.1 Mediator-Profile nach Gender Composition
+mediator_profile <- analysis_data %>%
+  group_by(gender_comp) %>%
+  summarise(
+    `Team Composition` = mean(team_composition_score, na.rm = TRUE),
+    `Information Sharing` = mean(information_sharing_score, na.rm = TRUE),
+    `Emotional Synchrony` = mean(emotional_synchrony_score, na.rm = TRUE),
+    `Familiarity` = mean(familiarity, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  pivot_longer(cols = -gender_comp, names_to = "Mediator", values_to = "Score")
+
+p_profile <- ggplot(mediator_profile, aes(x = Mediator, y = Score, fill = gender_comp)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(
+    title = "Mediator Profile by Gender Composition",
+    x = "Mediator",
+    y = "Mean Score",
+    fill = "Gender Composition"
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+print(p_profile)
+
+# 6.2 Flow-Mediator Beziehungen nach Gender
+p_mediators <- analysis_data %>%
+  pivot_longer(
+    cols = c(team_composition_score, information_sharing_score, 
+             emotional_synchrony_score, familiarity),
+    names_to = "mediator",
+    values_to = "mediator_value"
+  ) %>%
+  mutate(
+    mediator = case_when(
+      mediator == "team_composition_score" ~ "Team Composition",
+      mediator == "information_sharing_score" ~ "Information Sharing",
+      mediator == "emotional_synchrony_score" ~ "Emotional Synchrony",
+      mediator == "familiarity" ~ "Familiarity"
+    )
+  ) %>%
+  ggplot(aes(x = mediator_value, y = mean_flow_score, color = gender_comp)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(method = "lm", se = FALSE) +
+  facet_wrap(~ mediator, scales = "free_x") +
+  labs(
+    title = "Flow-Mediator Relationships by Gender Composition",
+    x = "Mediator Score",
+    y = "Flow Score",
+    color = "Gender Composition"
+  ) +
+  theme_minimal()
+
+print(p_mediators)
+
+# ================================================================================
+# TEIL 7: PFADANALYSE ZUSAMMENFASSUNG
+# ================================================================================
+
+print("\n=== PFADANALYSE ZUSAMMENFASSUNG ===\n")
+
+# Berechne indirekte Effekte für all-male vs. mixed teams
+for(mediator in c("team_composition_score", "information_sharing_score", 
+                  "emotional_synchrony_score", "familiarity")) {
+  
+  # a-Pfad: Gender -> Mediator
+  a_model <- lm(as.formula(paste(mediator, "~ gender_comp")), data = analysis_data)
+  a_coef <- coef(a_model)["gender_compmixed"]
+  
+  # b-Pfad: Mediator -> Flow (kontrolliert für Gender)
+  b_model <- lm(as.formula(paste("mean_flow_score ~ gender_comp +", mediator)), 
+                data = analysis_data)
+  b_coef <- coef(b_model)[mediator]
+  
+  # Indirekter Effekt
+  indirect <- a_coef * b_coef
+  
+  print(paste(mediator, ":"))
+  print(paste("  a-Pfad (all-male -> mixed):", round(a_coef, 3)))
+  print(paste("  b-Pfad (Mediator -> Flow):", round(b_coef, 3)))
+  print(paste("  Indirekter Effekt:", round(indirect, 3)))
+  print("")
+}
+
+# ================================================================================
+# TEIL 8: EMPFEHLUNGEN FÜR WEITERE ANALYSEN
+# ================================================================================
+
+print("\n=== EMPFEHLUNGEN ===\n")
+print("1. Team Composition Score zeigt möglicherweise Unterschiede - all-male Teams")
+print("   könnten sich als besser aufeinander abgestimmt wahrnehmen")
+print("2. Emotional Synchrony könnte in homogenen Teams höher sein")
+print("3. Prüfe ob der Effekt taskspezifisch ist (Math vs. HP)")
+print("4. Untersuche ob Familiarity den Gender-Effekt moderiert")
+print("5. Betrachte individuelle Gender-Effekte (männliche vs. weibliche Teilnehmer)")
+
+# Zusätzlich: Prüfe individuelle Geschlechtseffekte
+individual_gender <- data %>%
+  select(participant.code, individual_gender = Intro.1.player.gender) %>%
+  right_join(analysis_data, by = "participant.code")
+
+model_individual <- lm(mean_flow_score ~ individual_gender + gender_comp, 
+                      data = individual_gender)
+print("\nIndividuelles Geschlecht + Team Composition:")
+print(summary(model_individual))
+
+```
+
+Regression of flow on emoji count
+
+```{r}
+# Emoji-Analyse in Chat-Logs und Zusammenhang mit Flow
+
+library(stringr)
+
+# ================================================================================
+# TEIL 1: EMOJI-EXTRAKTION AUS CHAT-LOGS
+# ================================================================================
+
+# Definiere die Text-Emojis, die wir suchen
+emoji_patterns <- c(
+  # Positive Emojis
+  ":\\)", ";\\)", ":D", ";D", "[xX]D", "XD", "<3", ":P", ":p",
+  # Negative/Neutrale Emojis  
+  ":/", ":\\(", ":\\|", ":o", ":O",
+  # Varianten mit Bindestrich (falls vorhanden)
+  ":-\\)", ";-\\)", ":-D", ";-D", ":-/", ":-\\(", ":-\\|", ":-[oO]", ":-[pP]"
+)
+
+# Erstelle ein einzelnes Pattern für alle Emojis
+emoji_regex <- paste0("(", paste(emoji_patterns, collapse = "|"), ")")
+
+# Funktion zum Zählen von Emojis in einem Text
+count_emojis <- function(text) {
+  if(is.na(text) || text == "") return(0)
+  matches <- str_extract_all(text, emoji_regex)[[1]]
+  return(length(matches))
+}
+
+# Funktion zum Extrahieren spezifischer Emoji-Typen
+extract_emoji_types <- function(text) {
+  if(is.na(text) || text == "") {
+    return(list(
+      positive = 0,
+      negative = 0,
+      neutral = 0,
+      total = 0
+    ))
+  }
+  
+  # Positive Emojis
+  positive_pattern <- "(:\\)|;\\)|:D|;D|[xX]D|XD|<3|:P|:p|:-\\)|;-\\)|:-D|;-D|:-[pP])"
+  positive_count <- length(str_extract_all(text, positive_pattern)[[1]])
+  
+  # Negative Emojis
+  negative_pattern <- "(:\\(|:-\\()"
+  negative_count <- length(str_extract_all(text, negative_pattern)[[1]])
+  
+  # Neutrale Emojis
+  neutral_pattern <- "(:/|:\\||:o|:O|:-/|:-\\||:-[oO])"
+  neutral_count <- length(str_extract_all(text, neutral_pattern)[[1]])
+  
+  return(list(
+    positive = positive_count,
+    negative = negative_count,
+    neutral = neutral_count,
+    total = positive_count + negative_count + neutral_count
+  ))
+}
+
+# ================================================================================
+# TEIL 2: CHAT-LOG DATEN EXTRAHIEREN UND ANALYSIEREN
+# ================================================================================
+
+# Extrahiere Math Chat Logs
+math_chat_logs <- data %>%
+  select(participant.code, team_id, starts_with("mathChat.") & ends_with(".player.chat_log"))
+
+# Zähle Emojis für jede Runde
+math_emoji_counts <- data.frame()
+
+for(round in 1:6) {
+  col_name <- paste0("mathChat.", round, ".player.chat_log")
+  
+  if(col_name %in% names(math_chat_logs)) {
+    round_data <- math_chat_logs %>%
+      select(participant.code, team_id, chat_log = all_of(col_name)) %>%
+      mutate(
+        round = round,
+        emoji_data = map(chat_log, extract_emoji_types)
+      ) %>%
+      mutate(
+        emoji_total = map_dbl(emoji_data, ~ .x$total),
+        emoji_positive = map_dbl(emoji_data, ~ .x$positive),
+        emoji_negative = map_dbl(emoji_data, ~ .x$negative),
+        emoji_neutral = map_dbl(emoji_data, ~ .x$neutral),
+        chat_length = nchar(chat_log)
+      ) %>%
+      select(-emoji_data)
+    
+    math_emoji_counts <- bind_rows(math_emoji_counts, round_data)
+  }
+}
+
+# Aggregiere über alle Runden pro Teilnehmer
+math_emoji_summary <- math_emoji_counts %>%
+  group_by(participant.code, team_id) %>%
+  summarise(
+    total_emojis = sum(emoji_total, na.rm = TRUE),
+    positive_emojis = sum(emoji_positive, na.rm = TRUE),
+    negative_emojis = sum(emoji_negative, na.rm = TRUE),
+    neutral_emojis = sum(emoji_neutral, na.rm = TRUE),
+    total_chat_length = sum(chat_length, na.rm = TRUE),
+    emoji_density = ifelse(total_chat_length > 0, total_emojis / total_chat_length * 100, 0),
+    task = "Math",
+    comm = "Chat",
+    .groups = "drop"
+  )
+
+# Dasselbe für Hidden Profile Chat Logs
+hp_chat_logs <- data %>%
+  select(participant.code, team_id, starts_with("HiddenProfile_Chat.") & ends_with(".player.chat_log"))
+
+hp_emoji_counts <- data.frame()
+
+for(round in 1:3) {
+  col_name <- paste0("HiddenProfile_Chat.", round, ".player.chat_log")
+  
+  if(col_name %in% names(hp_chat_logs)) {
+    round_data <- hp_chat_logs %>%
+      select(participant.code, team_id, chat_log = all_of(col_name)) %>%
+      mutate(
+        round = round,
+        emoji_data = map(chat_log, extract_emoji_types)
+      ) %>%
+      mutate(
+        emoji_total = map_dbl(emoji_data, ~ .x$total),
+        emoji_positive = map_dbl(emoji_data, ~ .x$positive),
+        emoji_negative = map_dbl(emoji_data, ~ .x$negative),
+        emoji_neutral = map_dbl(emoji_data, ~ .x$neutral),
+        chat_length = nchar(chat_log)
+      ) %>%
+      select(-emoji_data)
+    
+    hp_emoji_counts <- bind_rows(hp_emoji_counts, round_data)
+  }
+}
+
+# Aggregiere HP Emojis
+hp_emoji_summary <- hp_emoji_counts %>%
+  group_by(participant.code, team_id) %>%
+  summarise(
+    total_emojis = sum(emoji_total, na.rm = TRUE),
+    positive_emojis = sum(emoji_positive, na.rm = TRUE),
+    negative_emojis = sum(emoji_negative, na.rm = TRUE),
+    neutral_emojis = sum(emoji_neutral, na.rm = TRUE),
+    total_chat_length = sum(chat_length, na.rm = TRUE),
+    emoji_density = ifelse(total_chat_length > 0, total_emojis / total_chat_length * 100, 0),
+    task = "HP",
+    comm = "Chat",
+    .groups = "drop"
+  )
+
+# Kombiniere Math und HP Emoji-Daten
+all_emoji_summary <- bind_rows(math_emoji_summary, hp_emoji_summary)
+
+# ================================================================================
+# TEIL 3: TEAM-LEVEL EMOJI ANALYSE
+# ================================================================================
+
+# Aggregiere auf Team-Ebene
+team_emoji_summary <- all_emoji_summary %>%
+  group_by(team_id, task) %>%
+  summarise(
+    team_total_emojis = sum(total_emojis),
+    team_positive_emojis = sum(positive_emojis),
+    team_negative_emojis = sum(negative_emojis),
+    team_emoji_density = mean(emoji_density),
+    emoji_users = sum(total_emojis > 0),
+    team_size = n(),
+    emoji_user_ratio = emoji_users / team_size,
+    .groups = "drop"
+  )
+
+# ================================================================================
+# TEIL 4: EMOJI-DATEN MIT FLOW UND MEDIATOREN VERBINDEN
+# ================================================================================
+
+# Verbinde mit Flow-Scores
+emoji_flow_data <- all_emoji_summary %>%
+  left_join(
+    flow_scores %>%
+      filter(comm == "Chat") %>%
+      group_by(participant.code, task) %>%
+      summarise(mean_flow_score = mean(flow_score, na.rm = TRUE), .groups = "drop"),
+    by = c("participant.code", "task")
+  )
+
+# Verbinde mit Mediatoren (aus mediation_data)
+emoji_mediation_data <- emoji_flow_data %>%
+  left_join(
+    mediation_data %>%
+      filter(comm == "Chat") %>%
+      select(participant.code, task, team_composition_score, 
+             information_sharing_score, emotional_synchrony_score),
+    by = c("participant.code", "task")
+  )
+
+# ================================================================================
+# TEIL 5: STATISTISCHE ANALYSEN
+# ================================================================================
+
+print("=== EMOJI-NUTZUNG DESKRIPTIVE STATISTIKEN ===\n")
+
+# Gesamtübersicht
+emoji_overview <- all_emoji_summary %>%
+  group_by(task) %>%
+  summarise(
+    n_participants = n(),
+    emoji_users = sum(total_emojis > 0),
+    emoji_user_percentage = emoji_users / n_participants * 100,
+    mean_emojis = mean(total_emojis),
+    sd_emojis = sd(total_emojis),
+    mean_positive = mean(positive_emojis),
+    mean_negative = mean(negative_emojis),
+    mean_neutral = mean(neutral_emojis),
+    .groups = "drop"
+  )
+
+print("Emoji-Nutzung nach Task:")
+print(emoji_overview)
+
+# ================================================================================
+# TEIL 6: EMOJI-FLOW ZUSAMMENHÄNGE
+# ================================================================================
+
+print("\n=== EMOJI-FLOW ZUSAMMENHÄNGE ===\n")
+
+# Individuelle Ebene
+emoji_flow_models <- list(
+  math_total = lm(mean_flow_score ~ total_emojis, 
+                  data = emoji_mediation_data %>% filter(task == "Math")),
+  hp_total = lm(mean_flow_score ~ total_emojis, 
+                data = emoji_mediation_data %>% filter(task == "HP")),
+  math_types = lm(mean_flow_score ~ positive_emojis + negative_emojis + neutral_emojis, 
+                  data = emoji_mediation_data %>% filter(task == "Math")),
+  hp_types = lm(mean_flow_score ~ positive_emojis + negative_emojis + neutral_emojis, 
+                data = emoji_mediation_data %>% filter(task == "HP"))
+)
+
+print("Math Task - Emoji Total -> Flow:")
+print(summary(emoji_flow_models$math_total))
+
+print("\nHP Task - Emoji Total -> Flow:")
+print(summary(emoji_flow_models$hp_total))
+
+print("\nMath Task - Emoji Types -> Flow:")
+print(summary(emoji_flow_models$math_types))
+
+# Team-Ebene Analyse
+team_flow_data <- team_emoji_summary %>%
+  left_join(
+    emoji_flow_data %>%
+      group_by(team_id, task) %>%
+      summarise(team_mean_flow = mean(mean_flow_score, na.rm = TRUE), .groups = "drop"),
+    by = c("team_id", "task")
+  )
+
+team_emoji_model <- lm(team_mean_flow ~ team_emoji_density + emoji_user_ratio + task, 
+                      data = team_flow_data)
+print("\nTeam-Level: Emoji Density & User Ratio -> Flow:")
+print(summary(team_emoji_model))
+
+# ================================================================================
+# TEIL 7: MEDIATIONSANALYSE - EMOJIS -> EMOTIONAL SYNCHRONY -> FLOW
+# ================================================================================
+
+print("\n=== MEDIATIONSANALYSE: EMOJIS -> EMOTIONAL SYNCHRONY -> FLOW ===\n")
+
+# Pfad a: Emojis -> Emotional Synchrony
+path_a_model <- lm(emotional_synchrony_score ~ total_emojis, data = emoji_mediation_data)
+print("Pfad a (Emojis -> Emotional Synchrony):")
+print(summary(path_a_model))
+
+# Pfad c: Emojis -> Flow (Total Effect)
+path_c_model <- lm(mean_flow_score ~ total_emojis, data = emoji_mediation_data)
+print("\nPfad c (Emojis -> Flow, Total Effect):")
+print(summary(path_c_model))
+
+# Pfad c': Emojis -> Flow (kontrolliert für Emotional Synchrony)
+path_c_prime_model <- lm(mean_flow_score ~ total_emojis + emotional_synchrony_score, 
+                         data = emoji_mediation_data)
+print("\nPfad c' (Emojis -> Flow, kontrolliert für ES):")
+print(summary(path_c_prime_model))
+
+# Berechne indirekten Effekt
+a_coef <- coef(path_a_model)["total_emojis"]
+b_coef <- coef(path_c_prime_model)["emotional_synchrony_score"]
+indirect_effect <- a_coef * b_coef
+
+print(paste("\nIndirekter Effekt (a × b):", round(indirect_effect, 4)))
+
+# ================================================================================
+# TEIL 8: VISUALISIERUNGEN
+# ================================================================================
+
+# 8.1 Emoji-Nutzung vs Flow
+p1 <- ggplot(emoji_flow_data, aes(x = total_emojis, y = mean_flow_score)) +
+  geom_point(alpha = 0.6) +
+  geom_smooth(method = "lm", se = TRUE) +
+  facet_wrap(~ task) +
+  labs(
+    title = "Emoji Usage vs. Flow Score",
+    x = "Total Emojis Used",
+    y = "Mean Flow Score"
+  ) +
+  theme_minimal()
+
+print(p1)
+
+# 8.2 Emoji-Typen Verteilung
+emoji_type_data <- emoji_mediation_data %>%
+  select(participant.code, task, positive_emojis, negative_emojis, neutral_emojis) %>%
+  pivot_longer(cols = c(positive_emojis, negative_emojis, neutral_emojis),
+               names_to = "emoji_type", values_to = "count") %>%
+  mutate(emoji_type = gsub("_emojis", "", emoji_type))
+
+p2 <- ggplot(emoji_type_data %>% filter(count > 0), 
+             aes(x = emoji_type, y = count, fill = emoji_type)) +
+  geom_boxplot() +
+  facet_wrap(~ task) +
+  labs(
+    title = "Distribution of Emoji Types",
+    x = "Emoji Type",
+    y = "Count"
+  ) +
+  theme_minimal() +
+  scale_fill_brewer(palette = "Set2")
+
+print(p2)
+
+# 8.3 Team Emoji Density vs Team Flow
+p3 <- ggplot(team_flow_data, aes(x = team_emoji_density, y = team_mean_flow)) +
+  geom_point(aes(size = emoji_user_ratio), alpha = 0.7) +
+  geom_smooth(method = "lm", se = TRUE) +
+  facet_wrap(~ task) +
+  labs(
+    title = "Team Emoji Density vs. Team Flow",
+    x = "Team Emoji Density (%)",
+    y = "Team Mean Flow Score",
+    size = "Emoji User Ratio"
+  ) +
+  theme_minimal()
+
+print(p3)
+
+# 8.4 Mediationsvisualisierung
+p4 <- ggplot(emoji_mediation_data, aes(x = total_emojis, y = emotional_synchrony_score)) +
+  geom_point(aes(color = mean_flow_score), alpha = 0.6) +
+  geom_smooth(method = "lm", se = TRUE) +
+  scale_color_gradient(low = "blue", high = "red") +
+  labs(
+    title = "Emojis -> Emotional Synchrony (colored by Flow)",
+    x = "Total Emojis",
+    y = "Emotional Synchrony Score",
+    color = "Flow Score"
+  ) +
+  theme_minimal()
+
+print(p4)
+
+# ================================================================================
+# TEIL 9: BEISPIEL-CHATLOGS MIT VIELEN EMOJIS
+# ================================================================================
+
+print("\n=== BEISPIELE FÜR EMOJI-REICHE CHATS ===\n")
+
+# Finde Top 5 emoji-reichste Nachrichten
+top_emoji_examples <- bind_rows(
+  math_emoji_counts %>% mutate(task = "Math"),
+  hp_emoji_counts %>% mutate(task = "HP")
+) %>%
+  filter(emoji_total > 0) %>%
+  arrange(desc(emoji_total)) %>%
+  slice_head(n = 5) %>%
+  select(participant.code, task, round, emoji_total, chat_log)
+
+print("Top 5 Nachrichten mit den meisten Emojis:")
+for(i in 1:nrow(top_emoji_examples)) {
+  cat(paste0("\n", i, ". Participant: ", top_emoji_examples$participant.code[i], 
+             " (", top_emoji_examples$task[i], " Round ", top_emoji_examples$round[i], 
+             ", ", top_emoji_examples$emoji_total[i], " emojis)\n"))
+  cat(paste0("   \"", substr(top_emoji_examples$chat_log[i], 1, 100), "...\"\n"))
+}
+
+# ================================================================================
+# TEIL 10: ZUSAMMENFASSUNG
+# ================================================================================
+
+print("\n=== ZUSAMMENFASSUNG DER EMOJI-ANALYSE ===\n")
+
+# Berechne Korrelationen
+cor_emoji_flow <- cor(emoji_flow_data$total_emojis, emoji_flow_data$mean_flow_score, 
+                     use = "complete.obs")
+cor_emoji_es <- cor(emoji_mediation_data$total_emojis, 
+                   emoji_mediation_data$emotional_synchrony_score, 
+                   use = "complete.obs")
+
+print(paste("Korrelation Emojis-Flow:", round(cor_emoji_flow, 3)))
+print(paste("Korrelation Emojis-Emotional Synchrony:", round(cor_emoji_es, 3)))
+print(paste("Prozent der Teilnehmer die Emojis nutzen:", 
+            round(sum(all_emoji_summary$total_emojis > 0) / nrow(all_emoji_summary) * 100, 1), "%"))
+
+```
+
+
+
