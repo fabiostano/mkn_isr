@@ -28,6 +28,78 @@ library(corrplot)
 data <- read.csv("otree_cleaned1.csv")
 ```
 
+Data quality check
+
+```{r}
+# Datenqualitäts-Check für unaufmerksame Antworten
+# ================================================================================
+
+# 1. Straight-Lining Detection (immer gleiche Antwort)
+# ================================================================================
+
+# Funktion zur Berechnung der Antwort-Variabilität
+calculate_response_variability <- function(row_data) {
+  # Nur numerische Spalten nehmen
+  numeric_data <- row_data[sapply(row_data, is.numeric)]
+  
+  # Standardabweichung der Antworten pro Person
+  sd_responses <- sd(unlist(numeric_data), na.rm = TRUE)
+  
+  # Anzahl unterschiedlicher Werte
+  n_unique <- length(unique(unlist(numeric_data)))
+  
+  print(list(sd = sd_responses, n_unique = n_unique))
+}
+
+# Für Flow-Items (FSS)
+fss_columns <- names(data)[grep("fss\\d+", names(data))]
+
+if(length(fss_columns) > 0) {
+  fss_variability <- data %>%
+    select(participant.code, all_of(fss_columns)) %>%
+    group_by(participant.code) %>%
+    summarise(
+      n_fss_items = sum(!is.na(across(all_of(fss_columns)))),
+      fss_sd = sd(c_across(all_of(fss_columns)), na.rm = TRUE),
+      fss_n_unique = n_distinct(c_across(all_of(fss_columns)), na.rm = TRUE),
+      fss_straightline = fss_n_unique == 1  # Nur eine Antwortoption verwendet
+    )
+  
+  print("Teilnehmer mit Straight-Lining bei Flow-Items:")
+  print(filter(fss_variability, fss_straightline))
+}
+
+# 2. Inkonsistenz-Prüfung
+# ================================================================================
+
+# Beispiel: Prüfen ob Flow Proneness Items konsistent beantwortet wurden
+# (Item 1 ist invers kodiert in jeder Dimension)
+if(all(c("Outro.1.player.fpw1", "Outro.1.player.fpw2") %in% names(data))) {
+  consistency_check <- data %>%
+    select(participant.code, 
+           fpw1 = Outro.1.player.fpw1, fpw2 = Outro.1.player.fpw2,
+           fph1 = Outro.1.player.fph1, fph2 = Outro.1.player.fph2,
+           fpl1 = Outro.1.player.fpl1, fpl2 = Outro.1.player.fpl2) %>%
+    mutate(
+      # Inverse Items umkehren für Konsistenzprüfung
+      fpw1_rev = 6 - fpw1,
+      fph1_rev = 6 - fph1,
+      fpl1_rev = 6 - fpl1,
+      
+      # Große Differenzen zwischen verwandten Items?
+      fpw_diff = abs(fpw1_rev - fpw2),
+      fph_diff = abs(fph1_rev - fph2),
+      fpl_diff = abs(fpl1_rev - fpl2),
+      
+      max_diff = pmax(fpw_diff, fph_diff, fpl_diff, na.rm = TRUE),
+      inconsistent = max_diff >= 4  # Differenz von 4+ auf 5-Punkt Skala
+    )
+  
+  print("\nTeilnehmer mit inkonsistenten Antworten:")
+  print(filter(consistency_check, inconsistent))
+}
+```
+
 Descriptive statistics
 
 ```{r}
@@ -511,6 +583,165 @@ t.test(flow_score ~ task, data = chat_subset)
 
 ```
 
+Outlier check
+
+```{r}
+# Ausreißer-Analyse für Flow-Scores
+# ================================================================================
+
+# 1. Ausreißer identifizieren (gruppenweise)
+flow_scores_outlier <- flow_scores %>%
+  group_by(task, comm) %>%
+  mutate(
+    mean_flow = mean(flow_score, na.rm = TRUE),
+    sd_flow = sd(flow_score, na.rm = TRUE),
+    z_score = (flow_score - mean_flow) / sd_flow,
+    is_outlier = abs(z_score) > 2,
+    outlier_direction = case_when(
+      z_score > 2 ~ "high",
+      z_score < -2 ~ "low",
+      TRUE ~ "normal"
+    )
+  ) %>%
+  ungroup()
+
+# 2. Zusammenfassung der Ausreißer
+outlier_summary <- flow_scores_outlier %>%
+  group_by(task, comm) %>%
+  summarise(
+    n_total = n(),
+    n_outliers = sum(is_outlier),
+    n_high = sum(outlier_direction == "high"),
+    n_low = sum(outlier_direction == "low"),
+    pct_outliers = round(mean(is_outlier) * 100, 2),
+    mean_flow = round(mean(flow_score, na.rm = TRUE), 3),
+    sd_flow = round(sd(flow_score, na.rm = TRUE), 3),
+    .groups = "drop"
+  )
+
+print("Ausreißer-Zusammenfassung nach Bedingung:")
+print(outlier_summary)
+
+# 3. Gesamtübersicht
+total_outliers <- flow_scores_outlier %>%
+  summarise(
+    total_observations = n(),
+    total_outliers = sum(is_outlier),
+    pct_outliers = round(mean(is_outlier) * 100, 2)
+  )
+
+print("\nGesamtanzahl Ausreißer:")
+print(total_outliers)
+
+# 4. Details zu den Ausreißern
+outlier_details <- flow_scores_outlier %>%
+  filter(is_outlier) %>%
+  select(participant.code, task, comm, difficulty, flow_score, z_score, outlier_direction) %>%
+  arrange(desc(abs(z_score)))
+
+print("\nTop 10 extremste Ausreißer:")
+print(head(outlier_details, 10))
+
+# 5. Visualisierung der Ausreißer
+library(ggplot2)
+
+# Boxplot mit Ausreißern markiert
+p1 <- ggplot(flow_scores_outlier, aes(x = interaction(task, comm), y = flow_score)) +
+  geom_boxplot(aes(fill = task), alpha = 0.7) +
+  geom_point(data = filter(flow_scores_outlier, is_outlier), 
+             aes(color = outlier_direction), size = 3) +
+  scale_color_manual(values = c("high" = "red", "low" = "blue")) +
+  labs(title = "Flow-Scores mit markierten Ausreißern (>2 SD)",
+       x = "Bedingung", y = "Flow Score",
+       color = "Ausreißer-Typ") +
+  theme_minimal()
+
+print(p1)
+
+# Z-Score Verteilung
+p2 <- ggplot(flow_scores_outlier, aes(x = z_score)) +
+  geom_histogram(bins = 30, fill = "lightblue", color = "black", alpha = 0.7) +
+  geom_vline(xintercept = c(-2, 2), color = "red", linetype = "dashed") +
+  facet_wrap(~ interaction(task, comm)) +
+  labs(title = "Z-Score Verteilung der Flow-Werte",
+       subtitle = "Rote Linien = ±2 SD Grenze",
+       x = "Z-Score", y = "Häufigkeit") +
+  theme_minimal()
+
+print(p2)
+
+# 6. Ausreißer nach Schwierigkeit untersuchen
+outlier_by_difficulty <- flow_scores_outlier %>%
+  group_by(difficulty, task) %>%
+  summarise(
+    n_total = n(),
+    n_outliers = sum(is_outlier),
+    pct_outliers = round(mean(is_outlier) * 100, 2),
+    outlier_types = paste(
+      "High:", sum(outlier_direction == "high"),
+      "Low:", sum(outlier_direction == "low")
+    ),
+    .groups = "drop"
+  )
+
+print("\nAusreißer nach Schwierigkeitsstufe:")
+print(outlier_by_difficulty)
+
+# 7. Prüfen ob bestimmte Teilnehmer häufig Ausreißer sind
+participant_outlier_freq <- flow_scores_outlier %>%
+  group_by(participant.code) %>%
+  summarise(
+    n_measurements = n(),
+    n_outlier = sum(is_outlier),
+    pct_outlier = round(mean(is_outlier) * 100, 2)
+  ) %>%
+  filter(n_outlier > 0) %>%
+  arrange(desc(n_outlier))
+
+print("\nTeilnehmer mit Ausreißer-Messungen:")
+print(head(participant_outlier_freq, 10))
+
+# 8. Sensitivitätsanalyse: Hauptergebnisse mit/ohne Ausreißer
+# Beispiel für t-Tests ohne Ausreißer
+flow_clean <- flow_scores_outlier %>%
+  filter(!is_outlier)
+
+print("\n=== Sensitivitätsanalyse: Math Task ===")
+math_original <- flow_scores %>% filter(task == "Math")
+math_clean <- flow_clean %>% filter(task == "Math")
+
+print("Original t-Test (mit Ausreißern):")
+t_original <- t.test(flow_score ~ comm, data = math_original)
+print(t_original)
+
+print("\nt-Test ohne Ausreißer:")
+t_clean <- t.test(flow_score ~ comm, data = math_clean)
+print(t_clean)
+
+# 9. Team-Level Ausreißer prüfen (für Shared Flow)
+team_flow_outliers <- flow_scores_outlier %>%
+  group_by(team_id, task, comm) %>%
+  summarise(
+    team_mean_flow = mean(flow_score, na.rm = TRUE),
+    team_sd_flow = sd(flow_score, na.rm = TRUE),
+    n_members = n(),
+    n_outlier_members = sum(is_outlier),
+    .groups = "drop"
+  ) %>%
+  group_by(task, comm) %>%
+  mutate(
+    grand_mean = mean(team_mean_flow, na.rm = TRUE),
+    grand_sd = sd(team_mean_flow, na.rm = TRUE),
+    team_z_score = (team_mean_flow - grand_mean) / grand_sd,
+    is_team_outlier = abs(team_z_score) > 2
+  ) %>%
+  filter(is_team_outlier)
+
+print("\nTeams mit extremen Flow-Werten:")
+print(team_flow_outliers)
+```
+
+
 Flow proneness consistency check and score calculation
 
 ```{r}
@@ -544,6 +775,9 @@ flow_proneness_scores <- flowp_items %>%
   select(participant.code, fp_total)
 
 flow_scores <- flow_scores %>%
+  left_join(flow_proneness_scores, by = "participant.code")
+
+flow_clean <- flow_clean %>%
   left_join(flow_proneness_scores, by = "participant.code")
 ```
 
@@ -650,6 +884,52 @@ r2_hp_1
 r2_hp_2
 r2_hp_3
 
+```
+
+Wiederholung der zentralen Modelle ohne Ausreißer
+
+```{r}
+# Filter: Nur Mathe-Task
+flow_scores_math <- flow_clean %>% 
+  filter(task == "Math")
+
+# Modell-Datensatz vorbereiten
+model_data_math <- flow_scores_math %>%
+  mutate(
+    synchronicity = ifelse(comm == "Jitsi", "High", "Low"),
+    synchronicity = factor(synchronicity, levels = c("Low", "High")),
+    difficulty = factor(difficulty, levels = c("Easy", "Optimal_Selected", "Optimal_Calibrated", "Hard"))
+  )
+
+# Modell 3
+model_math_3 <- lmer(
+  flow_score ~ synchronicity * difficulty + 
+    fp_total + order +
+    (1 | team_id) + (1 | participant.code),
+  data = model_data_math
+)
+summary(model_math_3)
+
+# Filter: Nur HP-Task
+flow_scores_hp <- flow_clean %>% 
+  filter(task == "HP")
+
+# Modell-Datensatz vorbereiten
+model_data_hp <- flow_scores_hp %>%
+  mutate(
+    synchronicity = ifelse(comm == "Jitsi", "High", "Low"),
+    synchronicity = factor(synchronicity, levels = c("Low", "High")),
+    difficulty = factor(difficulty, levels = c("Easy", "Medium", "Hard"))  # HP hat nur 3 Stufen
+  )
+
+# Modell 3
+model_hp_3 <- lmer(
+  flow_score ~ synchronicity * difficulty + 
+    fp_total + order +
+    (1 | team_id) + (1 | participant.code),
+  data = model_data_hp
+)
+summary(model_hp_3)
 ```
 
 
