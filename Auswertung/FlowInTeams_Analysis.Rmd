@@ -31,6 +31,8 @@ library(rmcorr)
 
 data <- read.csv("otree_cleaned1.csv")
 data_old <- read.csv("flow_reports_exp1.csv")
+data_old_rounds <- read.csv("round_reports_exp1.csv")
+data_old_final <- read.csv("final_reports_exp1.csv")
 ```
 
 Data quality check
@@ -3230,6 +3232,581 @@ print("4. Getrennte Analysen für Math und HP Tasks durchgeführt")
 print("5. Zusammenfassungstabellen mit allen Effekten erstellt")
 print("6. Visualisierungen der Mediator-Unterschiede zwischen Kommunikationsmedien erstellt")
 ```
+
+Mediation analysis in comparison with data from experiment 1
+
+```{r}
+# Erweiterte Mediationsanalyse: Integration alter und neuer Datensätze
+# Vergleich von SP, MP (ohne Kommunikation), MP+Chat und MP+Jitsi
+
+library(dplyr)
+library(tidyr)
+library(lme4)
+library(lmerTest)
+library(rmcorr)
+library(ggplot2)
+library(psych)
+
+# ================================================================================
+# TEIL 1: DATENINTEGRATION - ALTE DATENSÄTZE VORBEREITEN
+# ================================================================================
+
+# 1.1 Alte rundenweise Daten vorbereiten
+old_rounds_prepared <- data_old_rounds %>%
+  mutate(
+    # Einheitliche Spaltennamen - KORRIGIERT
+    participant.code = SubjectID,
+    team_id = SessionID,
+    # Kommunikationsmedium kodieren
+    comm = case_when(
+      Treatment == "MP" ~ "Together_None",
+      Treatment == "SP" ~ "Alone",
+      TRUE ~ NA_character_
+    ),
+    # Difficulty mapping
+    difficulty = case_when(
+      Condition == "Overload" ~ "Hard",
+      Condition == "Boredom" ~ "Easy",
+      Condition == "Autonomy" ~ "Optimal_Selected",
+      Condition == "Flow" ~ "Optimal_Calibrated",
+      TRUE ~ NA_character_
+    ),
+    # Order als Character belassen - KORRIGIERT
+    order = as.character(ConditionOrder),
+    # Round basierend auf order - KORRIGIERT
+    round = as.numeric(ConditionOrder),
+    # Flow Score
+    flow_score = flowFKS_9,
+    # Task ist immer Math
+    task = "Math"
+  ) %>%
+  # Mediatoren umbenennen
+  dplyr::rename(
+    stress_value = stress,
+    individual_motivation_value = motivation,
+    valence_value = valence,
+    arousal_value = arousal,
+    information_sharing_value = infSharing,
+    synchronization_value = teamSynch
+  ) %>%
+  select(participant.code, team_id, comm, task, difficulty, order, round,
+         flow_score, stress_value, individual_motivation_value, 
+         valence_value, arousal_value, information_sharing_value, 
+         synchronization_value)
+
+# 1.2 Alte finale Daten vorbereiten (nur PHASE Condition)
+old_final_prepared <- data_old_final %>%
+  filter(Condition == "PHASE") %>%
+  mutate(
+    # Einheitliche Spaltennamen - KORRIGIERT
+    participant.code = SubjectID,
+    team_id = SessionID,
+    # Kommunikationsmedium kodieren
+    comm = case_when(
+      Treatment == "MP" ~ "Together_None",
+      Treatment == "SP" ~ "Alone",
+      TRUE ~ NA_character_
+    ),
+    task = "Math",
+    # Team Motivation
+    team_motivation_value = grpEffort,
+    # Team Composition berechnen
+    team_size_score = rowMeans(cbind(
+      8 - grpSizeTooLarge,  # Reverse
+      8 - grpSizeTooSmall,  # Reverse
+      grpSizeJustRight
+    ), na.rm = TRUE),
+    team_composition_value = rowMeans(cbind(
+      team_size_score,
+      grpDivers,
+      grpSkill
+    ), na.rm = TRUE)
+  ) %>%
+  select(participant.code, team_id, comm, task, 
+         team_motivation_value, team_composition_value)
+
+# ================================================================================
+# TEIL 2: NEUE DATEN VORBEREITEN
+# ================================================================================
+
+# 2.1 Order-Variable aus aktuellem Datensatz extrahieren - NEU HINZUGEFÜGT
+order_mapping <- data %>%
+  select(participant.code, participant.condition_order) %>%
+  distinct() %>%
+  dplyr::rename(
+    participant.code = participant.code,
+    order = participant.condition_order
+  ) %>%
+  mutate(order = as.character(order))  # Als Character für Konsistenz
+
+# 2.2 Rundenweise Mediatoren aus aktuellem Datensatz extrahieren
+# (Verwende die Funktionen aus der vorherigen Analyse)
+
+# Funktion zur Extraktion rundenweiser Mediatoren (angepasst)
+extract_round_mediator_current <- function(data, var_pattern, var_name) {
+  med_data <- data %>%
+    select(participant.code, contains("player")) %>%
+    select(participant.code, matches(paste0("(mathJitsi|mathChat).*\\.", var_pattern, "$")))
+  
+  med_long <- med_data %>%
+    pivot_longer(cols = -participant.code, 
+                 names_to = "variable", 
+                 values_to = "value") %>%
+    filter(!is.na(value)) %>%
+    mutate(
+      comm_raw = case_when(
+        grepl("Jitsi", variable) ~ "Jitsi",
+        grepl("Chat", variable) ~ "Chat"
+      ),
+      round_raw = as.numeric(gsub(".*\\.(\\d+)\\.player.*", "\\1", variable)),
+      # Standardisiere Rundennummern: 3-6 wird zu 1-4
+      round = round_raw - 2
+    ) %>%
+    filter(round_raw >= 3 & round_raw <= 6) %>%
+    mutate(!!paste0(var_name, "_value") := value) %>%
+    # Spaltenname korrigiert - KORRIGIERT
+    dplyr::rename(participant.code = participant.code) %>%
+    select(participant.code, comm_raw, round, !!paste0(var_name, "_value"))
+  
+  return(med_long)
+}
+
+# Extrahiere alle rundenweisen Mediatoren
+current_stress <- extract_round_mediator_current(data, "is1|is2|is3|is4|is5", "stress")
+current_arousal <- extract_round_mediator_current(data, "arousal", "arousal")
+current_valence <- extract_round_mediator_current(data, "pleasure", "valence")
+current_ind_motiv <- extract_round_mediator_current(data, "tm1|tm2|tm3", "individual_motivation")
+current_info_sharing <- extract_round_mediator_current(data, "info1|info2", "information_sharing")
+current_sync <- extract_round_mediator_current(data, "ec1", "synchronization")
+
+# Aggregiere Items wo nötig
+aggregate_mediator_items <- function(df, mediator_name) {
+  df %>%
+    group_by(participant.code, comm_raw, round) %>%
+    summarise(!!paste0(mediator_name, "_value") := mean(get(paste0(mediator_name, "_value")), na.rm = TRUE),
+              .groups = "drop")
+}
+
+current_stress <- aggregate_mediator_items(current_stress, "stress")
+current_ind_motiv <- aggregate_mediator_items(current_ind_motiv, "individual_motivation")
+current_info_sharing <- aggregate_mediator_items(current_info_sharing, "information_sharing")
+
+# 2.3 Einmalige Mediatoren extrahieren
+# Team Composition
+tc_current <- data %>%
+  select(participant.code, 
+         matches("(mathJitsi|mathChat)\\.6\\.player\\.(tsz1|tsz2|tsz3|td1|td2|td3|tsc1|tsc2|tsc3)$")) %>%
+  pivot_longer(cols = -participant.code, names_to = "variable", values_to = "value") %>%
+  filter(!is.na(value)) %>%
+  mutate(
+    comm_raw = case_when(
+      grepl("Jitsi", variable) ~ "Jitsi",
+      grepl("Chat", variable) ~ "Chat"
+    )
+  ) %>%
+  # Spaltenname korrigiert - KORRIGIERT
+  dplyr::rename(participant.code = participant.code) %>%
+  group_by(participant.code, comm_raw) %>%
+  summarise(team_composition_value = mean(value, na.rm = TRUE), .groups = "drop")
+
+# Team Motivation
+tm_current <- data %>%
+  select(participant.code, 
+         matches("(mathJitsi|mathChat)\\.6\\.player\\.(te1|te2|te3)$")) %>%
+  pivot_longer(cols = -participant.code, names_to = "variable", values_to = "value") %>%
+  filter(!is.na(value)) %>%
+  mutate(
+    comm_raw = case_when(
+      grepl("Jitsi", variable) ~ "Jitsi",
+      grepl("Chat", variable) ~ "Chat"
+    )
+  ) %>%
+  # Spaltenname korrigiert - KORRIGIERT
+  dplyr::rename(participant.code = participant.code) %>%
+  group_by(participant.code, comm_raw) %>%
+  summarise(team_motivation_value = mean(value, na.rm = TRUE), .groups = "drop")
+
+# 2.4 Kombiniere mit Flow Scores und erstelle finalen aktuellen Datensatz
+current_rounds_prepared <- flow_scores %>%
+  filter(task == "Math") %>%
+  # Füge Order-Mapping hinzu - NEU HINZUGEFÜGT
+  left_join(order_mapping, by = "participant.code") %>%
+  group_by(participant.code, comm) %>%
+  arrange(participant.code, comm) %>%
+  mutate(
+    round_raw = row_number(),
+    round = round_raw - 2
+  ) %>%
+  filter(round_raw >= 3) %>%
+  ungroup() %>%
+  mutate(
+    # Erweitere comm Variable
+    comm = case_when(
+      comm == "Jitsi" ~ "Together_Jitsi",
+      comm == "Chat" ~ "Together_Chat",
+      TRUE ~ comm
+    ),
+    comm_raw = case_when(
+      comm == "Together_Jitsi" ~ "Jitsi",
+      comm == "Together_Chat" ~ "Chat",
+      TRUE ~ NA_character_
+    )
+  ) %>%
+  # Füge rundenweise Mediatoren hinzu
+  left_join(current_stress, by = c("participant.code", "comm_raw", "round")) %>%
+  left_join(current_arousal, by = c("participant.code", "comm_raw", "round")) %>%
+  left_join(current_valence, by = c("participant.code", "comm_raw", "round")) %>%
+  left_join(current_ind_motiv, by = c("participant.code", "comm_raw", "round")) %>%
+  left_join(current_info_sharing, by = c("participant.code", "comm_raw", "round")) %>%
+  left_join(current_sync, by = c("participant.code", "comm_raw", "round")) %>%
+  select(participant.code, team_id, comm, task, difficulty, round,
+         flow_score, stress_value, individual_motivation_value, 
+         valence_value, arousal_value, information_sharing_value, 
+         synchronization_value)
+
+# Einmalige Mediatoren für aktuellen Datensatz
+current_final_prepared <- tc_current %>%
+  left_join(tm_current, by = c("participant.code", "comm_raw")) %>%
+  mutate(
+    comm = case_when(
+      comm_raw == "Jitsi" ~ "Together_Jitsi",
+      comm_raw == "Chat" ~ "Together_Chat",
+      TRUE ~ NA_character_
+    ),
+    task = "Math"
+  ) %>%
+  select(participant.code, comm, task, team_composition_value, team_motivation_value)
+
+# Team ID hinzufügen
+current_final_prepared <- current_final_prepared %>%
+  left_join(
+    flow_scores %>% 
+      filter(task == "Math") %>%
+      select(participant.code, team_id) %>%
+      distinct(),
+    by = "participant.code"
+  )
+
+# ================================================================================
+# TEIL 3: DATENSÄTZE KOMBINIEREN
+# ================================================================================
+
+# 3.1 Rundenweise Daten kombinieren
+combined_rounds <- bind_rows(
+  old_rounds_prepared,
+  current_rounds_prepared
+) %>%
+  mutate(
+    # Erstelle Faktor mit sinnvoller Reihenfolge
+    comm = factor(comm, levels = c("Alone", "Together_None", "Together_Chat", "Together_Jitsi"))
+  )
+
+# 3.2 Einmalige Daten kombinieren
+combined_final <- bind_rows(
+  old_final_prepared,
+  current_final_prepared
+) %>%
+  mutate(
+    comm = factor(comm, levels = c("Alone", "Together_None", "Together_Chat", "Together_Jitsi"))
+  )
+
+# 3.3 Finale Integration
+# Füge einmalige Mediatoren zu den rundenweisen Daten hinzu - KORRIGIERT
+integrated_data <- combined_rounds %>%
+  left_join(
+    combined_final %>% select(participant.code, comm, team_composition_value, team_motivation_value),
+    by = c("participant.code", "comm")
+  )
+
+# ================================================================================
+# TEIL 4: DESKRIPTIVE STATISTIKEN
+# ================================================================================
+
+print("=== DESKRIPTIVE STATISTIKEN DES INTEGRIERTEN DATENSATZES ===\n")
+
+# Übersicht über Stichprobengrößen
+sample_overview <- integrated_data %>%
+  group_by(comm) %>%
+  summarise(
+    n_participants = n_distinct(participant.code),
+    n_teams = n_distinct(team_id),
+    n_observations = n(),
+    .groups = "drop"
+  )
+
+print("Stichprobengrößen nach Kommunikationsbedingung:")
+print(sample_overview)
+
+# Flow Scores nach Bedingung
+flow_by_comm <- integrated_data %>%
+  group_by(comm) %>%
+  summarise(
+    flow_mean = mean(flow_score, na.rm = TRUE),
+    flow_sd = sd(flow_score, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+print("\nFlow Scores nach Kommunikationsbedingung:")
+print(flow_by_comm)
+
+# ================================================================================
+# TEIL 5: REPEATED MEASURES KORRELATIONEN
+# ================================================================================
+
+print("\n\n=== REPEATED MEASURES CORRELATIONS ===\n")
+
+# Liste der rundenweisen Mediatoren
+round_mediators <- c("stress_value", "individual_motivation_value", 
+                    "valence_value", "arousal_value", 
+                    "information_sharing_value", "synchronization_value")
+
+# Funktion für rmcorr mit mehreren Gruppen
+perform_rmcorr_extended <- function(data, mediator_name) {
+  results <- list()
+  
+  for(comm_type in levels(data$comm)) {
+    comm_data <- data %>% 
+      filter(comm == comm_type) %>%
+      filter(!is.na(get(mediator_name)) & !is.na(flow_score))
+    
+    if(nrow(comm_data) > 10 & n_distinct(comm_data$participant.code) > 3) {
+      rmcorr_result <- rmcorr(
+        participant = participant.code,
+        measure1 = get(mediator_name),
+        measure2 = flow_score,
+        dataset = comm_data
+      )
+      
+      results[[comm_type]] <- list(
+        r = rmcorr_result$r,
+        p = rmcorr_result$p,
+        df = rmcorr_result$df,
+        CI = rmcorr_result$CI,
+        n = nrow(comm_data)
+      )
+    }
+  }
+  
+  return(results)
+}
+
+# Durchführung für alle Mediatoren
+rmcorr_results <- list()
+
+for(mediator in round_mediators) {
+  cat("\n", gsub("_value", "", mediator), ":\n", sep = "")
+  results <- perform_rmcorr_extended(integrated_data, mediator)
+  rmcorr_results[[mediator]] <- results
+  
+  for(comm_type in names(results)) {
+    if(!is.null(results[[comm_type]])) {
+      cat("  ", comm_type, ": r = ", round(results[[comm_type]]$r, 3),
+          ", p = ", format.pval(results[[comm_type]]$p, digits = 3),
+          ", n = ", results[[comm_type]]$n,
+          ", 95% CI [", round(results[[comm_type]]$CI[1], 3), 
+          ", ", round(results[[comm_type]]$CI[2], 3), "]\n", sep = "")
+    }
+  }
+}
+
+# ================================================================================
+# TEIL 6: LINEAR MIXED MODELS
+# ================================================================================
+
+print("\n\n=== LINEAR MIXED MODELS ===\n")
+
+# 6.1 Modelle für rundenweise Mediatoren
+print("--- RUNDENWEISE MEDIATOREN ---\n")
+
+for(mediator in round_mediators) {
+  mediator_name <- gsub("_value", "", mediator)
+  cat("\n", toupper(mediator_name), ":\n", sep = "")
+  
+  # Modell 1: Kommunikation -> Mediator
+  formula1 <- as.formula(paste(mediator, "~ comm + (1|participant.code) + (1|round)"))
+  model1 <- lmer(formula1, data = integrated_data)
+  
+  cat("Kommunikation -> ", mediator_name, ":\n", sep = "")
+  print(summary(model1)$coefficients)
+  
+  # Modell 2: Mediator -> Flow
+  formula2 <- as.formula(paste("flow_score ~", mediator, "+ (1|participant.code) + (1|round)"))
+  model2 <- lmer(formula2, data = integrated_data)
+  
+  cat("\n", mediator_name, " -> Flow:\n", sep = "")
+  print(summary(model2)$coefficients[2,])
+  cat("\n")
+}
+
+# 6.2 Modelle für einmalige Mediatoren
+print("\n--- EINMALIGE MEDIATOREN ---\n")
+
+# Team Composition
+print("\nTEAM COMPOSITION:")
+tc_data <- integrated_data %>%
+  select(participant.code, comm, team_composition_value, flow_score) %>%
+  distinct() %>%
+  filter(!is.na(team_composition_value))
+
+model_tc1 <- lm(team_composition_value ~ comm, data = tc_data)
+print("Kommunikation -> Team Composition:")
+print(summary(model_tc1)$coefficients)
+
+# Aggregiere Flow für Mediator -> Flow Analyse
+tc_flow <- integrated_data %>%
+  group_by(participant.code, comm) %>%
+  summarise(
+    mean_flow = mean(flow_score, na.rm = TRUE),
+    team_composition_value = first(team_composition_value),
+    .groups = "drop"
+  ) %>%
+  filter(!is.na(team_composition_value))
+
+model_tc2 <- lm(mean_flow ~ team_composition_value, data = tc_flow)
+print("\nTeam Composition -> Flow:")
+print(summary(model_tc2)$coefficients[2,])
+
+# Team Motivation
+print("\n\nTEAM MOTIVATION:")
+tm_data <- integrated_data %>%
+  select(participant.code, comm, team_motivation_value, flow_score) %>%
+  distinct() %>%
+  filter(!is.na(team_motivation_value))
+
+model_tm1 <- lm(team_motivation_value ~ comm, data = tm_data)
+print("Kommunikation -> Team Motivation:")
+print(summary(model_tm1)$coefficients)
+
+tm_flow <- integrated_data %>%
+  group_by(participant.code, comm) %>%
+  summarise(
+    mean_flow = mean(flow_score, na.rm = TRUE),
+    team_motivation_value = first(team_motivation_value),
+    .groups = "drop"
+  ) %>%
+  filter(!is.na(team_motivation_value))
+
+model_tm2 <- lm(mean_flow ~ team_motivation_value, data = tm_flow)
+print("\nTeam Motivation -> Flow:")
+print(summary(model2)$coefficients[2,])
+
+# ================================================================================
+# TEIL 7: ZUSAMMENFASSENDE TABELLEN UND VISUALISIERUNGEN
+# ================================================================================
+
+# 7.1 Erstelle Übersichtstabelle der Effekte
+create_summary_table_extended <- function() {
+  # Platzhalter für erweiterte Zusammenfassung
+  # Hier könnten die Koeffizienten aus allen Modellen extrahiert werden
+  return(NULL)
+}
+
+# 7.2 Visualisierungen
+print("\n\n=== VISUALISIERUNGEN ===\n")
+
+# Flow nach Kommunikationsbedingung
+p1 <- ggplot(integrated_data, aes(x = comm, y = flow_score, fill = comm)) +
+  geom_boxplot(alpha = 0.7) +
+  scale_fill_manual(values = c("Alone" = "#E69F00", 
+                              "Together_None" = "#56B4E9", 
+                              "Together_Chat" = "#009E73", 
+                              "Together_Jitsi" = "#F0E442")) +
+  labs(title = "Flow Scores by Communication Condition",
+       x = "Communication Condition",
+       y = "Flow Score",
+       fill = "Condition") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+print(p1)
+
+# Mediator-Profile nach Bedingung
+mediator_profiles <- integrated_data %>%
+  group_by(comm) %>%
+  summarise(
+    Stress = mean(stress_value, na.rm = TRUE),
+    `Individual Motivation` = mean(individual_motivation_value, na.rm = TRUE),
+    Valence = mean(valence_value, na.rm = TRUE),
+    Arousal = mean(arousal_value, na.rm = TRUE),
+    `Information Sharing` = mean(information_sharing_value, na.rm = TRUE),
+    Synchronization = mean(synchronization_value, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  pivot_longer(cols = -comm, names_to = "Mediator", values_to = "Score")
+
+p2 <- ggplot(mediator_profiles, aes(x = Mediator, y = Score, fill = comm)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  scale_fill_manual(values = c("Alone" = "#E69F00", 
+                              "Together_None" = "#56B4E9", 
+                              "Together_Chat" = "#009E73", 
+                              "Together_Jitsi" = "#F0E442")) +
+  labs(title = "Mediator Profiles by Communication Condition",
+       x = "Mediator",
+       y = "Mean Score",
+       fill = "Condition") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+print(p2)
+
+# ================================================================================
+# TEIL 8: POST-HOC ANALYSEN
+# ================================================================================
+
+print("\n\n=== POST-HOC ANALYSEN ===\n")
+
+# Vergleiche spezifische Kontraste
+print("Geplante Kontraste:")
+
+# Alone vs. alle Together Bedingungen
+integrated_data_contrast <- integrated_data %>%
+  mutate(
+    alone_vs_together = ifelse(comm == "Alone", 0, 1),
+    no_comm_vs_comm = case_when(
+      comm %in% c("Alone", "Together_None") ~ 0,
+      comm %in% c("Together_Chat", "Together_Jitsi") ~ 1
+    ),
+    chat_vs_jitsi = case_when(
+      comm == "Together_Chat" ~ 0,
+      comm == "Together_Jitsi" ~ 1,
+      TRUE ~ NA_real_
+    )
+  )
+
+# Kontrast 1: Alone vs. Together
+contrast1 <- lmer(flow_score ~ alone_vs_together + (1|participant.code) + (1|round), 
+                 data = integrated_data_contrast)
+print("\n1. Alone vs. Together (alle):")
+print(summary(contrast1)$coefficients)
+
+# Kontrast 2: Keine Kommunikation vs. Kommunikation
+contrast2 <- lmer(flow_score ~ no_comm_vs_comm + (1|participant.code) + (1|round), 
+                 data = integrated_data_contrast)
+print("\n2. Keine Kommunikation vs. Kommunikation:")
+print(summary(contrast2)$coefficients)
+
+# Kontrast 3: Chat vs. Jitsi
+contrast3 <- lmer(flow_score ~ chat_vs_jitsi + (1|participant.code) + (1|round), 
+                 data = integrated_data_contrast %>% 
+                   filter(comm %in% c("Together_Chat", "Together_Jitsi")))
+print("\n3. Chat vs. Jitsi:")
+print(summary(contrast3)$coefficients)
+
+# ================================================================================
+# SCHLUSSNOTIZEN
+# ================================================================================
+
+print("\n\n=== ANALYSEN ABGESCHLOSSEN ===")
+print("1. Datensätze erfolgreich integriert")
+print("2. Repeated Measures Korrelationen für alle Bedingungen berechnet")
+print("3. Linear Mixed Models für erweiterten Datensatz erstellt")
+print("4. Visualisierungen der Unterschiede zwischen allen vier Bedingungen")
+print("5. Post-hoc Kontraste zur Untersuchung spezifischer Hypothesen")
+
+# Speichere integrierten Datensatz für weitere Analysen
+# write.csv(integrated_data, "integrated_mediation_data.csv", row.names = FALSE)
+```
+
 
 Regression of flow on familiarity scores
 
