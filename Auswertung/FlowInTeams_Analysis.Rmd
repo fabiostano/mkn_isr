@@ -27,6 +27,7 @@ library(corrplot)
 library(multilevel)
 library(emmeans)
 library(tibble)
+library(rmcorr)
 
 data <- read.csv("otree_cleaned1.csv")
 data_old <- read.csv("flow_reports_exp1.csv")
@@ -2575,41 +2576,35 @@ if (!is.null(true_multi_hp_chat)) show_true_multivariate(true_multi_hp_chat, "HP
 Correlation of flow with anticipated mediators
 
 ```{r}
-# Master Thesis Analysis: Flow Mediation durch Team Composition, Information Sharing und Emotional Synchrony
-# Separate Analysen für Math und Hidden Profile Tasks
+# Master Thesis Analysis: Flow Mediation Analysis - Revised Version
+# Getrennte Analysen für Math und Hidden Profile Tasks
 
 library(dplyr)
-library(corrplot)
-library(psych)
-library(lme4)
-library(ggplot2)
 library(tidyr)
+library(lme4)
+library(lmerTest)
+library(rmcorr)
+library(ggplot2)
+library(psych)
 
-# Konflikt zwischen plyr und dplyr lösen - dplyr Funktionen explizit verwenden
+# Konflikt zwischen plyr und dplyr lösen
 summarise <- dplyr::summarise
 mutate <- dplyr::mutate
 select <- dplyr::select
 
-# Annahme: data und flow_scores DataFrames sind bereits geladen
-# data <- read.csv("your_data.csv")
-# flow_scores <- read.csv("flow_scores.csv")
-
 # ================================================================================
-# TEIL 1: DATENAUFBEREITUNG
+# TEIL 1: DATENAUFBEREITUNG - NEUE MEDIATOREN
 # ================================================================================
 
-# Funktion zur Extraktion und Verarbeitung der Team Composition Daten
-extract_team_composition <- function(data) {
-  # Team Composition Items (einmal pro Aufgabentyp erhoben)
-  # tsz = team size, td = team diversity, tsc = team skills complementary
-  tc_vars <- c("tsz1", "tsz2", "tsz3", "td1", "td2", "td3", "tsc1", "tsc2", "tsc3")
-  
-  tc_data <- data %>%
+# Funktion zur Extraktion rundenweiser Mediatoren
+extract_round_based_mediators <- function(data, var_pattern, var_name) {
+  # Extrahiere alle relevanten Spalten
+  med_data <- data %>%
     select(participant.code, contains("player")) %>%
-    select(participant.code, matches("(mathJitsi|mathChat|HiddenProfile_Jitsi|HiddenProfile_Chat).*\\.(tsz1|tsz2|tsz3|td1|td2|td3|tsc1|tsc2|tsc3)$"))
+    select(participant.code, matches(paste0("(mathJitsi|mathChat|HiddenProfile_Jitsi|HiddenProfile_Chat).*\\.", var_pattern, "$")))
   
-  # Umstrukturierung für bessere Verarbeitung
-  tc_long <- tc_data %>%
+  # Umstrukturierung in Long-Format
+  med_long <- med_data %>%
     pivot_longer(cols = -participant.code, 
                  names_to = "variable", 
                  values_to = "value") %>%
@@ -2623,425 +2618,617 @@ extract_team_composition <- function(data) {
         grepl("Jitsi", variable) ~ "Jitsi",
         grepl("Chat", variable) ~ "Chat"
       ),
-      dimension = case_when(
-        grepl("tsz", variable) ~ "team_size",
-        grepl("td", variable) ~ "team_diversity", 
-        grepl("tsc", variable) ~ "team_skills_complementary"
+      round_raw = as.numeric(gsub(".*\\.(\\d+)\\.player.*", "\\1", variable)),
+      # Standardisiere Rundennummern: Math 3-6 wird zu 1-4, HP 1-3 bleibt 1-3
+      round = case_when(
+        task == "Math" ~ round_raw - 2,  # Math: 3-6 wird zu 1-4
+        task == "HP" ~ round_raw          # HP: 1-3 bleibt 1-3
       ),
-      item = gsub(".*\\.(tsz|td|tsc)(\\d+)$", "\\2", variable)
-    )
+      mediator = var_name
+    ) %>%
+    # Filtere nur die relevanten Runden
+    filter((task == "Math" & round_raw >= 3 & round_raw <= 6) | 
+           (task == "HP" & round_raw >= 1 & round_raw <= 3)) %>%
+    select(participant.code, task, comm, round, mediator, value)
   
-  return(tc_long)
+  return(med_long)
 }
 
-# Funktion zur Extraktion von Information Sharing Daten
-extract_information_sharing <- function(data) {
-  is_data <- data %>%
-    select(participant.code, contains("player")) %>%
-    select(participant.code, matches("(mathJitsi|mathChat|HiddenProfile_Jitsi|HiddenProfile_Chat).*\\.(info1|info2)$"))
-  
-  is_long <- is_data %>%
-    pivot_longer(cols = -participant.code, 
-                 names_to = "variable", 
-                 values_to = "value") %>%
-    filter(!is.na(value)) %>%
-    mutate(
-      task = case_when(
-        grepl("^math", variable) ~ "Math",
-        grepl("^HiddenProfile", variable) ~ "HP"
-      ),
-      comm = case_when(
-        grepl("Jitsi", variable) ~ "Jitsi",
-        grepl("Chat", variable) ~ "Chat"
-      ),
-      round = gsub(".*\\.(\\d+)\\.player.*", "\\1", variable),
-      item = gsub(".*\\.(info)(\\d+)$", "\\2", variable)
-    )
-  
-  return(is_long)
-}
-
-# Funktion zur Extraktion von Emotional Synchrony Daten
-extract_emotional_synchrony <- function(data) {
-  # ec = emotional contagion, es = emotional synchrony
-  es_data <- data %>%
-    select(participant.code, contains("player")) %>%
-    select(participant.code, matches("(mathJitsi|mathChat|HiddenProfile_Jitsi|HiddenProfile_Chat).*\\.(ec1|es1)$"))
-  
-  es_long <- es_data %>%
-    pivot_longer(cols = -participant.code, 
-                 names_to = "variable", 
-                 values_to = "value") %>%
-    filter(!is.na(value)) %>%
-    mutate(
-      task = case_when(
-        grepl("^math", variable) ~ "Math",
-        grepl("^HiddenProfile", variable) ~ "HP"
-      ),
-      comm = case_when(
-        grepl("Jitsi", variable) ~ "Jitsi",
-        grepl("Chat", variable) ~ "Chat"
-      ),
-      round = gsub(".*\\.(\\d+)\\.player.*", "\\1", variable),
-      item_type = case_when(
-        grepl("ec1", variable) ~ "emotional_contagion",
-        grepl("es1", variable) ~ "emotional_synchrony"
+# Funktion zur Extraktion von Mediatoren mit mehreren Items
+extract_multi_item_mediators <- function(data, items, var_name, round_based = TRUE) {
+  if(round_based) {
+    # Für rundenweise Mediatoren
+    all_data <- data.frame()
+    
+    for(item in items) {
+      item_data <- extract_round_based_mediators(data, item, paste0(var_name, "_", item))
+      all_data <- bind_rows(all_data, item_data)
+    }
+    
+    # Aggregiere über Items
+    aggregated <- all_data %>%
+      mutate(base_mediator = var_name) %>%
+      group_by(participant.code, task, comm, round, base_mediator) %>%
+      summarise(value = mean(value, na.rm = TRUE), .groups = "drop") %>%
+      dplyr::rename(mediator = base_mediator)
+    
+    return(aggregated)
+  } else {
+    # Für einmalige Mediatoren (nur letzte Runde)
+    med_data <- data %>%
+      select(participant.code, contains("player"))
+    
+    # Erstelle Pattern für letzte Runde
+    patterns <- c()
+    for(item in items) {
+      # Math: Runde 6, HP: Runde 3
+      patterns <- c(patterns, 
+                    paste0("mathJitsi\\.6\\.player\\.", item, "$"),
+                    paste0("mathChat\\.6\\.player\\.", item, "$"),
+                    paste0("HiddenProfile_Jitsi\\.3\\.player\\.", item, "$"),
+                    paste0("HiddenProfile_Chat\\.3\\.player\\.", item, "$"))
+    }
+    
+    # Kombiniere alle Patterns
+    combined_pattern <- paste(patterns, collapse = "|")
+    
+    # Wähle relevante Spalten
+    med_data <- med_data %>%
+      select(participant.code, matches(combined_pattern))
+    
+    # Umstrukturierung
+    med_long <- med_data %>%
+      pivot_longer(cols = -participant.code, 
+                   names_to = "variable", 
+                   values_to = "value") %>%
+      filter(!is.na(value)) %>%
+      mutate(
+        task = case_when(
+          grepl("^math", variable) ~ "Math",
+          grepl("^HiddenProfile", variable) ~ "HP"
+        ),
+        comm = case_when(
+          grepl("Jitsi", variable) ~ "Jitsi",
+          grepl("Chat", variable) ~ "Chat"
+        ),
+        item = gsub(".*\\.(\\w+)$", "\\1", variable)
       )
-    )
-  
-  return(es_long)
+    
+    # Aggregiere über Items
+    aggregated <- med_long %>%
+      group_by(participant.code, task, comm) %>%
+      summarise(value = mean(value, na.rm = TRUE), .groups = "drop")
+    
+    return(aggregated)
+  }
 }
 
-# Datenextraktion durchführen
-tc_long <- extract_team_composition(data)
-is_long <- extract_information_sharing(data)
-es_long <- extract_emotional_synchrony(data)
-
 # ================================================================================
-# TEIL 2: RELIABILITÄTSANALYSEN UND AGGREGATION
+# STRUKTURELLE INTEGRATION
 # ================================================================================
 
-# Team Composition: Reliabilität prüfen und aggregieren
-tc_reliability <- tc_long %>%
-  dplyr::group_by(participant.code, task, comm, dimension) %>%
-  dplyr::summarise(
-    n_items = dplyr::n(),
-    mean_score = mean(value, na.rm = TRUE),
-    .groups = "drop"
-  )
+# Team Composition (nur einmal pro Aufgabe erhoben - letzte Runde)
+tc_aggregated <- extract_multi_item_mediators(data, 
+                                              c("tsz1", "tsz2", "tsz3", "td1", "td2", "td3", "tsc1", "tsc2", "tsc3"), 
+                                              "team_composition", 
+                                              round_based = FALSE)
 
-print("Team Composition Reliabilität (nach Dimension):")
-print(tc_reliability)
+# ================================================================================
+# FUNKTIONALE INTEGRATION
+# ================================================================================
 
-# Team Composition Scores aggregieren (KORRIGIERT)
-tc_scores <- tc_long %>%
-  dplyr::group_by(participant.code, task, comm, dimension) %>%
-  dplyr::summarise(score = mean(value, na.rm = TRUE), .groups = "keep") %>%
-  dplyr::ungroup() %>%
-  tidyr::pivot_wider(names_from = dimension, values_from = score) %>%
-  dplyr::mutate(team_composition_score = rowMeans(dplyr::select(., team_size, team_diversity, team_skills_complementary), na.rm = TRUE))
+# Information Sharing (info1, info2) - rundenweise
+is_long <- extract_multi_item_mediators(data, c("info1", "info2"), "information_sharing", round_based = TRUE)
 
-# Information Sharing: Korrelation und Aggregation
-# info = information sharing
+# Synchronization (ec1) - rundenweise
+sync_long <- extract_round_based_mediators(data, "ec1", "synchronization")
 
-is_wide_test <- is_long %>%
-  tidyr::pivot_wider(names_from = item, values_from = value, names_prefix = "info")
+# ================================================================================
+# MOTIVATIONALE INTEGRATION
+# ================================================================================
 
-is_correlation <- is_wide_test %>%
-  dplyr::group_by(task, comm) %>%
-  dplyr::summarise(
-    n_total = dplyr::n(),
-    n_info1 = sum(!is.na(info1)),
-    n_info2 = sum(!is.na(info2)),
-    n_pairs = sum(!is.na(info1) & !is.na(info2)),
-    correlation = ifelse(n_pairs >= 3, 
-                        cor(info1, info2, use = "complete.obs"), 
-                        NA_real_),
-    .groups = "drop"
-  )
+# Stress (is1-is5) - rundenweise
+stress_long <- extract_multi_item_mediators(data, c("is1", "is2", "is3", "is4", "is5"), "stress", round_based = TRUE)
 
-print("Information Sharing Korrelationen:")
-print(is_correlation)
+# Arousal - rundenweise
+arousal_long <- extract_round_based_mediators(data, "arousal", "arousal")
 
-# Information Sharing aggregieren
-is_scores <- is_long %>%
-  group_by(participant.code, task, comm, round) %>%
-  summarise(round_score = mean(value, na.rm = TRUE), .groups = "drop") %>%
+# Valence (pleasure) - rundenweise
+valence_long <- extract_round_based_mediators(data, "pleasure", "valence")
+
+# Individual Motivation (tm1-tm3) - rundenweise
+ind_motiv_long <- extract_multi_item_mediators(data, c("tm1", "tm2", "tm3"), "individual_motivation", round_based = TRUE)
+
+# Team Motivation (te1-te3, nur einmal pro Aufgabe - letzte Runde)
+team_motiv_aggregated <- extract_multi_item_mediators(data, c("te1", "te2", "te3"), "team_motivation", round_based = FALSE)
+
+# ================================================================================
+# FLOW SCORES VORBEREITEN
+# ================================================================================
+
+# Flow Scores aggregieren (falls noch nicht geschehen)
+flow_aggregated <- flow_scores %>%
   group_by(participant.code, task, comm) %>%
-  summarise(information_sharing_score = mean(round_score, na.rm = TRUE), .groups = "drop")
-
-# Emotional Synchrony: Korrelation und Aggregation
-# ec = emotional contagion, es = emotional synchrony
-es_correlation <- es_long %>%
-  tidyr::pivot_wider(names_from = item_type, values_from = value) %>%
-  dplyr::group_by(task, comm) %>%
-  dplyr::summarise(
-    n_total = dplyr::n(),
-    n_ec = sum(!is.na(emotional_contagion)),
-    n_es = sum(!is.na(emotional_synchrony)),
-    n_pairs = sum(!is.na(emotional_contagion) & !is.na(emotional_synchrony)),
-    correlation = ifelse(n_pairs >= 3, 
-                        cor(emotional_contagion, emotional_synchrony, use = "complete.obs"), 
-                        NA_real_),
-    .groups = "drop"
-  )
-
-print("Emotional Synchrony Korrelationen:")
-print(es_correlation)
-
-# Zusätzlich: Schaue dir die Rohdaten an
-print("Emotional Synchrony Rohdaten-Check:")
-es_check <- es_long %>%
-  dplyr::group_by(task, comm, item_type) %>%
-  dplyr::summarise(
-    n_total = dplyr::n(),
-    n_valid = sum(!is.na(value)),
-    n_missing = sum(is.na(value)),
-    .groups = "drop"
-  )
-print(es_check)
-
-# Emotional Synchrony aggregieren
-es_scores <- es_long %>%
-  group_by(participant.code, task, comm, round) %>%
-  summarise(round_score = mean(value, na.rm = TRUE), .groups = "drop") %>%
-  group_by(participant.code, task, comm) %>%
-  summarise(emotional_synchrony_score = mean(round_score, na.rm = TRUE), .groups = "drop")
+  summarise(mean_flow_score = mean(flow_score, na.rm = TRUE), .groups = "drop")
 
 # ================================================================================
-# TEIL 3: HAUPTDATENSATZ ERSTELLEN
+# TEIL 2: REPEATED MEASURES KORRELATIONEN
 # ================================================================================
 
-# Alle Scores zusammenfügen
-mediation_data <- tc_scores %>%
-  select(participant.code, task, comm, team_composition_score) %>%
-  left_join(is_scores, by = c("participant.code", "task", "comm")) %>%
-  left_join(es_scores, by = c("participant.code", "task", "comm")) %>%
-  # Mit Flow Scores verbinden
-  left_join(
-    flow_scores %>%
-      group_by(participant.code, task, comm) %>%
-      summarise(mean_flow_score = mean(flow_score, na.rm = TRUE), .groups = "drop"),
-    by = c("participant.code", "task", "comm")
-  ) %>%
-  # Synchronicity Variable hinzufügen
-  mutate(
-    synchronicity = case_when(
-      comm == "Jitsi" ~ "High",
-      comm == "Chat" ~ "Low"
-    )
-  )
-
-# ================================================================================
-# TEIL 4: EXPLORATIVE ANALYSEN - GETRENNT FÜR MATH UND HIDDEN PROFILE
-# ================================================================================
-
-# ---- MATH TASK ANALYSE ----
-print("=== MATH TASK ANALYSE ===")
-
-math_data <- mediation_data %>% filter(task == "Math")
-
-# Deskriptive Statistiken
-math_descriptives <- math_data %>%
-  group_by(comm) %>%
-  summarise(
-    n = n(),
-    across(c(team_composition_score, information_sharing_score, 
-             emotional_synchrony_score, mean_flow_score), 
-           list(mean = ~mean(.x, na.rm = TRUE), 
-                sd = ~sd(.x, na.rm = TRUE)), 
-           .names = "{.col}_{.fn}"),
-    .groups = "drop"
-  )
-
-print("Math Task - Deskriptive Statistiken:")
-print(math_descriptives)
-
-# Korrelationsmatrix für Math
-math_cor_vars <- c("team_composition_score", "information_sharing_score", 
-                   "emotional_synchrony_score", "mean_flow_score")
-math_cor_matrix <- cor(math_data[math_cor_vars], use = "complete.obs")
-
-print("Math Task - Korrelationsmatrix:")
-print(round(math_cor_matrix, 3))
-
-# Korrelationsplot
-corrplot(math_cor_matrix, method = "color", type = "upper", 
-         title = "Math Task - Korrelationen", mar = c(0,0,2,0))
-
-# Regressionsanalysen für Math
-# Basis-Modell: Synchronicity -> Flow
-math_model_base <- lm(mean_flow_score ~ synchronicity, data = math_data)
-
-# Erweiterte Modelle mit Mediatoren
-math_model_tc <- lm(mean_flow_score ~ synchronicity + team_composition_score, data = math_data)
-math_model_is <- lm(mean_flow_score ~ synchronicity + information_sharing_score, data = math_data)
-math_model_es <- lm(mean_flow_score ~ synchronicity + emotional_synchrony_score, data = math_data)
-math_model_full <- lm(mean_flow_score ~ synchronicity + team_composition_score + 
-                      information_sharing_score + emotional_synchrony_score, data = math_data)
-
-# Mediator-Modelle (Synchronicity -> Mediatoren)
-math_mediator_tc <- lm(team_composition_score ~ synchronicity, data = math_data)
-math_mediator_is <- lm(information_sharing_score ~ synchronicity, data = math_data)
-math_mediator_es <- lm(emotional_synchrony_score ~ synchronicity, data = math_data)
-
-print("Math Task - Modell-Ergebnisse:")
-print("Basis-Modell (Synchronicity -> Flow):")
-print(summary(math_model_base))
-print("Vollständiges Modell:")
-print(summary(math_model_full))
-
-# ---- HIDDEN PROFILE TASK ANALYSE ----
-print("\n=== HIDDEN PROFILE TASK ANALYSE ===")
-
-hp_data <- mediation_data %>% filter(task == "HP")
-
-# Deskriptive Statistiken
-hp_descriptives <- hp_data %>%
-  group_by(comm) %>%
-  summarise(
-    n = n(),
-    across(c(team_composition_score, information_sharing_score, 
-             emotional_synchrony_score, mean_flow_score), 
-           list(mean = ~mean(.x, na.rm = TRUE), 
-                sd = ~sd(.x, na.rm = TRUE)), 
-           .names = "{.col}_{.fn}"),
-    .groups = "drop"
-  )
-
-print("Hidden Profile Task - Deskriptive Statistiken:")
-print(hp_descriptives)
-
-# Korrelationsmatrix für Hidden Profile
-hp_cor_matrix <- cor(hp_data[math_cor_vars], use = "complete.obs")
-
-print("Hidden Profile Task - Korrelationsmatrix:")
-print(round(hp_cor_matrix, 3))
-
-# Korrelationsplot
-corrplot(hp_cor_matrix, method = "color", type = "upper", 
-         title = "Hidden Profile Task - Korrelationen", mar = c(0,0,2,0))
-
-# Regressionsanalysen für Hidden Profile
-# Basis-Modell: Synchronicity -> Flow
-hp_model_base <- lm(mean_flow_score ~ synchronicity, data = hp_data)
-
-# Erweiterte Modelle mit Mediatoren
-hp_model_tc <- lm(mean_flow_score ~ synchronicity + team_composition_score, data = hp_data)
-hp_model_is <- lm(mean_flow_score ~ synchronicity + information_sharing_score, data = hp_data)
-hp_model_es <- lm(mean_flow_score ~ synchronicity + emotional_synchrony_score, data = hp_data)
-hp_model_full <- lm(mean_flow_score ~ synchronicity + team_composition_score + 
-                    information_sharing_score + emotional_synchrony_score, data = hp_data)
-
-# Mediator-Modelle (Synchronicity -> Mediatoren)
-hp_mediator_tc <- lm(team_composition_score ~ synchronicity, data = hp_data)
-hp_mediator_is <- lm(information_sharing_score ~ synchronicity, data = hp_data)
-hp_mediator_es <- lm(emotional_synchrony_score ~ synchronicity, data = hp_data)
-
-print("Hidden Profile Task - Modell-Ergebnisse:")
-print("Basis-Modell (Synchronicity -> Flow):")
-print(summary(hp_model_base))
-print("Vollständiges Modell:")
-print(summary(hp_model_full))
-
-# ================================================================================
-# TEIL 5: MEDIATION ANALYSE (vereinfacht)
-# ================================================================================
-
-# Funktion für einfache Mediation (Baron & Kenny Ansatz)
-simple_mediation_test <- function(data, mediator_name) {
-  # Schritt 1: X -> Y (Total Effect)
-  model_c <- lm(mean_flow_score ~ synchronicity, data = data)
+# Funktion für rmcorr Analyse
+perform_rmcorr <- function(data, mediator_name, task_filter) {
+  # Filtere nach Task
+  task_data <- data %>%
+    filter(task == task_filter)
   
-  # Schritt 2: X -> M (a path)
-  model_a <- lm(get(mediator_name) ~ synchronicity, data = data)
+  # Flow Scores vorbereiten mit korrekten Rundennummern
+  if(task_filter == "Math") {
+    # Für Math: Wir brauchen nur die Runden, wo rundenweise Mediatoren gemessen wurden
+    flow_round <- flow_scores %>%
+      filter(task == task_filter) %>%
+      group_by(participant.code, comm) %>%
+      arrange(participant.code, comm) %>%
+      mutate(round_raw = row_number()) %>%
+      # Behalte nur Runden 3-6 (entspricht round 1-4 nach Transformation)
+      filter(round_raw >= 3) %>%
+      mutate(round = round_raw - 2) %>%
+      ungroup()
+  } else {
+    # Für HP: Runden 1-3
+    flow_round <- flow_scores %>%
+      filter(task == task_filter) %>%
+      group_by(participant.code, comm) %>%
+      arrange(participant.code, comm) %>%
+      mutate(round = row_number()) %>%
+      filter(round <= 3) %>%
+      ungroup()
+  }
   
-  # Schritt 3: X + M -> Y (Direct Effect)
-  formula_str <- paste("mean_flow_score ~ synchronicity +", mediator_name)
-  model_b <- lm(as.formula(formula_str), data = data)
+  # Merge mit Mediator-Daten
+  merged_data <- task_data %>%
+    left_join(flow_round %>% select(participant.code, comm, round, flow_score), 
+              by = c("participant.code", "comm", "round")) %>%
+    filter(!is.na(flow_score) & !is.na(value))
   
-  # Ergebnisse sammeln
-  results <- list(
-    mediator = mediator_name,
-    total_effect = summary(model_c)$coefficients["synchronicityLow", "Estimate"],
-    total_effect_p = summary(model_c)$coefficients["synchronicityLow", "Pr(>|t|)"],
-    a_path = summary(model_a)$coefficients["synchronicityLow", "Estimate"],
-    a_path_p = summary(model_a)$coefficients["synchronicityLow", "Pr(>|t|)"],
-    b_path = summary(model_b)$coefficients[mediator_name, "Estimate"],
-    b_path_p = summary(model_b)$coefficients[mediator_name, "Pr(>|t|)"],
-    direct_effect = summary(model_b)$coefficients["synchronicityLow", "Estimate"],
-    direct_effect_p = summary(model_b)$coefficients["synchronicityLow", "Pr(>|t|)"]
-  )
+  # Berechne rmcorr für jede Kommunikationsbedingung
+  results <- list()
   
-  # Indirekte Effekt
-  results$indirect_effect <- results$a_path * results$b_path
+  for(comm_type in c("Jitsi", "Chat")) {
+    comm_data <- merged_data %>% filter(comm == comm_type)
+    
+    if(nrow(comm_data) > 10) {  # Genug Datenpunkte
+      rmcorr_result <- rmcorr(participant = participant.code, 
+                              measure1 = value, 
+                              measure2 = flow_score, 
+                              dataset = comm_data)
+      
+      results[[comm_type]] <- list(
+        r = rmcorr_result$r,
+        p = rmcorr_result$p,
+        df = rmcorr_result$df,
+        CI = rmcorr_result$CI
+      )
+    }
+  }
   
   return(results)
 }
 
-# Mediation Tests für Math Task
-print("\n=== MEDIATION ANALYSEN - MATH TASK ===")
-math_mediation_tc <- simple_mediation_test(math_data, "team_composition_score")
-math_mediation_is <- simple_mediation_test(math_data, "information_sharing_score")
-math_mediation_es <- simple_mediation_test(math_data, "emotional_synchrony_score")
+# Führe rmcorr für alle rundenweisen Mediatoren durch
+print("=== REPEATED MEASURES CORRELATIONS ===\n")
 
-mediation_results_math <- data.frame(
-  Mediator = c("Team Composition", "Information Sharing", "Emotional Synchrony"),
-  Total_Effect = c(math_mediation_tc$total_effect, math_mediation_is$total_effect, math_mediation_es$total_effect),
-  Direct_Effect = c(math_mediation_tc$direct_effect, math_mediation_is$direct_effect, math_mediation_es$direct_effect),
-  Indirect_Effect = c(math_mediation_tc$indirect_effect, math_mediation_is$indirect_effect, math_mediation_es$indirect_effect),
-  A_Path = c(math_mediation_tc$a_path, math_mediation_is$a_path, math_mediation_es$a_path),
-  B_Path = c(math_mediation_tc$b_path, math_mediation_is$b_path, math_mediation_es$b_path)
+# Liste aller rundenweisen Mediatoren
+round_based_mediators <- list(
+  "information_sharing" = is_long,
+  "synchronization" = sync_long,
+  "stress" = stress_long,
+  "arousal" = arousal_long,
+  "valence" = valence_long,
+  "individual_motivation" = ind_motiv_long
 )
 
-print("Math Task - Mediation Ergebnisse:")
-# Nur die numerischen Spalten runden
-mediation_results_math_rounded <- mediation_results_math
-mediation_results_math_rounded[, 2:6] <- round(mediation_results_math[, 2:6], 4)
-print(mediation_results_math_rounded)
+# Durchführung für Math Task
+print("--- MATH TASK ---")
+rmcorr_results_math <- list()
+for(med_name in names(round_based_mediators)) {
+  cat("\n", med_name, ":\n", sep = "")
+  result <- perform_rmcorr(round_based_mediators[[med_name]], med_name, "Math")
+  rmcorr_results_math[[med_name]] <- result
+  
+  # Ausgabe
+  for(comm in names(result)) {
+    cat("  ", comm, ": r = ", round(result[[comm]]$r, 3), 
+        ", p = ", round(result[[comm]]$p, 3), 
+        ", 95% CI [", round(result[[comm]]$CI[1], 3), ", ", 
+        round(result[[comm]]$CI[2], 3), "]\n", sep = "")
+  }
+}
 
-# Mediation Tests für Hidden Profile Task  
-print("\n=== MEDIATION ANALYSEN - HIDDEN PROFILE TASK ===")
-hp_mediation_tc <- simple_mediation_test(hp_data, "team_composition_score")
-hp_mediation_is <- simple_mediation_test(hp_data, "information_sharing_score")
-hp_mediation_es <- simple_mediation_test(hp_data, "emotional_synchrony_score")
-
-mediation_results_hp <- data.frame(
-  Mediator = c("Team Composition", "Information Sharing", "Emotional Synchrony"),
-  Total_Effect = c(hp_mediation_tc$total_effect, hp_mediation_is$total_effect, hp_mediation_es$total_effect),
-  Direct_Effect = c(hp_mediation_tc$direct_effect, hp_mediation_is$direct_effect, hp_mediation_es$direct_effect),
-  Indirect_Effect = c(hp_mediation_tc$indirect_effect, hp_mediation_is$indirect_effect, hp_mediation_es$indirect_effect),
-  A_Path = c(hp_mediation_tc$a_path, hp_mediation_is$a_path, hp_mediation_es$a_path),
-  B_Path = c(hp_mediation_tc$b_path, hp_mediation_is$b_path, hp_mediation_es$b_path)
-)
-
-print("Hidden Profile Task - Mediation Ergebnisse:")
-# Nur die numerischen Spalten runden
-mediation_results_hp_rounded <- mediation_results_hp
-mediation_results_hp_rounded[, 2:6] <- round(mediation_results_hp[, 2:6], 4)
-print(mediation_results_hp_rounded)
+# Durchführung für HP Task
+print("\n--- HIDDEN PROFILE TASK ---")
+rmcorr_results_hp <- list()
+for(med_name in names(round_based_mediators)) {
+  cat("\n", med_name, ":\n", sep = "")
+  result <- perform_rmcorr(round_based_mediators[[med_name]], med_name, "HP")
+  rmcorr_results_hp[[med_name]] <- result
+  
+  # Ausgabe
+  for(comm in names(result)) {
+    cat("  ", comm, ": r = ", round(result[[comm]]$r, 3), 
+        ", p = ", round(result[[comm]]$p, 3), 
+        ", 95% CI [", round(result[[comm]]$CI[1], 3), ", ", 
+        round(result[[comm]]$CI[2], 3), "]\n", sep = "")
+  }
+}
 
 # ================================================================================
-# TEIL 6: VISUALISIERUNGEN
+# TEIL 3: LINEAR MIXED MODELS
 # ================================================================================
 
-# Vergleich der Mediator-Werte zwischen den Kommunikationsformen
-mediation_plot_data <- mediation_data %>%
-  pivot_longer(cols = c(team_composition_score, information_sharing_score, emotional_synchrony_score),
-               names_to = "mediator", values_to = "score") %>%
-  mutate(mediator = case_when(
-    mediator == "team_composition_score" ~ "Team Composition",
-    mediator == "information_sharing_score" ~ "Information Sharing", 
-    mediator == "emotional_synchrony_score" ~ "Emotional Synchrony"
+# Funktion für LMM Analysen
+perform_lmm_analysis <- function(mediator_data, mediator_name, task_filter, is_round_based = TRUE) {
+  
+  # Filtere nach Task
+  task_data <- mediator_data %>%
+    filter(task == task_filter)
+  
+  if(is_round_based) {
+    # Für rundenweise Mediatoren
+    # Modell 1: Kommunikationsmedium -> Mediator
+    model1 <- lmer(value ~ comm + (1|participant.code) + (1|round), 
+                   data = task_data)
+    
+    # Flow Scores mit korrekten Rundennummern vorbereiten
+    if(task_filter == "Math") {
+      flow_round <- flow_scores %>%
+        filter(task == task_filter) %>%
+        group_by(participant.code, comm) %>%
+        arrange(participant.code, comm) %>%
+        mutate(round_raw = row_number()) %>%
+        filter(round_raw >= 3) %>%
+        mutate(round = round_raw - 2) %>%
+        ungroup()
+    } else {
+      flow_round <- flow_scores %>%
+        filter(task == task_filter) %>%
+        group_by(participant.code, comm) %>%
+        arrange(participant.code, comm) %>%
+        mutate(round = row_number()) %>%
+        filter(round <= 3) %>%
+        ungroup()
+    }
+    
+    merged_data <- task_data %>%
+      left_join(flow_round %>% select(participant.code, comm, round, flow_score), 
+                by = c("participant.code", "comm", "round"))
+    
+    # Modell 2: Mediator -> Flow
+    model2 <- lmer(flow_score ~ value + (1|participant.code) + (1|round), 
+                   data = merged_data)
+    
+  } else {
+    # Für nicht-rundenweise Mediatoren (rename value column für consistency)
+    if("team_composition_score" %in% names(task_data)) {
+      task_data <- task_data %>% rename(value = team_composition_score)
+    }
+    if("team_motivation_score" %in% names(task_data)) {
+      task_data <- task_data %>% rename(value = team_motivation_score)
+    }
+    
+    # Modell 1: Kommunikationsmedium -> Mediator
+    model1 <- lm(value ~ comm, data = task_data)
+    
+    # Merge mit aggregierten Flow Scores
+    merged_data <- task_data %>%
+      left_join(flow_aggregated, by = c("participant.code", "task", "comm"))
+    
+    # Modell 2: Mediator -> Flow
+    model2 <- lm(mean_flow_score ~ value, data = merged_data)
+  }
+  
+  return(list(
+    comm_to_mediator = model1,
+    mediator_to_flow = model2
   ))
+}
 
-# Plot für Math Task
-ggplot(mediation_plot_data %>% filter(task == "Math"), 
-       aes(x = mediator, y = score, fill = comm)) +
-  geom_boxplot() +
-  labs(title = "Math Task - Mediator Scores by Communication Medium",
-       x = "Mediator", y = "Score", fill = "Communication") +
-  theme_minimal()
+# ================================================================================
+# LMM ANALYSEN FÜR MATH TASK
+# ================================================================================
 
-# Plot für Hidden Profile Task
-ggplot(mediation_plot_data %>% filter(task == "HP"), 
-       aes(x = mediator, y = score, fill = comm)) +
-  geom_boxplot() +
-  labs(title = "Hidden Profile Task - Mediator Scores by Communication Medium",
-       x = "Mediator", y = "Score", fill = "Communication") +
-  theme_minimal()
+print("\n\n=== LINEAR MIXED MODELS - MATH TASK ===\n")
 
-# Zusammenfassung der wichtigsten Erkenntnisse
-print("\n=== ZUSAMMENFASSUNG ===")
-print("1. Reliabilitätsanalysen der Items durchgeführt")
-print("2. Korrelationsanalysen für Information Sharing und Emotional Synchrony")
-print("3. Aggregation zu finalen Scores für jeden Mediator")
-print("4. Separate explorative Analysen für Math und Hidden Profile Tasks")
-print("5. Einfache Mediationsanalysen nach Baron & Kenny")
-print("6. Visualisierungen der Unterschiede zwischen Kommunikationsmedien")
+# Strukturelle Integration
+print("--- STRUKTURELLE INTEGRATION ---")
+print("\nTeam Composition:")
+tc_models_math <- perform_lmm_analysis(tc_aggregated, "team_composition", "Math", FALSE)
+print("Kommunikation -> Team Composition:")
+print(summary(tc_models_math$comm_to_mediator))
+print("\nTeam Composition -> Flow:")
+print(summary(tc_models_math$mediator_to_flow))
 
-# Datensatz für weitere Analysen speichern
-# write.csv(mediation_data, "mediation_analysis_data.csv", row.names = FALSE)
+# Funktionale Integration
+print("\n--- FUNKTIONALE INTEGRATION ---")
+
+print("\nInformation Sharing:")
+is_models_math <- perform_lmm_analysis(is_long, "information_sharing", "Math", TRUE)
+print("Kommunikation -> Information Sharing:")
+print(summary(is_models_math$comm_to_mediator))
+print("\nInformation Sharing -> Flow:")
+print(summary(is_models_math$mediator_to_flow))
+
+print("\nSynchronization:")
+sync_models_math <- perform_lmm_analysis(sync_long, "synchronization", "Math", TRUE)
+print("Kommunikation -> Synchronization:")
+print(summary(sync_models_math$comm_to_mediator))
+print("\nSynchronization -> Flow:")
+print(summary(sync_models_math$mediator_to_flow))
+
+# Motivationale Integration
+print("\n--- MOTIVATIONALE INTEGRATION ---")
+
+print("\nStress:")
+stress_models_math <- perform_lmm_analysis(stress_long, "stress", "Math", TRUE)
+print("Kommunikation -> Stress:")
+print(summary(stress_models_math$comm_to_mediator))
+print("\nStress -> Flow:")
+print(summary(stress_models_math$mediator_to_flow))
+
+print("\nArousal:")
+arousal_models_math <- perform_lmm_analysis(arousal_long, "arousal", "Math", TRUE)
+print("Kommunikation -> Arousal:")
+print(summary(arousal_models_math$comm_to_mediator))
+print("\nArousal -> Flow:")
+print(summary(arousal_models_math$mediator_to_flow))
+
+print("\nValence:")
+valence_models_math <- perform_lmm_analysis(valence_long, "valence", "Math", TRUE)
+print("Kommunikation -> Valence:")
+print(summary(valence_models_math$comm_to_mediator))
+print("\nValence -> Flow:")
+print(summary(valence_models_math$mediator_to_flow))
+
+print("\nIndividual Motivation:")
+ind_motiv_models_math <- perform_lmm_analysis(ind_motiv_long, "individual_motivation", "Math", TRUE)
+print("Kommunikation -> Individual Motivation:")
+print(summary(ind_motiv_models_math$comm_to_mediator))
+print("\nIndividual Motivation -> Flow:")
+print(summary(ind_motiv_models_math$mediator_to_flow))
+
+print("\nTeam Motivation:")
+tm_models_math <- perform_lmm_analysis(team_motiv_aggregated, "team_motivation", "Math", FALSE)
+print("Kommunikation -> Team Motivation:")
+print(summary(tm_models_math$comm_to_mediator))
+print("\nTeam Motivation -> Flow:")
+print(summary(tm_models_math$mediator_to_flow))
+
+# ================================================================================
+# LMM ANALYSEN FÜR HP TASK
+# ================================================================================
+
+print("\n\n=== LINEAR MIXED MODELS - HIDDEN PROFILE TASK ===\n")
+
+# Strukturelle Integration
+print("--- STRUKTURELLE INTEGRATION ---")
+print("\nTeam Composition:")
+tc_models_hp <- perform_lmm_analysis(tc_aggregated, "team_composition", "HP", FALSE)
+print("Kommunikation -> Team Composition:")
+print(summary(tc_models_hp$comm_to_mediator))
+print("\nTeam Composition -> Flow:")
+print(summary(tc_models_hp$mediator_to_flow))
+
+# Funktionale Integration
+print("\n--- FUNKTIONALE INTEGRATION ---")
+
+print("\nInformation Sharing:")
+is_models_hp <- perform_lmm_analysis(is_long, "information_sharing", "HP", TRUE)
+print("Kommunikation -> Information Sharing:")
+print(summary(is_models_hp$comm_to_mediator))
+print("\nInformation Sharing -> Flow:")
+print(summary(is_models_hp$mediator_to_flow))
+
+print("\nSynchronization:")
+sync_models_hp <- perform_lmm_analysis(sync_long, "synchronization", "HP", TRUE)
+print("Kommunikation -> Synchronization:")
+print(summary(sync_models_hp$comm_to_mediator))
+print("\nSynchronization -> Flow:")
+print(summary(sync_models_hp$mediator_to_flow))
+
+# Motivationale Integration
+print("\n--- MOTIVATIONALE INTEGRATION ---")
+
+print("\nStress:")
+stress_models_hp <- perform_lmm_analysis(stress_long, "stress", "HP", TRUE)
+print("Kommunikation -> Stress:")
+print(summary(stress_models_hp$comm_to_mediator))
+print("\nStress -> Flow:")
+print(summary(stress_models_hp$mediator_to_flow))
+
+print("\nArousal:")
+arousal_models_hp <- perform_lmm_analysis(arousal_long, "arousal", "HP", TRUE)
+print("Kommunikation -> Arousal:")
+print(summary(arousal_models_hp$comm_to_mediator))
+print("\nArousal -> Flow:")
+print(summary(arousal_models_hp$mediator_to_flow))
+
+print("\nValence:")
+valence_models_hp <- perform_lmm_analysis(valence_long, "valence", "HP", TRUE)
+print("Kommunikation -> Valence:")
+print(summary(valence_models_hp$comm_to_mediator))
+print("\nValence -> Flow:")
+print(summary(valence_models_hp$mediator_to_flow))
+
+print("\nIndividual Motivation:")
+ind_motiv_models_hp <- perform_lmm_analysis(ind_motiv_long, "individual_motivation", "HP", TRUE)
+print("Kommunikation -> Individual Motivation:")
+print(summary(ind_motiv_models_hp$comm_to_mediator))
+print("\nIndividual Motivation -> Flow:")
+print(summary(ind_motiv_models_hp$mediator_to_flow))
+
+print("\nTeam Motivation:")
+tm_models_hp <- perform_lmm_analysis(team_motiv_aggregated, "team_motivation", "HP", FALSE)
+print("Kommunikation -> Team Motivation:")
+print(summary(tm_models_hp$comm_to_mediator))
+print("\nTeam Motivation -> Flow:")
+print(summary(tm_models_hp$mediator_to_flow))
+
+# ================================================================================
+# TEIL 4: ZUSAMMENFASSENDE TABELLEN
+# ================================================================================
+
+# Funktion zur Extraktion der Koeffizienten
+extract_coefficients <- function(model, is_lmm = TRUE) {
+  if(is_lmm) {
+    coef_summary <- summary(model)$coefficients
+    # Extrahiere Koeffizient für commJitsi
+    if("commJitsi" %in% rownames(coef_summary)) {
+      return(c(
+        estimate = coef_summary["commJitsi", "Estimate"],
+        se = coef_summary["commJitsi", "Std. Error"],
+        t = coef_summary["commJitsi", "t value"],
+        p = coef_summary["commJitsi", "Pr(>|t|)"]
+      ))
+    }
+  } else {
+    coef_summary <- summary(model)$coefficients
+    if("commJitsi" %in% rownames(coef_summary)) {
+      return(c(
+        estimate = coef_summary["commJitsi", "Estimate"],
+        se = coef_summary["commJitsi", "Std. Error"],
+        t = coef_summary["commJitsi", "t value"],
+        p = coef_summary["commJitsi", "Pr(>|t|)"]
+      ))
+    }
+  }
+  
+  # Falls value der Prädiktor ist
+  if("value" %in% rownames(coef_summary)) {
+    return(c(
+      estimate = coef_summary["value", "Estimate"],
+      se = coef_summary["value", "Std. Error"],
+      t = coef_summary["value", "t value"],
+      p = coef_summary["value", "Pr(>|t|)"]
+    ))
+  }
+  
+  return(c(estimate = NA, se = NA, t = NA, p = NA))
+}
+
+# Erstelle Zusammenfassungstabelle für Math Task
+create_summary_table <- function(models_list, task_name) {
+  summary_data <- data.frame()
+  
+  for(med_name in names(models_list)) {
+    if(!is.null(models_list[[med_name]])) {
+      # Kommunikation -> Mediator
+      comm_coef <- extract_coefficients(models_list[[med_name]]$comm_to_mediator)
+      
+      # Mediator -> Flow
+      flow_coef <- extract_coefficients(models_list[[med_name]]$mediator_to_flow)
+      
+      row_data <- data.frame(
+        Mediator = med_name,
+        Comm_to_Med_Est = round(comm_coef["estimate"], 3),
+        Comm_to_Med_p = round(comm_coef["p"], 3),
+        Med_to_Flow_Est = round(flow_coef["estimate"], 3),
+        Med_to_Flow_p = round(flow_coef["p"], 3)
+      )
+      
+      summary_data <- rbind(summary_data, row_data)
+    }
+  }
+  
+  return(summary_data)
+}
+
+# Sammle alle Modelle
+all_models_math <- list(
+  "Team Composition" = tc_models_math,
+  "Information Sharing" = is_models_math,
+  "Synchronization" = sync_models_math,
+  "Stress" = stress_models_math,
+  "Arousal" = arousal_models_math,
+  "Valence" = valence_models_math,
+  "Individual Motivation" = ind_motiv_models_math,
+  "Team Motivation" = tm_models_math
+)
+
+all_models_hp <- list(
+  "Team Composition" = tc_models_hp,
+  "Information Sharing" = is_models_hp,
+  "Synchronization" = sync_models_hp,
+  "Stress" = stress_models_hp,
+  "Arousal" = arousal_models_hp,
+  "Valence" = valence_models_hp,
+  "Individual Motivation" = ind_motiv_models_hp,
+  "Team Motivation" = tm_models_hp
+)
+
+# Erstelle Zusammenfassungstabellen
+print("\n\n=== ZUSAMMENFASSUNGSTABELLEN ===\n")
+print("Math Task - Übersicht der Effekte:")
+summary_math <- create_summary_table(all_models_math, "Math")
+print(summary_math)
+
+print("\n\nHP Task - Übersicht der Effekte:")
+summary_hp <- create_summary_table(all_models_hp, "HP")
+print(summary_hp)
+
+# ================================================================================
+# TEIL 5: VISUALISIERUNGEN
+# ================================================================================
+
+# Funktion für Mediator-Plots
+create_mediator_plot <- function(mediator_data, mediator_name, task_filter) {
+  # Aggregiere Daten für Visualisierung
+  plot_data <- mediator_data %>%
+    filter(task == task_filter) %>%
+    group_by(comm) %>%
+    summarise(
+      mean_value = mean(value, na.rm = TRUE),
+      se_value = sd(value, na.rm = TRUE) / sqrt(n()),
+      .groups = "drop"
+    )
+  
+  p <- ggplot(plot_data, aes(x = comm, y = mean_value, fill = comm)) +
+    geom_bar(stat = "identity", position = "dodge") +
+    geom_errorbar(aes(ymin = mean_value - se_value, ymax = mean_value + se_value),
+                  width = 0.2, position = position_dodge(0.9)) +
+    labs(title = paste(task_filter, "Task -", mediator_name),
+         x = "Communication Medium",
+         y = paste("Mean", mediator_name),
+         fill = "Communication") +
+    theme_minimal() +
+    scale_fill_brewer(palette = "Set2")
+  
+  return(p)
+}
+
+# Erstelle Plots für ausgewählte Mediatoren
+print("\n=== VISUALISIERUNGEN ===")
+print("Erstelle Plots für Mediatoren...")
+
+# Beispiel-Plots für Math Task
+p1 <- create_mediator_plot(is_long, "Information Sharing", "Math")
+p2 <- create_mediator_plot(sync_long, "Synchronization", "Math")
+p3 <- create_mediator_plot(stress_long, "Stress", "Math")
+
+# Zeige Plots
+print(p1)
+print(p2)
+print(p3)
+
+# ================================================================================
+# SCHLUSSNOTIZEN
+# ================================================================================
+
+print("\n\n=== ANALYSEN ABGESCHLOSSEN ===")
+print("1. Repeated Measures Korrelationen für alle rundenweisen Mediatoren berechnet")
+print("2. Linear Mixed Models für Kommunikation -> Mediator erstellt")
+print("3. Linear Mixed Models für Mediator -> Flow erstellt")
+print("4. Getrennte Analysen für Math und HP Tasks durchgeführt")
+print("5. Zusammenfassungstabellen mit allen Effekten erstellt")
+print("6. Visualisierungen der Mediator-Unterschiede zwischen Kommunikationsmedien erstellt")
 ```
 
 Regression of flow on familiarity scores
