@@ -372,7 +372,7 @@ data <- data %>%
 mc_long <- data %>%
   dplyr::select(mc_mathChat, mc_mathJitsi, mc_hpChat, mc_hpJitsi) %>%
   pivot_longer(cols = everything(), names_to = "Treatment", values_to = "Score") %>%
-  mutate(Treatment = recode(Treatment,
+  mutate(Treatment = dplyr::recode(Treatment,
                             mc_mathChat = "Math – Chat",
                             mc_mathJitsi = "Math – Jitsi",
                             mc_hpChat = "HiddenProfile – Chat",
@@ -388,7 +388,7 @@ ggplot(mc_long, aes(x = Treatment, y = Score)) +
 int_long <- data %>%
   dplyr::select(int_mathChat, int_mathJitsi, int_hpChat, int_hpJitsi) %>%
   pivot_longer(cols = everything(), names_to = "Treatment", values_to = "Score") %>%
-  mutate(Treatment = recode(Treatment,
+  mutate(Treatment = dplyr::recode(Treatment,
                             int_mathChat = "Math – Chat",
                             int_mathJitsi = "Math – Jitsi",
                             int_hpChat = "HiddenProfile – Chat",
@@ -404,7 +404,7 @@ ggplot(int_long, aes(x = Treatment, y = Score)) +
 cg_long <- data %>%
   dplyr::select(cg_mathChat, cg_mathJitsi, cg_hpChat, cg_hpJitsi) %>%
   pivot_longer(cols = everything(), names_to = "Treatment", values_to = "Score") %>%
-  mutate(Treatment = recode(Treatment,
+  mutate(Treatment = dplyr::recode(Treatment,
                             cg_mathChat = "Math – Chat",
                             cg_mathJitsi = "Math – Jitsi",
                             cg_hpChat = "HiddenProfile – Chat",
@@ -432,7 +432,7 @@ parse_order_string <- function(s) {
 
 # Mapping Math-Codes zu Labels
 map_math_difficulty <- function(code) {
-  recode(code,
+  dplyr::recode(code,
          "B" = "Easy",
          "A" = "Optimal_Selected",
          "F" = "Optimal_Calibrated",
@@ -670,10 +670,10 @@ flow_scores_long <- flow_scores_long %>%
 # Einheitliche Schreibweise für spätere Filter
 flow_scores_long <- flow_scores_long %>%
   mutate(
-    task = recode(task,
+    task = dplyr::recode(task,
                   "math" = "Math",
                   "HiddenProfile" = "HP"),
-    difficulty = recode(difficulty,
+    difficulty = dplyr::recode(difficulty,
                         "B" = "Easy",
                         "A" = "Optimal_Selected",
                         "F" = "Optimal_Calibrated",
@@ -876,9 +876,9 @@ flowp_items <- flowp_items %>%
   )
 
 # Prüfe interne Konsistenz pro Dimension
-alpha_work <- psych::alpha(flowp_items %>% dplyr::select(starts_with("Outro.1.player.fpw")))
-alpha_household <- psych::alpha(flowp_items %>% dplyr::select(starts_with("Outro.1.player.fph")))
-alpha_leisure <- psych::alpha(flowp_items %>% dplyr::select(starts_with("Outro.1.player.fpl")))
+alpha_work <- psych::alpha(flowp_items %>% dplyr::select(starts_with("Outro.1.player.fpw"))); alpha_work
+alpha_household <- psych::alpha(flowp_items %>% dplyr::select(starts_with("Outro.1.player.fph"))); alpha_household
+alpha_leisure <- psych::alpha(flowp_items %>% dplyr::select(starts_with("Outro.1.player.fpl"))); alpha_leisure
 
 # Aggregiere zu drei Scores + Gesamtwert
 flow_proneness_scores <- flowp_items %>%
@@ -915,7 +915,7 @@ library(tibble)
 print("=== MATH TASK REGRESSIONSANALYSE ===")
 
 # Filter: Nur Mathe-Task
-flow_scores_math <- flow_scores %>% 
+flow_scores_math <- flow_clean %>% 
   filter(task == "Math")
 
 # Modell-Datensatz vorbereiten
@@ -958,6 +958,7 @@ model_math_3 <- lmer(
   data = model_data_math
 )
 summary(model_math_3)
+anova(model_math_3)
 
 # Modellvergleich
 print("\n--- MATH MODELLVERGLEICH ---")
@@ -1034,7 +1035,7 @@ print(marginal_means_math)
 print("\n\n=== HIDDEN PROFILE TASK REGRESSIONSANALYSE ===")
 
 # Filter: Nur HP-Task
-flow_scores_hp <- flow_scores %>% 
+flow_scores_hp <- flow_clean %>% 
   filter(task == "HP")
 
 # Modell-Datensatz vorbereiten
@@ -1077,6 +1078,7 @@ model_hp_3 <- lmer(
   data = model_data_hp
 )
 summary(model_hp_3)
+anova(model_hp_3)
 
 # Modellvergleich
 print("\n--- HP MODELLVERGLEICH ---")
@@ -1193,263 +1195,258 @@ if (nrow(all_significant_ws) > 0) {
   print("Keine signifikanten Difficulty Unterschiede gefunden.")
 }
 
+# Interaction Plots für Estimated Marginal Means
 # ================================================================================
-# TEIL 4: EXPORTIERBARE ERGEBNISTABELLEN
-# ================================================================================
 
-print("\n=== VERFÜGBARE OBJEKTE FÜR WEITERE ANALYSEN ===")
-cat("MODELLE:\n")
-cat("- model_math_1, model_math_2, model_math_3: Math Task Modelle\n")
-cat("- model_hp_1, model_hp_2, model_hp_3: Hidden Profile Task Modelle\n")
-cat("\nPOST-HOC TESTS:\n")
-cat("- bs_tests_math, ws_tests_math: Math Task emmeans Tests\n")
-cat("- bs_tests_hp, ws_tests_hp: Hidden Profile Task emmeans Tests\n")
-cat("- marginal_means_math, marginal_means_hp: Geschätzte Randmittel\n")
-cat("\nZUSAMMENFASSUNGEN:\n")
-cat("- all_significant_bs: Alle signifikanten Between-Subjects Effekte\n")
-cat("- all_significant_ws: Alle signifikanten Within-Subjects Effekte\n")
-
-# Optional: Exportiere Ergebnisse
-# write.csv(bs_tests_math, "math_between_subjects_tests.csv", row.names = FALSE)
-# write.csv(bs_tests_hp, "hp_between_subjects_tests.csv", row.names = FALSE)
-# write.csv(marginal_means_math, "math_marginal_means.csv", row.names = FALSE)
-# write.csv(marginal_means_hp, "hp_marginal_means.csv", row.names = FALSE)
-
-print("\n=== INTERPRETATION GUIDELINES ===")
-cat("Between-Subjects Tests zeigen:\n")
-cat("- Unterschiede zwischen Synchronicity (Jitsi vs Chat) für jede Difficulty\n")
-cat("- Negative estimates: Chat > Jitsi Flow\n")
-cat("- Positive estimates: Jitsi > Chat Flow\n\n")
-cat("Within-Subjects Tests zeigen:\n")
-cat("- Unterschiede zwischen Difficulty Levels für jede Synchronicity\n")
-cat("- Wichtig für die Interpretation von Difficulty-Effekten\n\n")
-cat("Marginal Means geben dir die geschätzten Mittelwerte für jede Bedingung.\n")
-```
-
-Central LMMs without Outliers
-
-```{r}
+library(ggplot2)
 library(emmeans)
-library(dplyr)
-library(tibble)
+
+print("=== INTERACTION PLOTS FÜR ESTIMATED MARGINAL MEANS ===")
 
 # ================================================================================
-# MATH TASK - OUTLIER-BEREINIGTER DATENSATZ
+# TEIL 1: MATH TASK INTERACTION PLOT
 # ================================================================================
 
-print("=== MATH TASK - OUTLIER-BEREINIGTE ANALYSE ===")
+print("--- MATH TASK INTERACTION PLOT ---")
 
-# Filter: Nur Mathe-Task
-flow_clean_math <- flow_clean %>% 
-  filter(task == "Math")
-
-# Modell-Datensatz vorbereiten
-model_data_math_clean <- flow_clean_math %>%
+# Erstelle ggplot-kompatible Daten für Math Task
+math_plot_data <- marginal_means_math %>%
   mutate(
-    synchronicity = ifelse(comm == "Jitsi", "High", "Low"),
-    synchronicity = factor(synchronicity, levels = c("Low", "High")),
-    difficulty = factor(difficulty, levels = c("Easy", "Optimal_Selected", "Optimal_Calibrated", "Hard"))
+    # Kommunikationslabel anpassen
+    communication = case_when(
+      synchronicity == "Low" ~ "Chat",
+      synchronicity == "High" ~ "Jitsi"
+    ),
+    # Schwierigkeitslabel anpassen für bessere Darstellung
+    difficulty_label = case_when(
+      difficulty == "Easy" ~ "Easy",
+      difficulty == "Optimal_Selected" ~ "Optimal\n(Selected)",
+      difficulty == "Optimal_Calibrated" ~ "Optimal\n(Calibrated)", 
+      difficulty == "Hard" ~ "Hard"
+    ),
+    # Ordne Schwierigkeitsgrade
+    difficulty_ordered = factor(difficulty_label, 
+                               levels = c("Easy", "Optimal\n(Selected)", 
+                                        "Optimal\n(Calibrated)", "Hard"))
   )
 
-print(sprintf("Math Task (clean): %d Beobachtungen, %d Teams, %d Teilnehmer", 
-              nrow(model_data_math_clean),
-              length(unique(model_data_math_clean$team_id)),
-              length(unique(model_data_math_clean$participant.code))))
+# Math Task Plot
+p_math <- ggplot(math_plot_data, aes(x = difficulty_ordered, y = emmean, 
+                                    color = communication, group = communication)) +
+  geom_line(size = 1.2, alpha = 0.8) +
+  geom_point(size = 3, alpha = 0.9) +
+  geom_errorbar(aes(ymin = emmean - SE, ymax = emmean + SE), 
+                width = 0.1, alpha = 0.7) +
+  scale_color_manual(values = c("Chat" = "#E31A1C", "Jitsi" = "#1F78B4")) +
+  labs(
+    title = "Math Task: Flow Score by Communication and Difficulty",
+    subtitle = "Estimated Marginal Means with Standard Errors",
+    x = "Difficulty Level",
+    y = "Estimated Flow Score",
+    color = "Communication"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(size = 14, face = "bold"),
+    plot.subtitle = element_text(size = 12),
+    axis.title = element_text(size = 12),
+    axis.text = element_text(size = 10),
+    legend.title = element_text(size = 12),
+    legend.text = element_text(size = 11),
+    panel.grid.minor = element_blank(),
+    panel.grid.major.x = element_blank()
+  ) +
+  # Y-Achse anpassen
+  scale_y_continuous(limits = c(
+    min(math_plot_data$emmean - math_plot_data$SE) * 0.95,
+    max(math_plot_data$emmean + math_plot_data$SE) * 1.05
+  ))
 
-# Modell 3 (bestes Modell)
-print("\n--- MATH MODELL 3 (OUTLIER-BEREINIGT) ---")
-model_math_3_clean <- lmer(
-  flow_score ~ synchronicity * difficulty + 
-    fp_total + order +
-    (1 | team_id) + (1 | participant.code),
-  data = model_data_math_clean
-)
-summary(model_math_3_clean)
-
-# ================================================================================
-# MATH TASK - EMMEANS POST-HOC TESTS (OUTLIER-BEREINIGT)
-# ================================================================================
-
-print("\n=== MATH TASK - EMMEANS POST-HOC ANALYSEN (OUTLIER-BEREINIGT) ===")
-
-# Between-Subjects Tests: Synchronicity Unterschiede für jede Difficulty
-print("\n--- Between-Subjects Tests: Synchronicity|Difficulty (clean) ---")
-bs_tests_math_clean <- emmeans(model_math_3_clean, specs = pairwise ~ synchronicity|difficulty, adjust = "none")$contrasts %>%
-  as_tibble() %>%
-  # Manuelle BH Korrektur
-  mutate(p.adj = p.adjust(p.value, "BH")) %>%
-  # Difficulty Labels anpassen (falls gewünscht)
-  mutate(difficulty = dplyr::recode(difficulty, 
-                                   "Easy" = "Easy",
-                                   "Optimal_Selected" = "Optimal\n(Selected)",
-                                   "Optimal_Calibrated" = "Optimal\n(Calibrated)",
-                                   "Hard" = "Hard")) %>%
-  # Numerische Werte runden (neue Syntax)
-  mutate(across(where(is.numeric), ~ round(.x, 4)))
-
-print("Between-Subjects Tests (Synchronicity Vergleiche pro Difficulty - clean):")
-print(bs_tests_math_clean)
-
-# Within-Subjects Tests: Difficulty Unterschiede für jede Synchronicity
-print("\n--- Within-Subjects Tests: Difficulty|Synchronicity (clean) ---")
-ws_tests_math_clean <- emmeans(model_math_3_clean, specs = pairwise ~ difficulty|synchronicity, adjust = "none")$contrasts %>%
-  as_tibble() %>%
-  # Manuelle BH Korrektur
-  mutate(p.adj = p.adjust(p.value, "BH")) %>%
-  # Numerische Werte runden (neue Syntax)
-  mutate(across(where(is.numeric), ~ round(.x, 4)))
-
-print("Within-Subjects Tests (Difficulty Vergleiche pro Synchronicity - clean):")
-print(ws_tests_math_clean)
-
-# Marginal Means zur Interpretation
-print("\n--- Marginal Means für Math Task (clean) ---")
-marginal_means_math_clean <- emmeans(model_math_3_clean, ~ synchronicity * difficulty) %>%
-  as_tibble() %>%
-  mutate(across(where(is.numeric), ~ round(.x, 4)))
-print(marginal_means_math_clean)
+print(p_math)
 
 # ================================================================================
-# HIDDEN PROFILE TASK - OUTLIER-BEREINIGTER DATENSATZ
+# TEIL 2: HIDDEN PROFILE TASK INTERACTION PLOT
 # ================================================================================
 
-print("\n\n=== HIDDEN PROFILE TASK - OUTLIER-BEREINIGTE ANALYSE ===")
+print("--- HIDDEN PROFILE TASK INTERACTION PLOT ---")
 
-# Filter: Nur HP-Task
-flow_clean_hp <- flow_clean %>% 
-  filter(task == "HP")
-
-# Modell-Datensatz vorbereiten
-model_data_hp_clean <- flow_clean_hp %>%
+# Erstelle ggplot-kompatible Daten für HP Task
+hp_plot_data <- marginal_means_hp %>%
   mutate(
-    synchronicity = ifelse(comm == "Jitsi", "High", "Low"),
-    synchronicity = factor(synchronicity, levels = c("Low", "High")),
-    difficulty = factor(difficulty, levels = c("Easy", "Medium", "Hard"))  # HP hat nur 3 Stufen
+    # Kommunikationslabel anpassen
+    communication = case_when(
+      synchronicity == "Low" ~ "Chat",
+      synchronicity == "High" ~ "Jitsi"
+    ),
+    # Schwierigkeitslabel für HP Task (normalerweise Easy, Medium, Hard)
+    difficulty_ordered = factor(difficulty, levels = unique(difficulty))
   )
 
-print(sprintf("HP Task (clean): %d Beobachtungen, %d Teams, %d Teilnehmer", 
-              nrow(model_data_hp_clean),
-              length(unique(model_data_hp_clean$team_id)),
-              length(unique(model_data_hp_clean$participant.code))))
+# HP Task Plot
+p_hp <- ggplot(hp_plot_data, aes(x = difficulty_ordered, y = emmean, 
+                                color = communication, group = communication)) +
+  geom_line(size = 1.2, alpha = 0.8) +
+  geom_point(size = 3, alpha = 0.9) +
+  geom_errorbar(aes(ymin = emmean - SE, ymax = emmean + SE), 
+                width = 0.1, alpha = 0.7) +
+  scale_color_manual(values = c("Chat" = "#E31A1C", "Jitsi" = "#1F78B4")) +
+  labs(
+    title = "Hidden Profile Task: Flow Score by Communication and Difficulty",
+    subtitle = "Estimated Marginal Means with Standard Errors",
+    x = "Difficulty Level",
+    y = "Estimated Flow Score",
+    color = "Communication"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(size = 14, face = "bold"),
+    plot.subtitle = element_text(size = 12),
+    axis.title = element_text(size = 12),
+    axis.text = element_text(size = 10),
+    legend.title = element_text(size = 12),
+    legend.text = element_text(size = 11),
+    panel.grid.minor = element_blank(),
+    panel.grid.major.x = element_blank()
+  ) +
+  # Y-Achse anpassen
+  scale_y_continuous(limits = c(
+    min(hp_plot_data$emmean - hp_plot_data$SE) * 0.95,
+    max(hp_plot_data$emmean + hp_plot_data$SE) * 1.05
+  ))
 
-# Modell 3 (bestes Modell)
-print("\n--- HP MODELL 3 (OUTLIER-BEREINIGT) ---")
-model_hp_3_clean <- lmer(
-  flow_score ~ synchronicity * difficulty + 
-    fp_total + order +
-    (1 | team_id) + (1 | participant.code),
-  data = model_data_hp_clean
+print(p_hp)
+
+# ================================================================================
+# TEIL 3: KOMBINIERTER PLOT (BEIDE TASKS)
+# ================================================================================
+
+print("--- KOMBINIERTER PLOT: BEIDE TASKS ---")
+
+# Kombiniere beide Datensätze
+combined_plot_data <- bind_rows(
+  math_plot_data %>% mutate(task = "Math Task"),
+  hp_plot_data %>% 
+    mutate(task = "Hidden Profile Task",
+           difficulty_label = as.character(difficulty),
+           difficulty_ordered = factor(difficulty))
 )
-summary(model_hp_3_clean)
+
+# Kombinierter Plot mit Facets
+p_combined <- ggplot(combined_plot_data, aes(x = difficulty_ordered, y = emmean, 
+                                           color = communication, group = communication)) +
+  geom_line(size = 1.2, alpha = 0.8) +
+  geom_point(size = 3, alpha = 0.9) +
+  geom_errorbar(aes(ymin = emmean - SE, ymax = emmean + SE), 
+                width = 0.1, alpha = 0.7) +
+  facet_wrap(~ task, scales = "free_x") +
+  scale_color_manual(values = c("Chat" = "#E31A1C", "Jitsi" = "#1F78B4")) +
+  labs(
+    title = "Flow Score by Communication and Difficulty Across Tasks",
+    subtitle = "Estimated Marginal Means with Standard Errors",
+    x = "Difficulty Level",
+    y = "Estimated Flow Score",
+    color = "Communication"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(size = 14, face = "bold"),
+    plot.subtitle = element_text(size = 12),
+    axis.title = element_text(size = 12),
+    axis.text = element_text(size = 10),
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    legend.title = element_text(size = 12),
+    legend.text = element_text(size = 11),
+    strip.text = element_text(size = 12, face = "bold"),
+    panel.grid.minor = element_blank(),
+    panel.grid.major.x = element_blank()
+  )
+
+print(p_combined)
 
 # ================================================================================
-# HIDDEN PROFILE TASK - EMMEANS POST-HOC TESTS (OUTLIER-BEREINIGT)
+# TEIL 4: ALTERNATIVE DARSTELLUNG - PUNKTE MIT KONFIDENZINTERVALLEN
 # ================================================================================
 
-print("\n=== HIDDEN PROFILE TASK - EMMEANS POST-HOC ANALYSEN (OUTLIER-BEREINIGT) ===")
+print("--- ALTERNATIVE: KONFIDENZINTERVALL-PLOT ---")
 
-# Between-Subjects Tests: Synchronicity Unterschiede für jede Difficulty
-print("\n--- Between-Subjects Tests: Synchronicity|Difficulty (clean) ---")
-bs_tests_hp_clean <- emmeans(model_hp_3_clean, specs = pairwise ~ synchronicity|difficulty, adjust = "none")$contrasts %>%
-  as_tibble() %>%
-  # Manuelle BH Korrektur
-  mutate(p.adj = p.adjust(p.value, "BH")) %>%
-  # Numerische Werte runden (neue Syntax)
-  mutate(across(where(is.numeric), ~ round(.x, 4)))
+# Math Task mit Konfidenzintervallen
+p_math_ci <- ggplot(math_plot_data, aes(x = difficulty_ordered, y = emmean, 
+                                       color = communication)) +
+  geom_pointrange(aes(ymin = lower.CL, ymax = upper.CL), 
+                  position = position_dodge(width = 0.3), size = 0.8) +
+  geom_point(position = position_dodge(width = 0.3), size = 2.5) +
+  scale_color_manual(values = c("Chat" = "#E31A1C", "Jitsi" = "#1F78B4")) +
+  labs(
+    title = "Math Task: Flow Score with 95% Confidence Intervals",
+    x = "Difficulty Level",
+    y = "Estimated Flow Score",
+    color = "Communication"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(size = 14, face = "bold"),
+    axis.title = element_text(size = 12),
+    axis.text = element_text(size = 10),
+    legend.title = element_text(size = 12),
+    legend.text = element_text(size = 11),
+    panel.grid.minor = element_blank(),
+    panel.grid.major.x = element_blank()
+  )
 
-print("Between-Subjects Tests (Synchronicity Vergleiche pro Difficulty - clean):")
-print(bs_tests_hp_clean)
-
-# Within-Subjects Tests: Difficulty Unterschiede für jede Synchronicity
-print("\n--- Within-Subjects Tests: Difficulty|Synchronicity (clean) ---")
-ws_tests_hp_clean <- emmeans(model_hp_3_clean, specs = pairwise ~ difficulty|synchronicity, adjust = "none")$contrasts %>%
-  as_tibble() %>%
-  # Manuelle BH Korrektur
-  mutate(p.adj = p.adjust(p.value, "BH")) %>%
-  # Numerische Werte runden (neue Syntax)
-  mutate(across(where(is.numeric), ~ round(.x, 4)))
-
-print("Within-Subjects Tests (Difficulty Vergleiche pro Synchronicity - clean):")
-print(ws_tests_hp_clean)
-
-# Marginal Means zur Interpretation
-print("\n--- Marginal Means für HP Task (clean) ---")
-marginal_means_hp_clean <- emmeans(model_hp_3_clean, ~ synchronicity * difficulty) %>%
-  as_tibble() %>%
-  mutate(across(where(is.numeric), ~ round(.x, 4)))
-print(marginal_means_hp_clean)
+print(p_math_ci)
 
 # ================================================================================
-# VERGLEICH: ORIGINAL vs OUTLIER-BEREINIGT
+# TEIL 5: INTERPRETATION HELPER
 # ================================================================================
 
-print("\n\n=== VERGLEICH: ORIGINAL vs OUTLIER-BEREINIGT ===")
+print("\n=== INTERPRETATION DER PLOTS ===")
 
-# Funktion zum Vergleich von Between-Subjects Effekten
-compare_bs_effects <- function(original, clean, task_name) {
-  cat(sprintf("\n--- %s Task: BS-Effekte Vergleich ---\n", task_name))
-  
-  # Kombiniere Datensätze mit korrigierter rename Syntax
-  comparison <- original %>%
-    dplyr::select(difficulty, estimate, p.value, p.adj) %>%
-    dplyr::rename(original_estimate = estimate, original_p = p.value, original_p.adj = p.adj) %>%
-    left_join(
-      clean %>%
-        dplyr::select(difficulty, estimate, p.value, p.adj) %>%
-        dplyr::rename(clean_estimate = estimate, clean_p = p.value, clean_p.adj = p.adj),
-      by = "difficulty"
-    ) %>%
-    mutate(
-      estimate_diff = clean_estimate - original_estimate,
-      p_change = clean_p.adj < 0.05 & original_p.adj >= 0.05 | clean_p.adj >= 0.05 & original_p.adj < 0.05
+# Berechne Unterschiede zwischen Chat und Jitsi für jede Schwierigkeitsstufe
+print("--- Math Task: Chat vs. Jitsi Unterschiede pro Schwierigkeitsstufe ---")
+math_differences <- math_plot_data %>%
+  dplyr::select(difficulty_ordered, communication, emmean) %>%
+  pivot_wider(names_from = communication, values_from = emmean) %>%
+  mutate(
+    difference = Jitsi - Chat,
+    interpretation = case_when(
+      difference > 0.2 ~ "Jitsi deutlich höher",
+      difference > 0.05 ~ "Jitsi leicht höher", 
+      difference < -0.2 ~ "Chat deutlich höher",
+      difference < -0.05 ~ "Chat leicht höher",
+      TRUE ~ "Etwa gleich"
     )
-  
-  print("Vergleich Between-Subjects Effekte (Original vs Clean):")
-  print(comparison)
-  
-  # Zeige bedeutsame Änderungen
-  if (any(comparison$p_change, na.rm = TRUE)) {
-    cat("ACHTUNG: Signifikanzänderungen nach Outlier-Bereinigung!\n")
-  }
-  
-  return(comparison)
-}
+  )
 
-# Vergleiche die Ergebnisse (falls Original-Ergebnisse verfügbar)
-if (exists("bs_tests_math") && exists("bs_tests_hp")) {
-  math_comparison <- compare_bs_effects(bs_tests_math, bs_tests_math_clean, "Math")
-  hp_comparison <- compare_bs_effects(bs_tests_hp, bs_tests_hp_clean, "HP")
-}
+print(math_differences)
 
-# ================================================================================
-# ZUSAMMENFASSUNG FÜR OUTLIER-BEREINIGTE ANALYSEN
-# ================================================================================
+print("\n--- Hidden Profile Task: Chat vs. Jitsi Unterschiede pro Schwierigkeitsstufe ---")
+hp_differences <- hp_plot_data %>%
+  dplyr::select(difficulty_ordered, communication, emmean) %>%
+  pivot_wider(names_from = communication, values_from = emmean) %>%
+  mutate(
+    difference = Jitsi - Chat,
+    interpretation = case_when(
+      difference > 0.2 ~ "Jitsi deutlich höher",
+      difference > 0.05 ~ "Jitsi leicht höher",
+      difference < -0.2 ~ "Chat deutlich höher", 
+      difference < -0.05 ~ "Chat leicht höher",
+      TRUE ~ "Etwa gleich"
+    )
+  )
 
-print("\n=== ZUSAMMENFASSUNG - OUTLIER-BEREINIGTE ANALYSEN ===")
+print(hp_differences)
 
-# Sammle signifikante Ergebnisse für outlier-bereinigte Daten
-print("\n--- Signifikante Between-Subjects Effekte (CLEAN) ---")
+# Speichere Plots (optional)
+# ggsave("math_task_interaction_plot.png", p_math, width = 10, height = 6, dpi = 300)
+# ggsave("hp_task_interaction_plot.png", p_hp, width = 10, height = 6, dpi = 300)
+# ggsave("combined_tasks_interaction_plot.png", p_combined, width = 12, height = 6, dpi = 300)
 
-# Math Task signifikante BS Effekte
-math_significant_bs_clean <- bs_tests_math_clean %>%
-  filter(p.adj < 0.05) %>%
-  mutate(Task = "Math")
-
-# HP Task signifikante BS Effekte  
-hp_significant_bs_clean <- bs_tests_hp_clean %>%
-  filter(p.adj < 0.05) %>%
-  mutate(Task = "HP")
-
-# Kombiniere signifikante Ergebnisse
-all_significant_bs_clean <- bind_rows(math_significant_bs_clean, hp_significant_bs_clean)
-
-if (nrow(all_significant_bs_clean) > 0) {
-  print("Signifikante Synchronicity Unterschiede (clean data):")
-  print(all_significant_bs_clean %>% dplyr::select(Task, difficulty, estimate, p.value, p.adj))
-} else {
-  print("Keine signifikanten Synchronicity Unterschiede in bereinigten Daten gefunden.")
-}
-
+print("\n=== PLOTS ERSTELLT ===")
+print("Verfügbare Plot-Objekte:")
+print("- p_math: Math Task Interaction Plot")
+print("- p_hp: Hidden Profile Task Interaction Plot") 
+print("- p_combined: Beide Tasks kombiniert")
+print("- p_math_ci: Math Task mit Konfidenzintervallen")
 ```
 
 Comparison of communication media (NONE/CHAT/JITSI)
@@ -1460,7 +1457,7 @@ Comparison of communication media (NONE/CHAT/JITSI)
 # ================================================================================
 
 # Aktuelle Daten: Nur Math Task
-current_data <- flow_scores %>%
+current_data <- flow_clean %>%
   filter(task == "Math") %>%
   dplyr::select(participant.code, team_id, difficulty, comm, flow_score, order, fp_total) %>%
   # Spaltennamen für Konsistenz anpassen
@@ -1488,7 +1485,7 @@ historical_data_prep <- data_old %>%
   filter(Treatment == "MP") %>%  # Nur Multi-Player
   dplyr::select(SessionID, SubjectID, Condition, Order, flowFKS_9, flowProne.General)
 
-# Erstelle Order-Strings für historische Daten (analog zu flow_scores)
+# Erstelle Order-Strings für historische Daten (analog zu flow_clean)
 print("Erstelle Order-Strings für historische Daten...")
 
 historical_order_mapping <- historical_data_prep %>%
@@ -1793,7 +1790,7 @@ print("Single Player vs Multi Player vs Current Communication")
 # ================================================================================
 
 # Aktuelle Daten: Nur Math Task (bereits vorbereitet, aber nochmal für Vollständigkeit)
-current_data_extended <- flow_scores %>%
+current_data_extended <- flow_clean %>%
   filter(task == "Math") %>%
   dplyr::select(participant.code, team_id, difficulty, comm, flow_score, order, fp_total) %>%
   dplyr::rename(
@@ -2099,6 +2096,97 @@ if (nrow(significant_comparisons) > 0) {
 } else {
   print("Keine signifikanten Unterschiede gefunden.")
 }
+
+# Interaction Plots für Vollständigen Historischen Vergleich
+# Vier-Weg Vergleich: Allein vs Zusammen (ohne Kommunikation) vs Chat vs Video
+# ================================================================================
+
+library(ggplot2)
+library(emmeans)
+library(RColorBrewer)
+
+print("=== INTERACTION PLOTS FÜR VIER-WEG-VERGLEICH ===")
+
+# ================================================================================
+# TEIL 1: HAUPTINTERAKTIONSPLOT - ALLE VIER CONDITIONS
+# ================================================================================
+
+print("--- HAUPTINTERAKTIONSPLOT: Alle Vier Communication Conditions ---")
+
+# Erstelle ggplot-kompatible Daten für den vollständigen Vergleich
+comprehensive_plot_data <- interaction_marginal_means %>%
+  mutate(
+    # Kommunikationslabel anpassen
+    communication_label = case_when(
+      communication_condition == "Alone" ~ "Allein",
+      communication_condition == "Together_None" ~ "Zusammen\n(keine Komm.)",
+      communication_condition == "Together_Chat" ~ "Zusammen\n(Chat)",
+      communication_condition == "Together_Video" ~ "Zusammen\n(Video)"
+    ),
+    # Schwierigkeitslabel anpassen für bessere Darstellung
+    difficulty_label = case_when(
+      difficulty == "Easy" ~ "Easy",
+      difficulty == "Optimal_Selected" ~ "Optimal\n(Selected)",
+      difficulty == "Optimal_Calibrated" ~ "Optimal\n(Calibrated)", 
+      difficulty == "Hard" ~ "Hard"
+    ),
+    # Ordne Schwierigkeitsgrade
+    difficulty_ordered = factor(difficulty_label, 
+                               levels = c("Easy", "Optimal\n(Selected)", 
+                                        "Optimal\n(Calibrated)", "Hard")),
+    # Ordne Communication Conditions
+    communication_ordered = factor(communication_label,
+                                 levels = c("Allein", "Zusammen\n(keine Komm.)", 
+                                          "Zusammen\n(Chat)", "Zusammen\n(Video)"))
+  )
+
+# Farbpalette für vier Bedingungen
+color_palette <- c(
+  "Allein" = "#E31A1C",                    # Rot
+  "Zusammen\n(keine Komm.)" = "#FF7F00",  # Orange  
+  "Zusammen\n(Chat)" = "#1F78B4",         # Blau
+  "Zusammen\n(Video)" = "#33A02C"         # Grün
+)
+
+# Hauptplot: Alle vier Bedingungen
+p_comprehensive <- ggplot(comprehensive_plot_data, 
+                         aes(x = difficulty_ordered, y = emmean, 
+                            color = communication_ordered, group = communication_ordered)) +
+  geom_line(size = 1.3, alpha = 0.9) +
+  geom_point(size = 3.5, alpha = 0.9) +
+  geom_errorbar(aes(ymin = emmean - SE, ymax = emmean + SE), 
+                width = 0.15, alpha = 0.7, size = 0.8) +
+  scale_color_manual(values = color_palette) +
+  labs(
+    title = "Flow Score Across Communication Conditions and Difficulty Levels",
+    subtitle = "Historical (Allein, Zusammen ohne Kommunikation) vs. Current (Chat, Video)\nEstimated Marginal Means with Standard Errors",
+    x = "Difficulty Level",
+    y = "Estimated Flow Score",
+    color = "Communication\nCondition"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(size = 16, face = "bold", hjust = 0.5),
+    plot.subtitle = element_text(size = 12, hjust = 0.5),
+    axis.title = element_text(size = 13),
+    axis.text = element_text(size = 11),
+    axis.text.x = element_text(size = 10),
+    legend.title = element_text(size = 12, face = "bold"),
+    legend.text = element_text(size = 10),
+    panel.grid.minor = element_blank(),
+    panel.grid.major.x = element_blank(),
+    legend.position = "right"
+  ) +
+  # Y-Achse anpassen für bessere Sichtbarkeit
+  scale_y_continuous(
+    limits = c(
+      min(comprehensive_plot_data$emmean - comprehensive_plot_data$SE) * 0.95,
+      max(comprehensive_plot_data$emmean + comprehensive_plot_data$SE) * 1.05
+    ),
+    breaks = scales::pretty_breaks(n = 6)
+  )
+
+print(p_comprehensive)
 
 ```
 
@@ -2717,7 +2805,7 @@ if (!is.null(true_multi_hp_chat)) show_true_multivariate(true_multi_hp_chat, "HP
 Correlation of flow with anticipated mediators
 
 ```{r}
-# Master Thesis Analysis: Flow Mediation Analysis - Revised Version
+# Master Thesis Analysis: Flow Mediation Analysis
 # Getrennte Analysen für Math und Hidden Profile Tasks
 
 library(dplyr)
@@ -2888,7 +2976,7 @@ team_motiv_aggregated <- extract_multi_item_mediators(data, c("te1", "te2", "te3
 # ================================================================================
 
 # Flow Scores aggregieren (falls noch nicht geschehen)
-flow_aggregated <- flow_scores %>%
+flow_aggregated <- flow_clean %>%
   group_by(participant.code, task, comm) %>%
   summarise(mean_flow_score = mean(flow_score, na.rm = TRUE), .groups = "drop")
 
@@ -2905,7 +2993,7 @@ perform_rmcorr <- function(data, mediator_name, task_filter) {
   # Flow Scores vorbereiten mit korrekten Rundennummern
   if(task_filter == "Math") {
     # Für Math: Wir brauchen nur die Runden, wo rundenweise Mediatoren gemessen wurden
-    flow_round <- flow_scores %>%
+    flow_round <- flow_clean %>%
       filter(task == task_filter) %>%
       group_by(participant.code, comm) %>%
       arrange(participant.code, comm) %>%
@@ -2916,7 +3004,7 @@ perform_rmcorr <- function(data, mediator_name, task_filter) {
       ungroup()
   } else {
     # Für HP: Runden 1-3
-    flow_round <- flow_scores %>%
+    flow_round <- flow_clean %>%
       filter(task == task_filter) %>%
       group_by(participant.code, comm) %>%
       arrange(participant.code, comm) %>%
@@ -3021,7 +3109,7 @@ perform_lmm_analysis <- function(mediator_data, mediator_name, task_filter, is_r
     
     # Flow Scores mit korrekten Rundennummern vorbereiten
     if(task_filter == "Math") {
-      flow_round <- flow_scores %>%
+      flow_round <- flow_clean %>%
         filter(task == task_filter) %>%
         group_by(participant.code, comm) %>%
         arrange(participant.code, comm) %>%
@@ -3030,7 +3118,7 @@ perform_lmm_analysis <- function(mediator_data, mediator_name, task_filter, is_r
         mutate(round = round_raw - 2) %>%
         ungroup()
     } else {
-      flow_round <- flow_scores %>%
+      flow_round <- flow_clean %>%
         filter(task == task_filter) %>%
         group_by(participant.code, comm) %>%
         arrange(participant.code, comm) %>%
@@ -3349,15 +3437,26 @@ create_mediator_plot <- function(mediator_data, mediator_name, task_filter) {
 print("\n=== VISUALISIERUNGEN ===")
 print("Erstelle Plots für Mediatoren...")
 
-# Beispiel-Plots für Math Task
 p1 <- create_mediator_plot(is_long, "Information Sharing", "Math")
 p2 <- create_mediator_plot(sync_long, "Synchronization", "Math")
 p3 <- create_mediator_plot(stress_long, "Stress", "Math")
+p4 <- create_mediator_plot(valence_long, "Valence", "Math")
+
+
+p5 <- create_mediator_plot(is_long, "Information Sharing", "HP")
+p6 <- create_mediator_plot(sync_long, "Synchronization", "HP")
+p7 <- create_mediator_plot(stress_long, "Stress", "HP")
+p8 <- create_mediator_plot(ind_motiv_long, "Individual Motivation", "HP")
 
 # Zeige Plots
 print(p1)
 print(p2)
 print(p3)
+print(p4)
+print(p5)
+print(p6)
+print(p7)
+print(p8)
 
 # ================================================================================
 # SCHLUSSNOTIZEN
@@ -3371,6 +3470,431 @@ print("4. Getrennte Analysen für Math und HP Tasks durchgeführt")
 print("5. Zusammenfassungstabellen mit allen Effekten erstellt")
 print("6. Visualisierungen der Mediator-Unterschiede zwischen Kommunikationsmedien erstellt")
 ```
+
+Mediator differences between the communication treatments between difficulty levels
+
+```{r}
+# Mediator-Unterschiede zwischen Chat und Jitsi nach Schwierigkeitsstufe
+# Erklärung des Shared Flow Paradoxes: Chat sinkt, Jitsi steigt mit Difficulty
+# NUR AKTUELLE DATEN (Chat vs Jitsi)
+# ================================================================================
+
+library(lme4)
+library(lmerTest)
+library(emmeans)
+library(dplyr)
+library(ggplot2)
+
+print("=== MEDIATOR-UNTERSCHIEDE: CHAT vs JITSI nach DIFFICULTY ===")
+print("Analyse basiert auf aktuellen Mediatoren aus dem neuen Experiment")
+
+# ================================================================================
+# TEIL 1: DATEN VORBEREITEN - DIREKT AUS AKTUELLEN DATEN
+# ================================================================================
+
+# Kombiniere Math und HP Daten aus flow_clean (aktueller Datensatz)
+mediator_analysis_base <- flow_clean %>%
+  filter(comm %in% c("Chat", "Jitsi")) %>%
+  mutate(
+    communication = factor(comm, levels = c("Chat", "Jitsi")),
+    difficulty_simple = case_when(
+      difficulty == "Easy" ~ "Easy",
+      difficulty %in% c("Optimal_Selected", "Optimal_Calibrated") ~ "Optimal",
+      difficulty == "Hard" ~ "Hard"
+    ),
+    difficulty_simple = factor(difficulty_simple, levels = c("Easy", "Optimal", "Hard"))
+  )
+
+print(paste("Basis-Analysedaten:", nrow(mediator_analysis_base), "Beobachtungen"))
+print(paste("Teilnehmer:", n_distinct(mediator_analysis_base$participant.code)))
+print(paste("Teams:", n_distinct(mediator_analysis_base$team_id)))
+
+# Überprüfe Datenverteilung
+print("\n--- DATENVERTEILUNG ---")
+data_distribution <- mediator_analysis_base %>%
+  group_by(communication, difficulty_simple, task) %>%
+  summarise(
+    n_obs = n(),
+    n_participants = n_distinct(participant.code),
+    .groups = "drop"
+  )
+print(data_distribution)
+
+# ================================================================================
+# TEIL 2: VERWENDE BEREITS EXTRAHIERTE MEDIATOREN
+# ================================================================================
+
+print("\n=== VERWENDE BEREITS EXTRAHIERTE MEDIATOREN ===")
+
+# Prüfe welche Mediator-Datensätze verfügbar sind
+available_mediator_datasets <- list()
+
+if(exists("stress_long")) {
+  available_mediator_datasets[["stress"]] <- stress_long
+}
+if(exists("is_long")) {
+  available_mediator_datasets[["information_sharing"]] <- is_long
+}
+if(exists("sync_long")) {
+  available_mediator_datasets[["synchronization"]] <- sync_long
+}
+if(exists("tc_aggregated")) {
+  available_mediator_datasets[["team_composition"]] <- tc_aggregated
+}
+if(exists("arousal_long")) {
+  available_mediator_datasets[["arousal"]] <- arousal_long
+}
+if(exists("valence_long")) {
+  available_mediator_datasets[["valence"]] <- valence_long
+}
+if(exists("ind_motiv_long")) {
+  available_mediator_datasets[["individual_motivation"]] <- ind_motiv_long
+}
+if(exists("team_motiv_aggregated")) {
+  available_mediator_datasets[["team_motivation"]] <- team_motiv_aggregated
+}
+
+print("Verfügbare Mediator-Datensätze:")
+print(names(available_mediator_datasets))
+
+# Aggregiere die rundenweisen Mediatoren für die Analyse
+# (wir brauchen einen Wert pro participant.code × task × comm)
+
+mediator_aggregated_list <- list()
+
+for(med_name in names(available_mediator_datasets)) {
+  med_data <- available_mediator_datasets[[med_name]]
+  
+  if("round" %in% names(med_data)) {
+    # Rundenweise Mediatoren: Aggregiere über Runden
+    med_agg <- med_data %>%
+      group_by(participant.code, task, comm) %>%
+      dplyr::summarise(!!paste0(med_name, "_score") := mean(value, na.rm = TRUE), .groups = "drop")
+  } else {
+    # Einmalige Mediatoren: Rename value column
+    med_agg <- med_data %>%
+      dplyr::rename(!!paste0(med_name, "_score") := value)
+  }
+  
+  mediator_aggregated_list[[med_name]] <- med_agg
+}
+
+# Kombiniere alle Mediatoren mit den Basis-Daten
+mediator_analysis_data <- mediator_analysis_base
+
+for(med_name in names(mediator_aggregated_list)) {
+  mediator_analysis_data <- mediator_analysis_data %>%
+    left_join(mediator_aggregated_list[[med_name]], by = c("participant.code", "task", "comm"))
+}
+
+# Verfügbare Mediatoren identifizieren
+mediator_cols <- names(mediator_analysis_data)[grepl("_score$", names(mediator_analysis_data))]
+mediator_cols <- mediator_cols[mediator_cols != "flow_score"]  # Entferne flow_score
+print("Verfügbare Mediatoren (aus bereits extrahierten Datensätzen):")
+print(mediator_cols)
+
+# Prüfe Datenverteilung
+print("\n--- DATENVERTEILUNG MIT MEDIATOREN ---")
+data_distribution_with_mediators <- mediator_analysis_data %>%
+  group_by(communication, difficulty_simple, task) %>%
+  summarise(
+    n_obs = n(),
+    n_participants = n_distinct(participant.code),
+    n_with_stress = sum(!is.na(stress_score)),
+    n_with_info = sum(!is.na(information_sharing_score)),
+    .groups = "drop"
+  )
+print(data_distribution_with_mediators)
+
+# ================================================================================
+# TEIL 3: MIXED-EFFECTS ANALYSEN
+# ================================================================================
+
+print("\n=== MIXED-EFFECTS ANALYSEN ===")
+
+mediator_results <- list()
+
+for(mediator in mediator_cols) {
+  cat("\n", rep("=", 60), "\n", sep = "")
+  mediator_name <- gsub("_score$", "", mediator)
+  cat("MEDIATOR:", toupper(mediator_name), "\n")
+  cat(rep("=", 60), "\n", sep = "")
+  
+  # Filtere Daten für aktuellen Mediator
+  mediator_data <- mediator_analysis_data %>%
+    filter(!is.na(!!sym(mediator)))
+  
+  if(nrow(mediator_data) < 20) {
+    cat("Zu wenige Daten für", mediator_name, "- übersprungen\n")
+    next
+  }
+  
+  tryCatch({
+    # Erst prüfen, ob genug Varianz in den Faktoren vorhanden ist
+    cat("Datencheck für", mediator_name, ":\n")
+    cat("- Communication levels:", paste(unique(mediator_data$communication), collapse = ", "), "\n")
+    cat("- Difficulty levels:", paste(unique(mediator_data$difficulty_simple), collapse = ", "), "\n") 
+    cat("- Task levels:", paste(unique(mediator_data$task), collapse = ", "), "\n")
+    cat("- Anzahl Teams:", n_distinct(mediator_data$team_id), "\n")
+    
+    # Prüfe ob alle Faktoren mindestens 2 Stufen haben
+    if(n_distinct(mediator_data$communication) < 2) {
+      cat("ÜBERSPRUNGEN: Nur", n_distinct(mediator_data$communication), "Communication level(s)\n")
+      next
+    }
+    if(n_distinct(mediator_data$difficulty_simple) < 2) {
+      cat("ÜBERSPRUNGEN: Nur", n_distinct(mediator_data$difficulty_simple), "Difficulty level(s)\n")
+      next
+    }
+    if(n_distinct(mediator_data$task) < 2) {
+      cat("ÜBERSPRUNGEN: Nur", n_distinct(mediator_data$task), "Task level(s)\n") 
+      next
+    }
+    
+    # Vereinfachtes Modell wenn zu wenig Teams
+    if(n_distinct(mediator_data$team_id) < 5) {
+      formula_str <- paste(mediator, "~ communication * difficulty_simple * task + (1|participant.code)")
+    } else {
+      formula_str <- paste(mediator, "~ communication * difficulty_simple * task + (1|participant.code) + (1|team_id)")
+    }
+    
+    cat("Verwende Formel:", formula_str, "\n")
+    model_full <- lmer(as.formula(formula_str), data = mediator_data)
+    
+    cat("\n--- MODELL ZUSAMMENFASSUNG ---\n")
+    print(summary(model_full))
+    
+    # ANOVA
+    cat("\n--- ANOVA ERGEBNISSE ---\n")
+    anova_result <- anova(model_full)
+    print(anova_result)
+    
+    # Post-Hoc Tests: Communication|Difficulty
+    cat("\n--- POST-HOC: Communication × Difficulty ---\n")
+    emmeans_comm_diff <- emmeans(model_full, pairwise ~ communication | difficulty_simple)
+    posthoc_comm_diff <- as.data.frame(emmeans_comm_diff$contrasts)
+    print(posthoc_comm_diff)
+    
+    # Marginal Means
+    cat("\n--- MARGINAL MEANS ---\n")
+    marginal_means <- as.data.frame(emmeans(model_full, ~ communication * difficulty_simple * task))
+    print(marginal_means)
+    
+    # Speichere Ergebnisse
+    mediator_results[[mediator]] <- list(
+      model = model_full,
+      anova = anova_result,
+      posthoc_comm_diff = posthoc_comm_diff,
+      marginal_means = marginal_means
+    )
+    
+  }, error = function(e) {
+    cat("Fehler bei", mediator_name, ":", e$message, "\n")
+    
+    # Noch einfacheres Fallback-Modell
+    cat("Versuche einfacheres Modell...\n")
+    tryCatch({
+      simple_formula <- paste(mediator, "~ communication + difficulty_simple + task + (1|participant.code)")
+      simple_model <- lmer(as.formula(simple_formula), data = mediator_data)
+      
+      cat("Einfaches Modell erfolgreich:\n")
+      print(summary(simple_model))
+      
+      mediator_results[[mediator]] <- list(
+        model = simple_model,
+        note = "Vereinfachtes Modell ohne Interaktionen"
+      )
+      
+    }, error = function(e2) {
+      cat("Auch einfaches Modell fehlgeschlagen:", e2$message, "\n")
+    })
+  })
+}
+
+# ================================================================================
+# TEIL 4: ZUSAMMENFASSUNG SIGNIFIKANTER UNTERSCHIEDE
+# ================================================================================
+
+print("\n\n=== ZUSAMMENFASSUNG SIGNIFIKANTER UNTERSCHIEDE ===")
+
+significant_differences <- data.frame()
+
+for(mediator in names(mediator_results)) {
+  result <- mediator_results[[mediator]]
+  
+  if(!is.null(result$posthoc_comm_diff)) {
+    sig_tests <- result$posthoc_comm_diff %>%
+      filter(p.value < 0.05) %>%
+      mutate(
+        mediator = gsub("_score$", "", mediator),
+        effect_direction = ifelse(estimate > 0, "Jitsi > Chat", "Chat > Jitsi"),
+        effect_size = abs(estimate)
+      )
+    
+    if(nrow(sig_tests) > 0) {
+      significant_differences <- bind_rows(significant_differences, sig_tests)
+    }
+  }
+}
+
+if(nrow(significant_differences) > 0) {
+  print("SIGNIFIKANTE CHAT vs JITSI UNTERSCHIEDE:")
+  significant_summary <- significant_differences %>% 
+    select(mediator, difficulty_simple, effect_direction, estimate, p.value) %>%
+    arrange(difficulty_simple, p.value)
+  print(significant_summary)
+} else {
+  print("Keine signifikanten Unterschiede zwischen Chat und Jitsi gefunden.")
+}
+
+# ================================================================================
+# TEIL 5: SPEZIFISCHE EASY vs HARD ANALYSEN
+# ================================================================================
+
+print("\n=== SPEZIFISCHE ANALYSEN: EASY vs HARD ===")
+
+for(difficulty_level in c("Easy", "Hard")) {
+  cat("\n", rep("=", 50), "\n", sep = "")
+  cat("DIFFICULTY LEVEL:", difficulty_level, "\n")
+  cat(rep("=", 50), "\n")
+  
+  difficulty_data <- mediator_analysis_data %>%
+    filter(difficulty_simple == difficulty_level)
+  
+  print(paste("Daten für", difficulty_level, ":", nrow(difficulty_data), "Beobachtungen"))
+  
+  for(mediator in mediator_cols) {
+    mediator_name <- gsub("_score$", "", mediator)
+    
+    analysis_data <- difficulty_data %>%
+      filter(!is.na(!!sym(mediator)))
+    
+    if(nrow(analysis_data) < 10) next
+    
+    tryCatch({
+      model <- lmer(as.formula(paste(mediator, "~ communication + task + (1|participant.code) + (1|team_id)")), 
+                   data = analysis_data)
+      
+      model_summary <- summary(model)
+      communication_effect <- model_summary$coefficients["communicationJitsi", ]
+      
+      if(communication_effect["Pr(>|t|)"] < 0.05) {
+        cat("\n*** SIGNIFIKANT:", mediator_name, "in", difficulty_level, "***\n")
+        cat("Jitsi vs Chat Effekt:", round(communication_effect["Estimate"], 3), 
+            ", p =", round(communication_effect["Pr(>|t|)"], 4), "\n")
+        
+        direction <- ifelse(communication_effect["Estimate"] > 0, "Jitsi > Chat", "Chat > Jitsi")
+        cat("Richtung:", direction, "\n")
+        
+        # Mittelwerte
+        means_data <- analysis_data %>%
+          group_by(communication) %>%
+          summarise(mean_value = mean(!!sym(mediator), na.rm = TRUE), .groups = "drop")
+        
+        cat("Mittelwerte: Chat =", round(means_data$mean_value[means_data$communication == "Chat"], 3),
+            ", Jitsi =", round(means_data$mean_value[means_data$communication == "Jitsi"], 3), "\n")
+      }
+      
+    }, error = function(e) {
+      # Stumm weitermachen
+    })
+  }
+}
+
+# ================================================================================
+# TEIL 6: VISUALISIERUNGEN
+# ================================================================================
+
+print("\n=== VISUALISIERUNGEN ===")
+
+for(mediator in names(mediator_results)) {
+  result <- mediator_results[[mediator]]
+  
+  if(!is.null(result$marginal_means)) {
+    mediator_name <- gsub("_score$", "", mediator)
+    
+    plot_data <- result$marginal_means %>%
+      mutate(communication = factor(communication, levels = c("Chat", "Jitsi")))
+    
+    p <- ggplot(plot_data, aes(x = difficulty_simple, y = emmean, 
+                              color = communication, group = communication)) +
+      geom_line(size = 1.2, alpha = 0.8, position = position_dodge(width = 0.1)) +
+      geom_point(size = 3, position = position_dodge(width = 0.1)) +
+      geom_errorbar(aes(ymin = emmean - SE, ymax = emmean + SE), 
+                    width = 0.1, alpha = 0.7, position = position_dodge(width = 0.1)) +
+      facet_wrap(~ task) +
+      scale_color_manual(values = c("Chat" = "#E31A1C", "Jitsi" = "#1F78B4")) +
+      labs(
+        title = paste("Mediator:", str_to_title(gsub("_", " ", mediator_name))),
+        subtitle = "Communication × Difficulty by Task",
+        x = "Difficulty Level",
+        y = paste("Estimated", str_to_title(gsub("_", " ", mediator_name))),
+        color = "Communication"
+      ) +
+      theme_minimal() +
+      theme(
+        plot.title = element_text(size = 14, face = "bold"),
+        axis.title = element_text(size = 12),
+        strip.text = element_text(size = 12, face = "bold")
+      )
+    
+    print(p)
+    assign(paste0("p_", gsub("_", "", mediator_name)), p, envir = .GlobalEnv)
+  }
+}
+
+# ================================================================================
+# TEIL 7: INTERPRETATION FÜR SHARED FLOW PARADOX
+# ================================================================================
+
+print("\n=== INTERPRETATION FÜR SHARED FLOW PARADOX ===")
+
+cat("\nSHARED FLOW BEFUND:\n")
+cat("- Chat: Flow sinkt mit zunehmender Schwierigkeit\n")
+cat("- Jitsi: Flow steigt mit zunehmender Schwierigkeit\n\n")
+
+if(nrow(significant_differences) > 0) {
+  easy_effects <- significant_differences %>% filter(difficulty_simple == "Easy")
+  hard_effects <- significant_differences %>% filter(difficulty_simple == "Hard")
+  
+  if(nrow(easy_effects) > 0) {
+    cat("Bei LEICHTEN Aufgaben:\n")
+    for(i in 1:nrow(easy_effects)) {
+      cat("- ", easy_effects$mediator[i], ": ", easy_effects$effect_direction[i], 
+          " (p = ", round(easy_effects$p.value[i], 3), ")\n", sep = "")
+    }
+  }
+  
+  if(nrow(hard_effects) > 0) {
+    cat("\nBei SCHWEREN Aufgaben:\n")
+    for(i in 1:nrow(hard_effects)) {
+      cat("- ", hard_effects$mediator[i], ": ", hard_effects$effect_direction[i], 
+          " (p = ", round(hard_effects$p.value[i], 3), ")\n", sep = "")
+    }
+  }
+  
+  # Identifiziere sich ändernde Muster
+  pattern_changes <- significant_differences %>%
+    select(mediator, difficulty_simple, effect_direction) %>%
+    pivot_wider(names_from = difficulty_simple, values_from = effect_direction) %>%
+    filter(!is.na(Easy) & !is.na(Hard) & Easy != Hard)
+  
+  if(nrow(pattern_changes) > 0) {
+    cat("\nMEDIATOREN MIT SICH ÄNDERNDEN MUSTERN:\n")
+    for(i in 1:nrow(pattern_changes)) {
+      cat("- ", pattern_changes$mediator[i], ": Easy (", pattern_changes$Easy[i], 
+          ") vs Hard (", pattern_changes$Hard[i], ")\n", sep = "")
+    }
+    cat("\n*** DIESE KÖNNTEN DAS SHARED FLOW PARADOX ERKLÄREN! ***\n")
+  }
+  
+} else {
+  cat("Keine signifikanten Mediator-Unterschiede gefunden.\n")
+}
+
+print("\n=== ANALYSEN ABGESCHLOSSEN ===")
+```
+
 
 Mediation analysis in comparison with data from experiment 1
 
@@ -3566,7 +4090,7 @@ tm_current <- data %>%
   summarise(team_motivation_value = mean(value, na.rm = TRUE), .groups = "drop")
 
 # 2.4 Kombiniere mit Flow Scores und erstelle finalen aktuellen Datensatz
-current_rounds_prepared <- flow_scores %>%
+current_rounds_prepared <- flow_clean %>%
   filter(task == "Math") %>%
   # Füge Order-Mapping hinzu - NEU HINZUGEFÜGT
   left_join(order_mapping, by = "participant.code") %>%
@@ -3619,7 +4143,7 @@ current_final_prepared <- tc_current %>%
 # Team ID hinzufügen
 current_final_prepared <- current_final_prepared %>%
   left_join(
-    flow_scores %>% 
+    flow_clean %>% 
       filter(task == "Math") %>%
       select(participant.code, team_id) %>%
       distinct(),
@@ -4071,7 +4595,7 @@ data %>%
 # Erst aggregieren wir die Flow-Scores pro Bedingung (über alle Schwierigkeiten)
 
 print("\n--- Aggregating flow scores ---")
-flow_aggregated <- flow_scores %>%
+flow_aggregated <- flow_clean %>%
   group_by(participant.code, task, comm) %>%
   summarise(
     flow_score = mean(flow_score, na.rm = TRUE),
@@ -4095,7 +4619,7 @@ familiarity_long <- data %>%
   mutate(
     task = case_when(
       str_detect(condition, "math") ~ "Math", 
-      TRUE ~ "HP"  # HP wie in flow_scores
+      TRUE ~ "HP"  # HP wie in flow_clean
     ),
     comm = case_when(
       str_detect(condition, "Chat") ~ "Chat", 
@@ -4244,13 +4768,13 @@ team_gender_composition <- data %>%
 print("Team Gender Composition erstellt:")
 print(table(team_gender_composition$gender_comp))
 
-# Gender composition zu flow_scores hinzufügen (sollte bereits existieren)
-if(!"gender_comp" %in% names(flow_scores)) {
-  flow_scores_gender <- flow_scores %>%
+# Gender composition zu flow_clean hinzufügen (sollte bereits existieren)
+if(!"gender_comp" %in% names(flow_clean)) {
+  flow_scores_gender <- flow_clean %>%
     left_join(team_gender_composition %>% dplyr::select(team_id, gender_comp), 
               by = "team_id")
 } else {
-  flow_scores_gender <- flow_scores
+  flow_scores_gender <- flow_clean
 }
 
 # Überprüfe Verteilung
@@ -4624,7 +5148,7 @@ print(paste("Teilnehmer mit Emoji-Daten:", nrow(emoji_participant_summary)))
 # ================================================================================
 
 # Flow-Scores für Chat-Bedingungen aggregieren
-flow_chat_summary <- flow_scores %>%
+flow_chat_summary <- flow_clean %>%
   filter(comm == "Chat") %>%
   group_by(participant.code, task) %>%
   dplyr::summarise(
