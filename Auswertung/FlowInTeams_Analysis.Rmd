@@ -3911,40 +3911,61 @@ library(ggplot2)
 library(psych)
 
 # ================================================================================
-# TEIL 1: DATENINTEGRATION - ALTE DATENSÄTZE VORBEREITEN
+# TEIL 1: ALTE DATEN KORREKT AUFBEREITEN
 # ================================================================================
 
-# 1.1 Alte rundenweise Daten vorbereiten
-old_rounds_prepared <- data_old_rounds %>%
+print("--- KORRIGIERE ALTE DATEN ---")
+
+# 1.1 Mapping von Order-Strings zu Difficulties (vereinfacht)
+create_difficulty_mapping <- function(order_string) {
+  # Teile Order-String auf
+  order_parts <- strsplit(order_string, "-")[[1]]
+  
+  # Prüfe ob genau 4 Parts vorhanden sind (vollständiges Experiment)
+  if(length(order_parts) != 4) {
+    return(NULL)  # Unvollständige Daten
+  }
+  
+  # Mapping: Position im String -> Difficulty
+  difficulty_map <- data.frame(
+    round = 1:length(order_parts),
+    difficulty_code = order_parts,
+    stringsAsFactors = FALSE
+  ) %>%
+    mutate(
+      difficulty = case_when(
+        difficulty_code == "BOREDOM" ~ "Easy",
+        difficulty_code == "AUTONOMY" ~ "Optimal_Selected", 
+        difficulty_code == "FLOW" ~ "Optimal_Calibrated",
+        difficulty_code == "OVERLOAD" ~ "Hard",
+        TRUE ~ NA_character_
+      )
+    )
+  
+  return(difficulty_map)
+}
+
+# 1.2 Erweiterte Aufbereitung + Filter in einem Schritt
+old_rounds_corrected <- data_old_rounds %>%
   mutate(
-    # Einheitliche Spaltennamen - KORRIGIERT
     participant.code = SubjectID,
     team_id = SessionID,
-    # Kommunikationsmedium kodieren
     comm = case_when(
       Treatment == "MP" ~ "Together_None",
       Treatment == "SP" ~ "Alone",
       TRUE ~ NA_character_
     ),
-    # Difficulty mapping
+    task = "Math",
+    order = as.character(ConditionOrder),
+    condition_num = as.numeric(sub("_.*", "", Condition)),
     difficulty = case_when(
-      Condition == "Overload" ~ "Hard",
-      Condition == "Boredom" ~ "Easy",
-      Condition == "Autonomy" ~ "Optimal_Selected",
-      Condition == "Flow" ~ "Optimal_Calibrated",
+      condition_num == 1 ~ "Easy",
+      condition_num == 2 ~ "Optimal_Calibrated",
+      condition_num == 3 ~ "Optimal_Selected",
+      condition_num == 4 ~ "Hard",
       TRUE ~ NA_character_
     ),
-    # Order als Character belassen - KORRIGIERT
-    order = as.character(ConditionOrder),
-    # Round basierend auf order - KORRIGIERT
-    round = as.numeric(ConditionOrder),
-    # Flow Score
     flow_score = flowFKS_9,
-    # Task ist immer Math
-    task = "Math"
-  ) %>%
-  # Mediatoren umbenennen
-  dplyr::rename(
     stress_value = stress,
     individual_motivation_value = motivation,
     valence_value = valence,
@@ -3952,234 +3973,335 @@ old_rounds_prepared <- data_old_rounds %>%
     information_sharing_value = infSharing,
     synchronization_value = teamSynch
   ) %>%
-  select(participant.code, team_id, comm, task, difficulty, order, round,
-         flow_score, stress_value, individual_motivation_value, 
-         valence_value, arousal_value, information_sharing_value, 
-         synchronization_value)
+  select(-condition_num) %>%
+  filter(
+    !is.na(order) & order != "" &
+    lengths(strsplit(order, "-")) == 4
+  )
 
-# 1.2 Alte finale Daten vorbereiten (nur PHASE Condition)
-old_final_prepared <- data_old_final %>%
+# 1.3 Berechne Round-Nummer basierend auf Order und Condition (vereinfacht)
+old_rounds_with_rounds <- old_rounds_corrected %>%
+  group_by(participant.code) %>%
+  do({
+    participant_data <- .
+    order_string <- unique(participant_data$order)[1]
+    
+    difficulty_mapping <- create_difficulty_mapping(order_string)
+    
+    if(!is.null(difficulty_mapping)) {
+      # Verbinde mit Difficulty-Mapping
+      participant_data %>%
+        left_join(difficulty_mapping, by = "difficulty") %>%
+        select(-difficulty_code)  # Entferne temporäre Spalte
+    } else {
+      # Sollte nicht passieren da wir bereits gefiltert haben
+      participant_data %>% mutate(round = NA)
+    }
+  }) %>%
+  ungroup()
+
+print(paste("Alte Daten korrekt aufbereitet:", nrow(old_rounds_with_rounds), "Beobachtungen"))
+
+# 1.4 Korrigierte Team Composition/Motivation Integration
+old_final_corrected <- data_old_final %>%
   filter(Condition == "PHASE") %>%
-  mutate(
-    # Einheitliche Spaltennamen - KORRIGIERT
+  transmute(
     participant.code = SubjectID,
     team_id = SessionID,
-    # Kommunikationsmedium kodieren
+    # comm behalten wir, aber nicht für den Join verwenden (vermeidet .x/.y-Probleme)
     comm = case_when(
       Treatment == "MP" ~ "Together_None",
       Treatment == "SP" ~ "Alone",
       TRUE ~ NA_character_
     ),
     task = "Math",
-    # Team Motivation
-    team_motivation_value = grpEffort,
-    # Team Composition berechnen
+    # Direkte Ableitung aus vorhandenen Spalten
+    team_motivation_value = as.numeric(grpEffort),
     team_size_score = rowMeans(cbind(
-      8 - grpSizeTooLarge,  # Reverse
-      8 - grpSizeTooSmall,  # Reverse
+      8 - grpSizeTooLarge,
+      8 - grpSizeTooSmall,
       grpSizeJustRight
     ), na.rm = TRUE),
     team_composition_value = rowMeans(cbind(
-      team_size_score,
+      # team_size_score ist eine temporäre Spalte in transmute, wir müssen sie wieder berechnen:
+      rowMeans(cbind(8 - grpSizeTooLarge, 8 - grpSizeTooSmall, grpSizeJustRight), na.rm = TRUE),
       grpDivers,
       grpSkill
     ), na.rm = TRUE)
   ) %>%
-  select(participant.code, team_id, comm, task, 
-         team_motivation_value, team_composition_value)
+  select(participant.code, team_id, comm, task, team_composition_value, team_motivation_value)
 
-# ================================================================================
-# TEIL 2: NEUE DATEN VORBEREITEN
-# ================================================================================
+# Debug: wie viele Zeilen hat das Team-Table?
+message("Rows in old_final_corrected: ", nrow(old_final_corrected))
 
-# 2.1 Order-Variable aus aktuellem Datensatz extrahieren - NEU HINZUGEFÜGT
-order_mapping <- data %>%
-  select(participant.code, participant.condition_order) %>%
-  distinct() %>%
-  dplyr::rename(
-    participant.code = participant.code,
-    order = participant.condition_order
+# Funktion zur Vereinheitlichung der participant.code Strings
+normalize_participant_code <- function(pc) {
+  pc %>%
+    tolower() %>%
+    gsub("-", "_", .) %>%
+    gsub("_+", "_", .) %>%
+    gsub("^_|_$", "", .) %>%
+    # jetzt umstellen: falls "_mp_" oder "_sp_" in der Mitte, verschiebe ans Ende
+    gsub("^(session_\\d+)_(mp|sp)_(.+)$", "\\1_\\3_\\2", .)
+}
+
+normalize_team_id <- function(tid) {
+  tid %>%
+    tolower() %>%
+    gsub("session_(\\d+)[a-z]", "session_\\1", .) %>%  # Entfernt Buchstaben hinter Zahl in session_65b
+    gsub("-", "_", .) %>%
+    gsub("_na$", "", .) %>%
+    gsub("_+", "_", .) %>%
+    gsub("^_|_$", "", .)
+}
+
+# Alte Runden-Daten normalisieren
+old_rounds_with_rounds <- old_rounds_with_rounds %>%
+  mutate(
+    participant.code = normalize_participant_code(participant.code),
+    team_id = normalize_team_id(team_id)
+  )
+
+# Alte Team-Daten normalisieren
+old_final_corrected <- old_final_corrected %>%
+  mutate(
+    participant.code = normalize_participant_code(participant.code),
+    session_num = sub("^(session_\\d+)_.*", "\\1", participant.code),
+    treatment = sub(".*_(mp|sp)$", "\\1", participant.code),
+    treatment = ifelse(treatment %in% c("mp", "sp"), treatment, NA_character_),
+    team_id = paste0(session_num, "_", treatment)
   ) %>%
-  mutate(order = as.character(order))  # Als Character für Konsistenz
+  dplyr::select(-session_num, -treatment)
 
-# 2.2 Rundenweise Mediatoren aus aktuellem Datensatz extrahieren
-# (Verwende die Funktionen aus der vorherigen Analyse)
+# Join mit normalisierten Schlüsseln
+old_rounds_final <- old_rounds_with_rounds %>%
+  left_join(old_final_corrected %>% select(-comm), 
+            by = c("participant.code", "team_id", "task"))
 
-# Funktion zur Extraktion rundenweiser Mediatoren (angepasst)
-extract_round_mediator_current <- function(data, var_pattern, var_name) {
-  med_data <- data %>%
-    select(participant.code, contains("player")) %>%
-    select(participant.code, matches(paste0("(mathJitsi|mathChat).*\\.", var_pattern, "$")))
+# Check: Nicht gematchte Fälle
+not_matched <- old_rounds_final %>%
+  filter(is.na(team_composition_value) | is.na(team_motivation_value)) %>%
+  distinct(participant.code, team_id, task)
+
+print(paste("Nicht gematchte Fälle:", nrow(not_matched)))
+print(head(not_matched))
+
+old_rounds_final <- old_rounds_with_rounds %>%
+  # join ohne comm, damit unterschiedliche Label-Formate nicht zu Missmatch führen
+  left_join(old_final_corrected %>% select(-comm),
+            by = c("participant.code", "team_id", "task")) %>%
+  # Falls nach dem Join noch NAs auftauchen: hier kann man später Fallbacks ergänzen
+  mutate(
+    # hier coalesce nur symbolisch — falls du später einen zweiten Datenquelle hast, 
+    # kannst du coalesce(team_composition_value, other_source) nutzen
+    team_composition_value = team_composition_value,
+    team_motivation_value = team_motivation_value
+  ) %>%
+  select(participant.code, team_id, comm, task, difficulty, order, round,
+         flow_score, stress_value, individual_motivation_value, 
+         valence_value, arousal_value, information_sharing_value, 
+         synchronization_value, team_composition_value, team_motivation_value)
+
+message("Rows in old_rounds_final: ", nrow(old_rounds_final))
+
+# -------------------------
+# Debugging: welche Runden/Teilnehmer wurden nicht gematcht?
+# -------------------------
+not_matched <- old_rounds_with_rounds %>%
+  anti_join(old_final_corrected %>% select(-comm), 
+            by = c("participant.code", "team_id", "task")) %>%
+  distinct(participant.code, team_id, task)
+
+message("Anzahl nicht gematchter (participant.code, team_id, task): ", nrow(not_matched))
+if(nrow(not_matched) > 0) print(head(not_matched, 20))
+
+# Quick-check wie viele NAs in den Team-Variablen:
+message("NAs in team_composition_value after join: ", sum(is.na(old_rounds_final$team_composition_value)))
+message("NAs in team_motivation_value after join: ", sum(is.na(old_rounds_final$team_motivation_value)))
+
+# ================================================================================
+# TEIL 2: NEUE DATEN KORREKT AUFBEREITEN  
+# ================================================================================
+
+print("--- KORRIGIERE NEUE DATEN ---")
+
+# 2.1 Prüfe verfügbare Difficulties in flow_clean
+print("Verfügbare Difficulties in flow_clean:")
+difficulty_check <- flow_clean %>%
+  filter(comm %in% c("Chat", "Jitsi")) %>%
+  group_by(difficulty, task) %>%
+  dplyr::summarise(n = n(), .groups = "drop")
+print(difficulty_check)
+
+# 2.2 Erstelle Order-Strings für neue Daten
+create_order_string_new <- function(participant_data) {
+  # Sortiere nach einer eindeutigen Reihenfolge (z.B. basierend auf Row-Number im originalen Datensatz)
+  ordered_data <- participant_data %>%
+    arrange(participant.code, task, comm) %>%
+    group_by(participant.code, task, comm) %>%
+    mutate(round = row_number()) %>%
+    ungroup()
   
-  med_long <- med_data %>%
-    pivot_longer(cols = -participant.code, 
-                 names_to = "variable", 
-                 values_to = "value") %>%
+  # Erstelle Order-String
+  order_summary <- ordered_data %>%
+    group_by(participant.code, task, comm) %>%
+    dplyr::summarise(
+      order = paste0("['", paste(difficulty, collapse = "', '"), "']"),
+      .groups = "drop"
+    )
+  
+  return(list(data_with_rounds = ordered_data, order_summary = order_summary))
+}
+
+# 2.3 Wende auf neue Daten an
+new_data_processing <- flow_clean %>%
+  filter(task == "Math", comm %in% c("Chat", "Jitsi")) %>%
+  group_by(participant.code, task, comm) %>%
+  group_split() %>%
+  map_dfr(~{
+    group_data <- .x
+    
+    # Füge Round-Nummern hinzu
+    group_data %>%
+      arrange(participant.code, task, comm) %>%
+      mutate(round = row_number())
+  })
+
+# 2.4 Erstelle Order-Zusammenfassung
+order_summary_new <- new_data_processing %>%
+  group_by(participant.code, task, comm) %>%
+  dplyr::summarise(
+    order = paste0("['", paste(difficulty, collapse = "', '"), "']"),
+    .groups = "drop"
+  )
+
+# 2.5 Extrahiere Mediatoren für neue Daten (korrigiert)
+print("Extrahiere Mediatoren für neue Daten...")
+
+# Funktion für Math + HP Mediator-Extraktion
+extract_mediators_new <- function(data, var_pattern, var_name, last_round_only = FALSE) {
+  if(last_round_only) {
+    # Für einmalige Mediatoren: letzte Runde pro Task
+    patterns <- c(
+      paste0("mathJitsi\\.6\\.player\\.", var_pattern, "$"),
+      paste0("mathChat\\.6\\.player\\.", var_pattern, "$"),
+      paste0("HiddenProfile_Jitsi\\.3\\.player\\.", var_pattern, "$"),
+      paste0("HiddenProfile_Chat\\.3\\.player\\.", var_pattern, "$")
+    )
+  } else {
+    # Für rundenweise Mediatoren: alle relevanten Runden
+    patterns <- c(
+      paste0("(mathJitsi|mathChat)\\.[3-6]\\.player\\.", var_pattern, "$"),
+      paste0("(HiddenProfile_Jitsi|HiddenProfile_Chat)\\.[1-3]\\.player\\.", var_pattern, "$")
+    )
+  }
+  
+  combined_pattern <- paste(patterns, collapse = "|")
+  
+  med_data <- data %>%
+    dplyr::select(participant.code, matches(combined_pattern)) %>%
+    pivot_longer(cols = -participant.code, names_to = "variable", values_to = "value") %>%
     filter(!is.na(value)) %>%
     mutate(
-      comm_raw = case_when(
+      task = case_when(
+        grepl("^math", variable) ~ "Math",
+        grepl("^HiddenProfile", variable) ~ "HP"
+      ),
+      comm = case_when(
         grepl("Jitsi", variable) ~ "Jitsi",
         grepl("Chat", variable) ~ "Chat"
       ),
-      round_raw = as.numeric(gsub(".*\\.(\\d+)\\.player.*", "\\1", variable)),
-      # Standardisiere Rundennummern: 3-6 wird zu 1-4
-      round = round_raw - 2
-    ) %>%
-    filter(round_raw >= 3 & round_raw <= 6) %>%
-    mutate(!!paste0(var_name, "_value") := value) %>%
-    # Spaltenname korrigiert - KORRIGIERT
-    dplyr::rename(participant.code = participant.code) %>%
-    select(participant.code, comm_raw, round, !!paste0(var_name, "_value"))
+      round_raw = as.numeric(gsub(".*\\.(\\d+)\\.player.*", "\\1", variable))
+    )
   
-  return(med_long)
+  if(!last_round_only) {
+    # Für rundenweise: berechne standardisierte Round-Nummer
+    med_data <- med_data %>%
+      mutate(
+        round = case_when(
+          task == "Math" ~ round_raw - 2,  # Math: 3-6 -> 1-4
+          task == "HP" ~ round_raw         # HP: 1-3 -> 1-3
+        )
+      ) %>%
+      filter((task == "Math" & round_raw >= 3 & round_raw <= 6) |
+             (task == "HP" & round_raw >= 1 & round_raw <= 3))
+  }
+  
+  # Aggregiere Items falls mehrere vorhanden
+  if(last_round_only) {
+    result <- med_data %>%
+      group_by(participant.code, task, comm) %>%
+      summarise(!!paste0(var_name, "_value") := mean(value, na.rm = TRUE), .groups = "drop")
+  } else {
+    result <- med_data %>%
+      group_by(participant.code, task, comm, round) %>%
+      summarise(!!paste0(var_name, "_value") := mean(value, na.rm = TRUE), .groups = "drop")
+  }
+  
+  return(result)
 }
 
-# Extrahiere alle rundenweisen Mediatoren
-current_stress <- extract_round_mediator_current(data, "is1|is2|is3|is4|is5", "stress")
-current_arousal <- extract_round_mediator_current(data, "arousal", "arousal")
-current_valence <- extract_round_mediator_current(data, "pleasure", "valence")
-current_ind_motiv <- extract_round_mediator_current(data, "tm1|tm2|tm3", "individual_motivation")
-current_info_sharing <- extract_round_mediator_current(data, "info1|info2", "information_sharing")
-current_sync <- extract_round_mediator_current(data, "ec1", "synchronization")
+# Extrahiere alle Mediatoren
+stress_new <- extract_mediators_new(data, "is[1-5]", "stress")
+info_sharing_new <- extract_mediators_new(data, "info[1-2]", "information_sharing") 
+sync_new <- extract_mediators_new(data, "ec1", "synchronization")
+arousal_new <- extract_mediators_new(data, "arousal", "arousal")
+valence_new <- extract_mediators_new(data, "pleasure", "valence")
+motivation_new <- extract_mediators_new(data, "tm[1-3]", "individual_motivation")
 
-# Aggregiere Items wo nötig
-aggregate_mediator_items <- function(df, mediator_name) {
-  df %>%
-    group_by(participant.code, comm_raw, round) %>%
-    summarise(!!paste0(mediator_name, "_value") := mean(get(paste0(mediator_name, "_value")), na.rm = TRUE),
-              .groups = "drop")
-}
+# Einmalige Mediatoren
+team_comp_new <- extract_mediators_new(data, "(tsz[1-3]|td[1-3]|tsc[1-3])", "team_composition", last_round_only = TRUE)
+team_motiv_new <- extract_mediators_new(data, "te[1-3]", "team_motivation", last_round_only = TRUE)
 
-current_stress <- aggregate_mediator_items(current_stress, "stress")
-current_ind_motiv <- aggregate_mediator_items(current_ind_motiv, "individual_motivation")
-current_info_sharing <- aggregate_mediator_items(current_info_sharing, "information_sharing")
+# 2.6 Kombiniere neue Daten
+new_data_processing <- new_data_processing %>% select(-order)
+joined_test <- new_data_processing %>%
+  left_join(order_summary_new, by = c("participant.code", "task", "comm"))
 
-# 2.3 Einmalige Mediatoren extrahieren
-# Team Composition
-tc_current <- data %>%
-  select(participant.code, 
-         matches("(mathJitsi|mathChat)\\.6\\.player\\.(tsz1|tsz2|tsz3|td1|td2|td3|tsc1|tsc2|tsc3)$")) %>%
-  pivot_longer(cols = -participant.code, names_to = "variable", values_to = "value") %>%
-  filter(!is.na(value)) %>%
+new_rounds_final <- new_data_processing %>%
+  # Füge Order hinzu
+  left_join(order_summary_new, by = c("participant.code", "task", "comm")) %>%
+  # Füge rundenweise Mediatoren hinzu
+  left_join(stress_new, by = c("participant.code", "task", "comm", "round")) %>%
+  left_join(info_sharing_new, by = c("participant.code", "task", "comm", "round")) %>%
+  left_join(sync_new, by = c("participant.code", "task", "comm", "round")) %>%
+  left_join(arousal_new, by = c("participant.code", "task", "comm", "round")) %>%
+  left_join(valence_new, by = c("participant.code", "task", "comm", "round")) %>%
+  left_join(motivation_new, by = c("participant.code", "task", "comm", "round")) %>%
+  # Füge einmalige Mediatoren hinzu
+  left_join(team_comp_new, by = c("participant.code", "task", "comm")) %>%
+  left_join(team_motiv_new, by = c("participant.code", "task", "comm")) %>%
+  # Erweitere Communication Labels
   mutate(
-    comm_raw = case_when(
-      grepl("Jitsi", variable) ~ "Jitsi",
-      grepl("Chat", variable) ~ "Chat"
-    )
-  ) %>%
-  # Spaltenname korrigiert - KORRIGIERT
-  dplyr::rename(participant.code = participant.code) %>%
-  group_by(participant.code, comm_raw) %>%
-  summarise(team_composition_value = mean(value, na.rm = TRUE), .groups = "drop")
-
-# Team Motivation
-tm_current <- data %>%
-  select(participant.code, 
-         matches("(mathJitsi|mathChat)\\.6\\.player\\.(te1|te2|te3)$")) %>%
-  pivot_longer(cols = -participant.code, names_to = "variable", values_to = "value") %>%
-  filter(!is.na(value)) %>%
-  mutate(
-    comm_raw = case_when(
-      grepl("Jitsi", variable) ~ "Jitsi",
-      grepl("Chat", variable) ~ "Chat"
-    )
-  ) %>%
-  # Spaltenname korrigiert - KORRIGIERT
-  dplyr::rename(participant.code = participant.code) %>%
-  group_by(participant.code, comm_raw) %>%
-  summarise(team_motivation_value = mean(value, na.rm = TRUE), .groups = "drop")
-
-# 2.4 Kombiniere mit Flow Scores und erstelle finalen aktuellen Datensatz
-current_rounds_prepared <- flow_clean %>%
-  filter(task == "Math") %>%
-  # Füge Order-Mapping hinzu - NEU HINZUGEFÜGT
-  left_join(order_mapping, by = "participant.code") %>%
-  group_by(participant.code, comm) %>%
-  arrange(participant.code, comm) %>%
-  mutate(
-    round_raw = row_number(),
-    round = round_raw - 2
-  ) %>%
-  filter(round_raw >= 3) %>%
-  ungroup() %>%
-  mutate(
-    # Erweitere comm Variable
     comm = case_when(
       comm == "Jitsi" ~ "Together_Jitsi",
       comm == "Chat" ~ "Together_Chat",
       TRUE ~ comm
-    ),
-    comm_raw = case_when(
-      comm == "Together_Jitsi" ~ "Jitsi",
-      comm == "Together_Chat" ~ "Chat",
-      TRUE ~ NA_character_
     )
   ) %>%
-  # Füge rundenweise Mediatoren hinzu
-  left_join(current_stress, by = c("participant.code", "comm_raw", "round")) %>%
-  left_join(current_arousal, by = c("participant.code", "comm_raw", "round")) %>%
-  left_join(current_valence, by = c("participant.code", "comm_raw", "round")) %>%
-  left_join(current_ind_motiv, by = c("participant.code", "comm_raw", "round")) %>%
-  left_join(current_info_sharing, by = c("participant.code", "comm_raw", "round")) %>%
-  left_join(current_sync, by = c("participant.code", "comm_raw", "round")) %>%
-  select(participant.code, team_id, comm, task, difficulty, round,
+  dplyr::select(participant.code, team_id, comm, task, difficulty, round, order,
          flow_score, stress_value, individual_motivation_value, 
          valence_value, arousal_value, information_sharing_value, 
-         synchronization_value)
+         synchronization_value, team_composition_value, team_motivation_value)
 
-# Einmalige Mediatoren für aktuellen Datensatz
-current_final_prepared <- tc_current %>%
-  left_join(tm_current, by = c("participant.code", "comm_raw")) %>%
-  mutate(
-    comm = case_when(
-      comm_raw == "Jitsi" ~ "Together_Jitsi",
-      comm_raw == "Chat" ~ "Together_Chat",
-      TRUE ~ NA_character_
-    ),
-    task = "Math"
-  ) %>%
-  select(participant.code, comm, task, team_composition_value, team_motivation_value)
-
-# Team ID hinzufügen
-current_final_prepared <- current_final_prepared %>%
-  left_join(
-    flow_clean %>% 
-      filter(task == "Math") %>%
-      select(participant.code, team_id) %>%
-      distinct(),
-    by = "participant.code"
-  )
+print(paste("Neue Daten korrekt aufbereitet:", nrow(new_rounds_final), "Beobachtungen"))
 
 # ================================================================================
-# TEIL 3: DATENSÄTZE KOMBINIEREN
+# TEIL 3: FINALE INTEGRATION
 # ================================================================================
 
-# 3.1 Rundenweise Daten kombinieren
-combined_rounds <- bind_rows(
-  old_rounds_prepared,
-  current_rounds_prepared
-) %>%
-  mutate(
-    # Erstelle Faktor mit sinnvoller Reihenfolge
-    comm = factor(comm, levels = c("Alone", "Together_None", "Together_Chat", "Together_Jitsi"))
-  )
+print("--- FINALE INTEGRATION ---")
 
-# 3.2 Einmalige Daten kombinieren
-combined_final <- bind_rows(
-  old_final_prepared,
-  current_final_prepared
+# Kombiniere korrigierte Datensätze
+integrated_data <- bind_rows(
+  old_rounds_final,
+  new_rounds_final
 ) %>%
   mutate(
     comm = factor(comm, levels = c("Alone", "Together_None", "Together_Chat", "Together_Jitsi"))
   )
 
-# 3.3 Finale Integration
-# Füge einmalige Mediatoren zu den rundenweisen Daten hinzu - KORRIGIERT
-integrated_data <- combined_rounds %>%
-  left_join(
-    combined_final %>% select(participant.code, comm, team_composition_value, team_motivation_value),
-    by = c("participant.code", "comm")
-  )
+print(paste("Integrierte Daten:", nrow(integrated_data), "Beobachtungen"))
 
 # ================================================================================
 # TEIL 4: DESKRIPTIVE STATISTIKEN
@@ -4470,6 +4592,17 @@ print("5. Post-hoc Kontraste zur Untersuchung spezifischer Hypothesen")
 # write.csv(integrated_data, "integrated_mediation_data.csv", row.names = FALSE)
 ```
 
+Structural differences between the communication treatments
+
+```{r}
+
+```
+
+Structural differences between the task types
+
+```{r}
+
+```
 
 Regression of flow on familiarity scores
 
