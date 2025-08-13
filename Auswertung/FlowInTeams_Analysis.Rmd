@@ -7637,6 +7637,1741 @@ if(within_subjects_complete == total_participants && between_subjects_clean == t
 print("\nMixed-Design Factorial Analyse abgeschlossen! 🎯")
 ```
 
+Analysis of team performance (Math)
+
+```{r}
+# Math Performance Analysis für Masterarbeit
+# Analysiert Team-Performance basierend auf Action Logs
+
+library(dplyr)
+library(stringr)
+library(jsonlite)
+
+# 1. Daten laden und vorbereiten
+# Annahme: dein Datensatz heißt 'data'
+# data <- read.csv("your_data_file.csv")  # oder read.xlsx() etc.
+
+# team_id ist bereits vorhanden (Format: session_team, z.B. eft5z7p2_P82P6RXPWR)
+# Keine Umbennenung nötig
+
+# 2. Einen Teilnehmer pro Team auswählen (da Action Logs team-weise identisch)
+team_data <- data %>%
+  group_by(team_id) %>%
+  slice(1) %>%  # Nimmt den ersten Teilnehmer pro Team
+  ungroup()
+
+# 3. Math Order und Schwierigkeitsgrad-Mapping - FIXED
+math_data <- team_data %>%
+  select(participant.code, team_id, math_order,
+         mathJitsi.3.player.action_log, mathJitsi.4.player.action_log, 
+         mathJitsi.5.player.action_log, mathJitsi.6.player.action_log,
+         mathChat.3.player.action_log, mathChat.4.player.action_log, 
+         mathChat.5.player.action_log, mathChat.6.player.action_log) %>%
+  # Identifiziere Condition basierend auf nicht-leeren Logs
+  mutate(
+    has_jitsi = !is.na(mathJitsi.3.player.action_log) & mathJitsi.3.player.action_log != "",
+    has_chat = !is.na(mathChat.3.player.action_log) & mathChat.3.player.action_log != "",
+    condition = case_when(
+      has_jitsi ~ "jitsi",
+      has_chat ~ "chat", 
+      TRUE ~ "unknown"
+    )
+  ) %>%
+  # Robuste Extraktion der Schwierigkeitsgrade
+  rowwise() %>%
+  mutate(
+    # Extrahiere alle 4 Elemente direkt aus dem Vektor
+    difficulty_round3 = if(length(math_order) >= 1) math_order[1] else NA_character_,
+    difficulty_round4 = if(length(math_order) >= 2) math_order[2] else NA_character_,
+    difficulty_round5 = if(length(math_order) >= 3) math_order[3] else NA_character_,
+    difficulty_round6 = if(length(math_order) >= 4) math_order[4] else NA_character_
+  ) %>%
+  ungroup() %>%
+  # Mappe Buchstaben zu lesbaren Namen
+  mutate(
+    difficulty_round3 = case_when(
+      difficulty_round3 == "B" ~ "Easy",
+      difficulty_round3 == "A" ~ "Optimal_Selected", 
+      difficulty_round3 == "F" ~ "Optimal_Calibrated",
+      difficulty_round3 == "O" ~ "Hard",
+      is.na(difficulty_round3) ~ "Missing",
+      TRUE ~ paste("Unknown:", difficulty_round3)
+    ),
+    difficulty_round4 = case_when(
+      difficulty_round4 == "B" ~ "Easy",
+      difficulty_round4 == "A" ~ "Optimal_Selected",
+      difficulty_round4 == "F" ~ "Optimal_Calibrated", 
+      difficulty_round4 == "O" ~ "Hard",
+      is.na(difficulty_round4) ~ "Missing",
+      TRUE ~ paste("Unknown:", difficulty_round4)
+    ),
+    difficulty_round5 = case_when(
+      difficulty_round5 == "B" ~ "Easy",
+      difficulty_round5 == "A" ~ "Optimal_Selected",
+      difficulty_round5 == "F" ~ "Optimal_Calibrated",
+      difficulty_round5 == "O" ~ "Hard", 
+      is.na(difficulty_round5) ~ "Missing",
+      TRUE ~ paste("Unknown:", difficulty_round5)
+    ),
+    difficulty_round6 = case_when(
+      difficulty_round6 == "B" ~ "Easy",
+      difficulty_round6 == "A" ~ "Optimal_Selected",
+      difficulty_round6 == "F" ~ "Optimal_Calibrated",
+      difficulty_round6 == "O" ~ "Hard",
+      is.na(difficulty_round6) ~ "Missing",
+      TRUE ~ paste("Unknown:", difficulty_round6)
+    )
+  )
+
+# DEBUG: Schaue dir math_order an
+cat("=== MATH ORDER DEBUG ===\n")
+cat("Typ von math_order:", class(math_data$math_order[1]), "\n")
+cat("Länge von math_order[1]:", length(math_data$math_order[1]), "\n")
+cat("Erste 3 math_order Werte:\n")
+for (i in 1:min(3, nrow(math_data))) {
+  cat("Team", i, "- math_order:", paste(math_data$math_order[i], collapse=", "), "\n")
+  cat("  Länge:", length(math_data$math_order[i]), "\n")
+}
+
+# Check der Schwierigkeitsgrad-Extraktion
+cat("\n=== DIFFICULTY MAPPING CHECK ===\n")
+sample_mapping <- math_data %>% 
+  select(team_id, difficulty_round3, difficulty_round4, difficulty_round5, difficulty_round6) %>%
+  head(5)
+print(sample_mapping)
+
+# Korrigierte Debug-Funktion - kompatibel mit älteren R-Versionen
+debug_action_log <- function(action_log, log_name = "unknown") {
+  cat("=== DEBUG", log_name, "===\n")
+  if (is.na(action_log) || is.null(action_log)) {
+    cat("Log ist NA oder NULL\n")
+    return()
+  }
+  if (action_log == "") {
+    cat("Log ist leer\n") 
+    return()
+  }
+  
+  cat("Log Länge:", nchar(action_log), "\n")
+  cat("Erste 300 Zeichen:", substr(action_log, 1, 300), "\n")
+  
+  # Parse Events (Semikolon-getrennt)
+  clean_log <- str_replace(action_log, "^;", "")
+  event_parts <- str_split(clean_log, ";\\[")[[1]]
+  events <- sapply(event_parts, function(x) {
+    if (!str_detect(x, "^\\[")) {  # str_detect statt str_starts_with
+      x <- paste0("[", x)
+    }
+    x <- str_replace(x, "\\]$", "")
+    x <- str_replace(x, "^\\[", "")
+    return(x)
+  })
+  
+  cat("Gefundene Events:", length(events), "\n")
+  
+  # Zeige Trial-Paare (trialStart + submit/timeUp)
+  trial_count <- 0
+  for (i in seq_along(events)) {
+    if (str_detect(events[i], "trialStart")) {
+      trial_count <- trial_count + 1
+      cat(paste0("\n--- TRIAL ", trial_count, " ---\n"))
+      cat("Aufgabenstellung:", substr(events[i], 1, 100), "...\n")
+      
+      # Suche das zugehörige submit/timeUp
+      if (i + 1 <= length(events) && str_detect(events[i + 1], "submit|timeUp")) {
+        cat("Antworten:", substr(events[i + 1], 1, 100), "...\n")
+      } else {
+        cat("FEHLER: Kein submit/timeUp nach trialStart gefunden!\n")
+      }
+    }
+  }
+  
+  cat(paste0("\nGesamt gefundene Trials: ", trial_count, "\n"))
+  cat("========================\n")
+}
+
+# Verbesserte Parser-Funktion für Action Logs
+parse_team_performance <- function(action_log) {
+  if (is.na(action_log) || action_log == "" || is.null(action_log)) {
+    return(list(
+      total_trials = 0,
+      successful_trials = 0,
+      success_rate = NA,
+      avg_response_time = NA,
+      timeup_count = 0
+    ))
+  }
+  
+  tryCatch({
+    # Extrahiere alle Events - verbessertes Pattern
+    events <- str_extract_all(action_log, "\\[([^\\[\\]]+)\\]")[[1]]
+    
+    if (length(events) == 0) {
+      return(list(
+        total_trials = 0,
+        successful_trials = 0,
+        success_rate = NA,
+        avg_response_time = NA,
+        timeup_count = 0
+      ))
+    }
+    
+    trials <- list()
+    current_trial_start <- NULL
+    
+    for (i in seq_along(events)) {
+      event_str <- events[i]
+      
+      # Bereinige Event String
+      event_clean <- str_replace_all(event_str, "^\\[|\\]$", "")
+      
+      # Splitte vorsichtiger - JSON kann Kommas in Strings haben
+      if (str_detect(event_clean, "trialStart")) {
+        # trialStart Event
+        parts <- str_split(event_clean, ",", n = 3)[[1]]
+        if (length(parts) >= 2) {
+          timestamp <- suppressWarnings(as.numeric(str_trim(parts[1])))
+          if (!is.na(timestamp)) {
+            current_trial_start <- timestamp
+          }
+        }
+      } else if (str_detect(event_clean, "submit|timeUp") && !is.null(current_trial_start)) {
+        # submit/timeUp Event
+        parts <- str_split(event_clean, ",")[[1]]
+        
+        if (length(parts) >= 14) {  # Mindestens timestamp + eventType + 12 values
+          timestamp <- suppressWarnings(as.numeric(str_trim(parts[1])))
+          event_type <- str_trim(parts[2])
+          
+          # Extrahiere die numerischen Werte (ab Position 3)
+          numeric_parts <- parts[3:length(parts)]
+          values <- suppressWarnings(as.numeric(str_trim(numeric_parts)))
+          
+          # Entferne NAs und prüfe ob genug Werte da sind
+          valid_values <- values[!is.na(values)]
+          
+          if (length(valid_values) >= 12 && !is.na(timestamp)) {
+            correct_sum1 <- valid_values[8]   # correctSum1
+            correct_sum2 <- valid_values[10]  # correctSum2  
+            correct_sum3 <- valid_values[12]  # correctSum3
+            
+            # Prüfe ob die Werte valide sind (0 oder 1)
+            if (all(c(correct_sum1, correct_sum2, correct_sum3) %in% c(0, 1))) {
+              team_success <- (correct_sum1 + correct_sum2 + correct_sum3) >= 2
+              response_time <- timestamp - current_trial_start
+              
+              trials[[length(trials) + 1]] <- list(
+                success = team_success,
+                response_time = response_time,
+                event_type = event_type,
+                correct_sums = c(correct_sum1, correct_sum2, correct_sum3)
+              )
+            }
+          }
+        }
+        current_trial_start <- NULL
+      }
+    }
+    
+    if (length(trials) == 0) {
+      return(list(
+        total_trials = 0,
+        successful_trials = 0,
+        success_rate = NA,
+        avg_response_time = NA,
+        timeup_count = 0
+      ))
+    }
+    
+    # Berechne Statistiken
+    total_trials <- length(trials)
+    successful_trials <- sum(sapply(trials, function(t) t$success))
+    success_rate <- if (total_trials > 0) successful_trials / total_trials else NA
+    response_times <- sapply(trials, function(t) t$response_time)
+    avg_response_time <- mean(response_times, na.rm = TRUE)
+    timeup_count <- sum(sapply(trials, function(t) t$event_type == "timeUp"))
+    
+    return(list(
+      total_trials = total_trials,
+      successful_trials = successful_trials,
+      success_rate = success_rate,
+      avg_response_time = avg_response_time,
+      timeup_count = timeup_count
+    ))
+    
+  }, error = function(e) {
+    return(list(
+      total_trials = 0,
+      successful_trials = 0,
+      success_rate = NA,
+      avg_response_time = NA,
+      timeup_count = 0
+    ))
+  })
+}
+
+# ARBEITS-VERSION: Kopiere die funktionierende Logik aus test_parse_detailed
+parse_team_performance <- function(action_log) {
+  if (is.na(action_log) || action_log == "" || is.null(action_log)) {
+    return(list(
+      total_trials = 0,
+      successful_trials = 0,
+      success_rate = NA,
+      avg_response_time = NA,
+      timeup_count = 0
+    ))
+  }
+  
+  tryCatch({
+    # EXAKT die gleiche Logik wie in test_parse_detailed!
+    clean_log <- str_replace(action_log, "^;", "")
+    event_parts <- str_split(clean_log, ";\\[")[[1]]
+    events <- sapply(event_parts, function(x) {
+      if (!str_detect(x, "^\\[")) {
+        x <- paste0("[", x)
+      }
+      x <- str_replace(x, "\\]$", "")
+      x <- str_replace(x, "^\\[", "")
+      return(x)
+    })
+    
+    if (length(events) == 0) {
+      return(list(
+        total_trials = 0,
+        successful_trials = 0,
+        success_rate = NA,
+        avg_response_time = NA,
+        timeup_count = 0
+      ))
+    }
+    
+    trials <- list()
+    current_trial_start <- NULL
+    
+    for (i in seq_along(events)) {
+      event_clean <- events[i]
+      
+      if (str_detect(event_clean, "trialStart")) {
+        timestamp_match <- str_extract(event_clean, "^\\d+")
+        if (!is.na(timestamp_match)) {
+          current_trial_start <- as.numeric(timestamp_match)
+        }
+        
+      } else if (str_detect(event_clean, "submit|timeUp") && !is.null(current_trial_start)) {
+        parts <- str_split(event_clean, ",")[[1]]
+        
+        if (length(parts) >= 14) {
+          timestamp <- suppressWarnings(as.numeric(str_trim(parts[1])))
+          event_type <- str_trim(parts[2])
+          values <- suppressWarnings(as.numeric(str_trim(parts[3:14])))
+          
+          if (!is.na(timestamp) && length(values) == 12) {
+            correct_sum1 <- values[8]   # correctSum1
+            correct_sum2 <- values[10]  # correctSum2  
+            correct_sum3 <- values[12]  # correctSum3
+            
+            # Behandle NAs als 0
+            correct_sum1 <- ifelse(is.na(correct_sum1), 0, correct_sum1)
+            correct_sum2 <- ifelse(is.na(correct_sum2), 0, correct_sum2)
+            correct_sum3 <- ifelse(is.na(correct_sum3), 0, correct_sum3)
+            
+            if (all(c(correct_sum1, correct_sum2, correct_sum3) %in% c(0, 1))) {
+              team_success <- (correct_sum1 + correct_sum2 + correct_sum3) >= 2
+              response_time <- timestamp - current_trial_start
+              
+              trials[[length(trials) + 1]] <- list(
+                success = team_success,
+                response_time = response_time,
+                event_type = event_type,
+                correct_sums = c(correct_sum1, correct_sum2, correct_sum3)
+              )
+            }
+          }
+        }
+        current_trial_start <- NULL
+      }
+    }
+    
+    if (length(trials) == 0) {
+      return(list(
+        total_trials = 0,
+        successful_trials = 0,
+        success_rate = NA,
+        avg_response_time = NA,
+        timeup_count = 0
+      ))
+    }
+    
+    # Berechne Statistiken
+    total_trials <- length(trials)
+    successful_trials <- sum(sapply(trials, function(t) t$success))
+    success_rate <- if (total_trials > 0) successful_trials / total_trials else NA
+    response_times <- sapply(trials, function(t) t$response_time)
+    avg_response_time <- mean(response_times, na.rm = TRUE)
+    timeup_count <- sum(sapply(trials, function(t) t$event_type == "timeUp"))
+    
+    return(list(
+      total_trials = total_trials,
+      successful_trials = successful_trials,
+      success_rate = success_rate,
+      avg_response_time = avg_response_time,
+      timeup_count = timeup_count
+    ))
+    
+  }, error = function(e) {
+    return(list(
+      total_trials = 0,
+      successful_trials = 0,
+      success_rate = NA,
+      avg_response_time = NA,
+      timeup_count = 0
+    ))
+  })
+}
+
+# SOFORT TESTEN:
+cat("=== TESTE KORRIGIERTE PARSER-FUNKTION ===\n")
+test_result_fixed <- parse_team_performance(team_data$mathJitsi.3.player.action_log[1])
+print(test_result_fixed)
+
+# 5. Performance für alle Math-Runden berechnen - CONDITION-AWARE
+math_performance <- math_data %>%
+  rowwise() %>%
+  mutate(
+    # Nur die relevante Condition berechnen
+    round3_performance = case_when(
+      condition == "jitsi" ~ list(parse_team_performance(mathJitsi.3.player.action_log)),
+      condition == "chat" ~ list(parse_team_performance(mathChat.3.player.action_log)),
+      TRUE ~ list(list(total_trials = 0, successful_trials = 0, success_rate = NA, avg_response_time = NA, timeup_count = 0))
+    ),
+    round4_performance = case_when(
+      condition == "jitsi" ~ list(parse_team_performance(mathJitsi.4.player.action_log)),
+      condition == "chat" ~ list(parse_team_performance(mathChat.4.player.action_log)),
+      TRUE ~ list(list(total_trials = 0, successful_trials = 0, success_rate = NA, avg_response_time = NA, timeup_count = 0))
+    ),
+    round5_performance = case_when(
+      condition == "jitsi" ~ list(parse_team_performance(mathJitsi.5.player.action_log)),
+      condition == "chat" ~ list(parse_team_performance(mathChat.5.player.action_log)),
+      TRUE ~ list(list(total_trials = 0, successful_trials = 0, success_rate = NA, avg_response_time = NA, timeup_count = 0))
+    ),
+    round6_performance = case_when(
+      condition == "jitsi" ~ list(parse_team_performance(mathJitsi.6.player.action_log)),
+      condition == "chat" ~ list(parse_team_performance(mathChat.6.player.action_log)),
+      TRUE ~ list(list(total_trials = 0, successful_trials = 0, success_rate = NA, avg_response_time = NA, timeup_count = 0))
+    )
+  ) %>%
+  ungroup()
+
+# 6. Performance-Metriken nach SCHWIERIGKEITSGRAD gruppieren
+reorganize_by_difficulty <- function(df) {
+  # Erstelle leere Listen für jede Schwierigkeitsstufe
+  difficulty_data <- df %>%
+    mutate(
+      easy_performance = list(list(total_trials = 0, successful_trials = 0, success_rate = NA, avg_response_time = NA, timeup_count = 0)),
+      optimal_selected_performance = list(list(total_trials = 0, successful_trials = 0, success_rate = NA, avg_response_time = NA, timeup_count = 0)),
+      optimal_calibrated_performance = list(list(total_trials = 0, successful_trials = 0, success_rate = NA, avg_response_time = NA, timeup_count = 0)),
+      hard_performance = list(list(total_trials = 0, successful_trials = 0, success_rate = NA, avg_response_time = NA, timeup_count = 0))
+    )
+  
+  # Ordne jede Runde der entsprechenden Schwierigkeitsstufe zu
+  for (i in 1:nrow(difficulty_data)) {
+    # Runde 3
+    if (difficulty_data$difficulty_round3[i] == "Easy") {
+      difficulty_data$easy_performance[[i]] <- difficulty_data$round3_performance[[i]]
+    } else if (difficulty_data$difficulty_round3[i] == "Optimal_Selected") {
+      difficulty_data$optimal_selected_performance[[i]] <- difficulty_data$round3_performance[[i]]
+    } else if (difficulty_data$difficulty_round3[i] == "Optimal_Calibrated") {
+      difficulty_data$optimal_calibrated_performance[[i]] <- difficulty_data$round3_performance[[i]]
+    } else if (difficulty_data$difficulty_round3[i] == "Hard") {
+      difficulty_data$hard_performance[[i]] <- difficulty_data$round3_performance[[i]]
+    }
+    
+    # Runde 4
+    if (difficulty_data$difficulty_round4[i] == "Easy") {
+      difficulty_data$easy_performance[[i]] <- difficulty_data$round4_performance[[i]]
+    } else if (difficulty_data$difficulty_round4[i] == "Optimal_Selected") {
+      difficulty_data$optimal_selected_performance[[i]] <- difficulty_data$round4_performance[[i]]
+    } else if (difficulty_data$difficulty_round4[i] == "Optimal_Calibrated") {
+      difficulty_data$optimal_calibrated_performance[[i]] <- difficulty_data$round4_performance[[i]]
+    } else if (difficulty_data$difficulty_round4[i] == "Hard") {
+      difficulty_data$hard_performance[[i]] <- difficulty_data$round4_performance[[i]]
+    }
+    
+    # Runde 5
+    if (difficulty_data$difficulty_round5[i] == "Easy") {
+      difficulty_data$easy_performance[[i]] <- difficulty_data$round5_performance[[i]]
+    } else if (difficulty_data$difficulty_round5[i] == "Optimal_Selected") {
+      difficulty_data$optimal_selected_performance[[i]] <- difficulty_data$round5_performance[[i]]
+    } else if (difficulty_data$difficulty_round5[i] == "Optimal_Calibrated") {
+      difficulty_data$optimal_calibrated_performance[[i]] <- difficulty_data$round5_performance[[i]]
+    } else if (difficulty_data$difficulty_round5[i] == "Hard") {
+      difficulty_data$hard_performance[[i]] <- difficulty_data$round5_performance[[i]]
+    }
+    
+    # Runde 6
+    if (difficulty_data$difficulty_round6[i] == "Easy") {
+      difficulty_data$easy_performance[[i]] <- difficulty_data$round6_performance[[i]]
+    } else if (difficulty_data$difficulty_round6[i] == "Optimal_Selected") {
+      difficulty_data$optimal_selected_performance[[i]] <- difficulty_data$round6_performance[[i]]
+    } else if (difficulty_data$difficulty_round6[i] == "Optimal_Calibrated") {
+      difficulty_data$optimal_calibrated_performance[[i]] <- difficulty_data$round6_performance[[i]]
+    } else if (difficulty_data$difficulty_round6[i] == "Hard") {
+      difficulty_data$hard_performance[[i]] <- difficulty_data$round6_performance[[i]]
+    }
+  }
+  
+  return(difficulty_data)
+}
+
+# Anwenden der Neuorganisation
+math_performance_by_difficulty <- reorganize_by_difficulty(math_performance)
+
+# 7. Extrahiere Performance-Metriken nach Schwierigkeitsgrad
+extract_difficulty_metrics <- function(df) {
+  df %>%
+    mutate(
+      # Easy Performance
+      easy_success_rate = sapply(easy_performance, function(x) x$success_rate),
+      easy_trials = sapply(easy_performance, function(x) x$total_trials),
+      easy_timeups = sapply(easy_performance, function(x) x$timeup_count),
+      easy_avg_time = sapply(easy_performance, function(x) x$avg_response_time),
+      
+      # Optimal Selected Performance
+      optimal_selected_success_rate = sapply(optimal_selected_performance, function(x) x$success_rate),
+      optimal_selected_trials = sapply(optimal_selected_performance, function(x) x$total_trials),
+      optimal_selected_timeups = sapply(optimal_selected_performance, function(x) x$timeup_count),
+      optimal_selected_avg_time = sapply(optimal_selected_performance, function(x) x$avg_response_time),
+      
+      # Optimal Calibrated Performance  
+      optimal_calibrated_success_rate = sapply(optimal_calibrated_performance, function(x) x$success_rate),
+      optimal_calibrated_trials = sapply(optimal_calibrated_performance, function(x) x$total_trials),
+      optimal_calibrated_timeups = sapply(optimal_calibrated_performance, function(x) x$timeup_count),
+      optimal_calibrated_avg_time = sapply(optimal_calibrated_performance, function(x) x$avg_response_time),
+      
+      # Hard Performance
+      hard_success_rate = sapply(hard_performance, function(x) x$success_rate),
+      hard_trials = sapply(hard_performance, function(x) x$total_trials),
+      hard_timeups = sapply(hard_performance, function(x) x$timeup_count),
+      hard_avg_time = sapply(hard_performance, function(x) x$avg_response_time)
+    ) %>%
+    # Entferne die list-columns 
+    select(-c(easy_performance, optimal_selected_performance, optimal_calibrated_performance, hard_performance,
+              round3_performance, round4_performance, round5_performance, round6_performance))
+}
+
+# Anwenden der Metrik-Extraktion
+final_math_performance <- extract_difficulty_metrics(math_performance_by_difficulty)
+
+# 7. Aggregierte Metriken berechnen - CONDITION-AWARE
+final_math_performance <- final_math_performance %>%
+  mutate(
+    # Durchschnittliche Success Rate über alle 4 Runden
+    avg_success_rate = rowMeans(select(., starts_with("round") & ends_with("success_rate")), na.rm = TRUE),
+    
+    # Durchschnittliche Response Time über alle 4 Runden
+    avg_response_time = rowMeans(select(., starts_with("round") & ends_with("avg_time")), na.rm = TRUE),
+    
+    # Gesamtanzahl TimeUps über alle 4 Runden
+    total_timeups = rowSums(select(., starts_with("round") & ends_with("timeups")), na.rm = TRUE),
+    
+    # Gesamtanzahl Trials über alle 4 Runden
+    total_trials = rowSums(select(., starts_with("round") & ends_with("trials")), na.rm = TRUE)
+  )
+
+# 8. Sauberen Datensatz für weitere Analysen erstellen - DIFFICULTY-BASED
+math_analysis_data <- final_math_performance %>%
+  select(participant.code, team_id, condition, 
+         # Schwierigkeitsgrad-Zuordnung (für Referenz)
+         difficulty_round3, difficulty_round4, difficulty_round5, difficulty_round6,
+         # Performance nach Schwierigkeitsgrad
+         easy_success_rate, easy_trials, easy_timeups, easy_avg_time,
+         optimal_selected_success_rate, optimal_selected_trials, optimal_selected_timeups, optimal_selected_avg_time,
+         optimal_calibrated_success_rate, optimal_calibrated_trials, optimal_calibrated_timeups, optimal_calibrated_avg_time,
+         hard_success_rate, hard_trials, hard_timeups, hard_avg_time)
+
+# 9. Schwierigkeitsgrad-basierte Analysen und Überblick
+cat("=== MATH PERFORMANCE BY DIFFICULTY ===\n")
+cat("Anzahl Teams:", nrow(math_analysis_data), "\n")
+
+# Getrennte Analysen pro Condition
+jitsi_teams <- math_analysis_data %>% filter(condition == "jitsi")
+chat_teams <- math_analysis_data %>% filter(condition == "chat")
+
+cat("Jitsi Teams:", nrow(jitsi_teams), "\n")
+cat("Chat Teams:", nrow(chat_teams), "\n")
+
+# Performance nach Schwierigkeitsgrad
+difficulties <- c("easy", "optimal_selected", "optimal_calibrated", "hard")
+
+cat("\n=== SUCCESS RATES BY DIFFICULTY ===\n")
+for (diff in difficulties) {
+  success_var <- paste0(diff, "_success_rate")
+  
+  if (nrow(jitsi_teams) > 0) {
+    jitsi_rate <- mean(jitsi_teams[[success_var]], na.rm = TRUE)
+    cat(sprintf("%-20s Jitsi: %.3f", paste(diff, ":"), jitsi_rate), "\n")
+  }
+  
+  if (nrow(chat_teams) > 0) {
+    chat_rate <- mean(chat_teams[[success_var]], na.rm = TRUE)  
+    cat(sprintf("%-20s Chat:  %.3f", "", chat_rate), "\n")
+  }
+  cat("\n")
+}
+
+cat("=== RESPONSE TIMES BY DIFFICULTY (ms) ===\n")
+for (diff in difficulties) {
+  time_var <- paste0(diff, "_avg_time")
+  
+  if (nrow(jitsi_teams) > 0) {
+    jitsi_time <- mean(jitsi_teams[[time_var]], na.rm = TRUE)
+    cat(sprintf("%-20s Jitsi: %.0f", paste(diff, ":"), jitsi_time), "\n")
+  }
+  
+  if (nrow(chat_teams) > 0) {
+    chat_time <- mean(chat_teams[[time_var]], na.rm = TRUE)
+    cat(sprintf("%-20s Chat:  %.0f", "", chat_time), "\n")
+  }
+  cat("\n")
+}
+
+# Zeige ersten Datensatz
+head(math_analysis_data)
+
+# Optional: Speichere den Datensatz
+# write.csv(math_analysis_data, "math_performance_analysis.csv", row.names = FALSE)
+```
+
+Analysis of team performance (Hidden Profile)
+
+```{r}
+# Math Performance Analysis für Masterarbeit
+# Analysiert Team-Performance basierend auf Action Logs
+
+library(dplyr)
+library(stringr)
+library(jsonlite)
+
+# 1. Daten laden und vorbereiten
+# Annahme: dein Datensatz heißt 'data'
+# data <- read.csv("your_data_file.csv")  # oder read.xlsx() etc.
+
+# team_id ist bereits vorhanden (Format: session_team, z.B. eft5z7p2_P82P6RXPWR)
+# Keine Umbennenung nötig
+
+# 2. Einen Teilnehmer pro Team auswählen (da Action Logs team-weise identisch)
+team_data <- data %>%
+  group_by(team_id) %>%
+  slice(1) %>%  # Nimmt den ersten Teilnehmer pro Team
+  ungroup()
+
+# 3. Math Order und Schwierigkeitsgrad-Mapping - FIXED
+math_data <- team_data %>%
+  select(participant.code, team_id, math_order,
+         mathJitsi.3.player.action_log, mathJitsi.4.player.action_log, 
+         mathJitsi.5.player.action_log, mathJitsi.6.player.action_log,
+         mathChat.3.player.action_log, mathChat.4.player.action_log, 
+         mathChat.5.player.action_log, mathChat.6.player.action_log) %>%
+  # Identifiziere Condition basierend auf nicht-leeren Logs
+  mutate(
+    has_jitsi = !is.na(mathJitsi.3.player.action_log) & mathJitsi.3.player.action_log != "",
+    has_chat = !is.na(mathChat.3.player.action_log) & mathChat.3.player.action_log != "",
+    condition = case_when(
+      has_jitsi ~ "jitsi",
+      has_chat ~ "chat", 
+      TRUE ~ "unknown"
+    )
+  ) %>%
+  # Robuste Extraktion der Schwierigkeitsgrade
+  rowwise() %>%
+  mutate(
+    # Extrahiere alle 4 Elemente direkt aus dem Vektor
+    difficulty_round3 = if(length(math_order) >= 1) math_order[1] else NA_character_,
+    difficulty_round4 = if(length(math_order) >= 2) math_order[2] else NA_character_,
+    difficulty_round5 = if(length(math_order) >= 3) math_order[3] else NA_character_,
+    difficulty_round6 = if(length(math_order) >= 4) math_order[4] else NA_character_
+  ) %>%
+  ungroup() %>%
+  # Mappe Buchstaben zu lesbaren Namen
+  mutate(
+    difficulty_round3 = case_when(
+      difficulty_round3 == "B" ~ "Easy",
+      difficulty_round3 == "A" ~ "Optimal_Selected", 
+      difficulty_round3 == "F" ~ "Optimal_Calibrated",
+      difficulty_round3 == "O" ~ "Hard",
+      is.na(difficulty_round3) ~ "Missing",
+      TRUE ~ paste("Unknown:", difficulty_round3)
+    ),
+    difficulty_round4 = case_when(
+      difficulty_round4 == "B" ~ "Easy",
+      difficulty_round4 == "A" ~ "Optimal_Selected",
+      difficulty_round4 == "F" ~ "Optimal_Calibrated", 
+      difficulty_round4 == "O" ~ "Hard",
+      is.na(difficulty_round4) ~ "Missing",
+      TRUE ~ paste("Unknown:", difficulty_round4)
+    ),
+    difficulty_round5 = case_when(
+      difficulty_round5 == "B" ~ "Easy",
+      difficulty_round5 == "A" ~ "Optimal_Selected",
+      difficulty_round5 == "F" ~ "Optimal_Calibrated",
+      difficulty_round5 == "O" ~ "Hard", 
+      is.na(difficulty_round5) ~ "Missing",
+      TRUE ~ paste("Unknown:", difficulty_round5)
+    ),
+    difficulty_round6 = case_when(
+      difficulty_round6 == "B" ~ "Easy",
+      difficulty_round6 == "A" ~ "Optimal_Selected",
+      difficulty_round6 == "F" ~ "Optimal_Calibrated",
+      difficulty_round6 == "O" ~ "Hard",
+      is.na(difficulty_round6) ~ "Missing",
+      TRUE ~ paste("Unknown:", difficulty_round6)
+    )
+  )
+
+# DEBUG: Schaue dir math_order an
+cat("=== MATH ORDER DEBUG ===\n")
+cat("Typ von math_order:", class(math_data$math_order[1]), "\n")
+cat("Länge von math_order[1]:", length(math_data$math_order[1]), "\n")
+cat("Erste 3 math_order Werte:\n")
+for (i in 1:min(3, nrow(math_data))) {
+  cat("Team", i, "- math_order:", paste(math_data$math_order[i], collapse=", "), "\n")
+  cat("  Länge:", length(math_data$math_order[i]), "\n")
+}
+
+# Check der Schwierigkeitsgrad-Extraktion
+cat("\n=== DIFFICULTY MAPPING CHECK ===\n")
+sample_mapping <- math_data %>% 
+  select(team_id, difficulty_round3, difficulty_round4, difficulty_round5, difficulty_round6) %>%
+  head(5)
+print(sample_mapping)
+
+# Korrigierte Debug-Funktion - kompatibel mit älteren R-Versionen
+debug_action_log <- function(action_log, log_name = "unknown") {
+  cat("=== DEBUG", log_name, "===\n")
+  if (is.na(action_log) || is.null(action_log)) {
+    cat("Log ist NA oder NULL\n")
+    return()
+  }
+  if (action_log == "") {
+    cat("Log ist leer\n") 
+    return()
+  }
+  
+  cat("Log Länge:", nchar(action_log), "\n")
+  cat("Erste 300 Zeichen:", substr(action_log, 1, 300), "\n")
+  
+  # Parse Events (Semikolon-getrennt)
+  clean_log <- str_replace(action_log, "^;", "")
+  event_parts <- str_split(clean_log, ";\\[")[[1]]
+  events <- sapply(event_parts, function(x) {
+    if (!str_detect(x, "^\\[")) {  # str_detect statt str_starts_with
+      x <- paste0("[", x)
+    }
+    x <- str_replace(x, "\\]$", "")
+    x <- str_replace(x, "^\\[", "")
+    return(x)
+  })
+  
+  cat("Gefundene Events:", length(events), "\n")
+  
+  # Zeige Trial-Paare (trialStart + submit/timeUp)
+  trial_count <- 0
+  for (i in seq_along(events)) {
+    if (str_detect(events[i], "trialStart")) {
+      trial_count <- trial_count + 1
+      cat(paste0("\n--- TRIAL ", trial_count, " ---\n"))
+      cat("Aufgabenstellung:", substr(events[i], 1, 100), "...\n")
+      
+      # Suche das zugehörige submit/timeUp
+      if (i + 1 <= length(events) && str_detect(events[i + 1], "submit|timeUp")) {
+        cat("Antworten:", substr(events[i + 1], 1, 100), "...\n")
+      } else {
+        cat("FEHLER: Kein submit/timeUp nach trialStart gefunden!\n")
+      }
+    }
+  }
+  
+  cat(paste0("\nGesamt gefundene Trials: ", trial_count, "\n"))
+  cat("========================\n")
+}
+
+# Verbesserte Parser-Funktion für Action Logs
+parse_team_performance <- function(action_log) {
+  if (is.na(action_log) || action_log == "" || is.null(action_log)) {
+    return(list(
+      total_trials = 0,
+      successful_trials = 0,
+      success_rate = NA,
+      avg_response_time = NA,
+      timeup_count = 0
+    ))
+  }
+  
+  tryCatch({
+    # Extrahiere alle Events - verbessertes Pattern
+    events <- str_extract_all(action_log, "\\[([^\\[\\]]+)\\]")[[1]]
+    
+    if (length(events) == 0) {
+      return(list(
+        total_trials = 0,
+        successful_trials = 0,
+        success_rate = NA,
+        avg_response_time = NA,
+        timeup_count = 0
+      ))
+    }
+    
+    trials <- list()
+    current_trial_start <- NULL
+    
+    for (i in seq_along(events)) {
+      event_str <- events[i]
+      
+      # Bereinige Event String
+      event_clean <- str_replace_all(event_str, "^\\[|\\]$", "")
+      
+      # Splitte vorsichtiger - JSON kann Kommas in Strings haben
+      if (str_detect(event_clean, "trialStart")) {
+        # trialStart Event
+        parts <- str_split(event_clean, ",", n = 3)[[1]]
+        if (length(parts) >= 2) {
+          timestamp <- suppressWarnings(as.numeric(str_trim(parts[1])))
+          if (!is.na(timestamp)) {
+            current_trial_start <- timestamp
+          }
+        }
+      } else if (str_detect(event_clean, "submit|timeUp") && !is.null(current_trial_start)) {
+        # submit/timeUp Event
+        parts <- str_split(event_clean, ",")[[1]]
+        
+        if (length(parts) >= 14) {  # Mindestens timestamp + eventType + 12 values
+          timestamp <- suppressWarnings(as.numeric(str_trim(parts[1])))
+          event_type <- str_trim(parts[2])
+          
+          # Extrahiere die numerischen Werte (ab Position 3)
+          numeric_parts <- parts[3:length(parts)]
+          values <- suppressWarnings(as.numeric(str_trim(numeric_parts)))
+          
+          # Entferne NAs und prüfe ob genug Werte da sind
+          valid_values <- values[!is.na(values)]
+          
+          if (length(valid_values) >= 12 && !is.na(timestamp)) {
+            correct_sum1 <- valid_values[8]   # correctSum1
+            correct_sum2 <- valid_values[10]  # correctSum2  
+            correct_sum3 <- valid_values[12]  # correctSum3
+            
+            # Prüfe ob die Werte valide sind (0 oder 1)
+            if (all(c(correct_sum1, correct_sum2, correct_sum3) %in% c(0, 1))) {
+              team_success <- (correct_sum1 + correct_sum2 + correct_sum3) >= 2
+              response_time <- timestamp - current_trial_start
+              
+              trials[[length(trials) + 1]] <- list(
+                success = team_success,
+                response_time = response_time,
+                event_type = event_type,
+                correct_sums = c(correct_sum1, correct_sum2, correct_sum3)
+              )
+            }
+          }
+        }
+        current_trial_start <- NULL
+      }
+    }
+    
+    if (length(trials) == 0) {
+      return(list(
+        total_trials = 0,
+        successful_trials = 0,
+        success_rate = NA,
+        avg_response_time = NA,
+        timeup_count = 0
+      ))
+    }
+    
+    # Berechne Statistiken
+    total_trials <- length(trials)
+    successful_trials <- sum(sapply(trials, function(t) t$success))
+    success_rate <- if (total_trials > 0) successful_trials / total_trials else NA
+    response_times <- sapply(trials, function(t) t$response_time)
+    avg_response_time <- mean(response_times, na.rm = TRUE)
+    timeup_count <- sum(sapply(trials, function(t) t$event_type == "timeUp"))
+    
+    return(list(
+      total_trials = total_trials,
+      successful_trials = successful_trials,
+      success_rate = success_rate,
+      avg_response_time = avg_response_time,
+      timeup_count = timeup_count
+    ))
+    
+  }, error = function(e) {
+    return(list(
+      total_trials = 0,
+      successful_trials = 0,
+      success_rate = NA,
+      avg_response_time = NA,
+      timeup_count = 0
+    ))
+  })
+}
+
+# ARBEITS-VERSION: Kopiere die funktionierende Logik aus test_parse_detailed
+parse_team_performance <- function(action_log) {
+  if (is.na(action_log) || action_log == "" || is.null(action_log)) {
+    return(list(
+      total_trials = 0,
+      successful_trials = 0,
+      success_rate = NA,
+      avg_response_time = NA,
+      timeup_count = 0
+    ))
+  }
+  
+  tryCatch({
+    # EXAKT die gleiche Logik wie in test_parse_detailed!
+    clean_log <- str_replace(action_log, "^;", "")
+    event_parts <- str_split(clean_log, ";\\[")[[1]]
+    events <- sapply(event_parts, function(x) {
+      if (!str_detect(x, "^\\[")) {
+        x <- paste0("[", x)
+      }
+      x <- str_replace(x, "\\]$", "")
+      x <- str_replace(x, "^\\[", "")
+      return(x)
+    })
+    
+    if (length(events) == 0) {
+      return(list(
+        total_trials = 0,
+        successful_trials = 0,
+        success_rate = NA,
+        avg_response_time = NA,
+        timeup_count = 0
+      ))
+    }
+    
+    trials <- list()
+    current_trial_start <- NULL
+    
+    for (i in seq_along(events)) {
+      event_clean <- events[i]
+      
+      if (str_detect(event_clean, "trialStart")) {
+        timestamp_match <- str_extract(event_clean, "^\\d+")
+        if (!is.na(timestamp_match)) {
+          current_trial_start <- as.numeric(timestamp_match)
+        }
+        
+      } else if (str_detect(event_clean, "submit|timeUp") && !is.null(current_trial_start)) {
+        parts <- str_split(event_clean, ",")[[1]]
+        
+        if (length(parts) >= 14) {
+          timestamp <- suppressWarnings(as.numeric(str_trim(parts[1])))
+          event_type <- str_trim(parts[2])
+          values <- suppressWarnings(as.numeric(str_trim(parts[3:14])))
+          
+          if (!is.na(timestamp) && length(values) == 12) {
+            correct_sum1 <- values[8]   # correctSum1
+            correct_sum2 <- values[10]  # correctSum2  
+            correct_sum3 <- values[12]  # correctSum3
+            
+            # Behandle NAs als 0
+            correct_sum1 <- ifelse(is.na(correct_sum1), 0, correct_sum1)
+            correct_sum2 <- ifelse(is.na(correct_sum2), 0, correct_sum2)
+            correct_sum3 <- ifelse(is.na(correct_sum3), 0, correct_sum3)
+            
+            if (all(c(correct_sum1, correct_sum2, correct_sum3) %in% c(0, 1))) {
+              team_success <- (correct_sum1 + correct_sum2 + correct_sum3) >= 2
+              response_time <- timestamp - current_trial_start
+              
+              trials[[length(trials) + 1]] <- list(
+                success = team_success,
+                response_time = response_time,
+                event_type = event_type,
+                correct_sums = c(correct_sum1, correct_sum2, correct_sum3)
+              )
+            }
+          }
+        }
+        current_trial_start <- NULL
+      }
+    }
+    
+    if (length(trials) == 0) {
+      return(list(
+        total_trials = 0,
+        successful_trials = 0,
+        success_rate = NA,
+        avg_response_time = NA,
+        timeup_count = 0
+      ))
+    }
+    
+    # Berechne Statistiken
+    total_trials <- length(trials)
+    successful_trials <- sum(sapply(trials, function(t) t$success))
+    success_rate <- if (total_trials > 0) successful_trials / total_trials else NA
+    response_times <- sapply(trials, function(t) t$response_time)
+    avg_response_time <- mean(response_times, na.rm = TRUE)
+    timeup_count <- sum(sapply(trials, function(t) t$event_type == "timeUp"))
+    
+    return(list(
+      total_trials = total_trials,
+      successful_trials = successful_trials,
+      success_rate = success_rate,
+      avg_response_time = avg_response_time,
+      timeup_count = timeup_count
+    ))
+    
+  }, error = function(e) {
+    return(list(
+      total_trials = 0,
+      successful_trials = 0,
+      success_rate = NA,
+      avg_response_time = NA,
+      timeup_count = 0
+    ))
+  })
+}
+
+# SOFORT TESTEN:
+cat("=== TESTE KORRIGIERTE PARSER-FUNKTION ===\n")
+test_result_fixed <- parse_team_performance(team_data$mathJitsi.3.player.action_log[1])
+print(test_result_fixed)
+
+# 5. Performance für alle Math-Runden berechnen - CONDITION-AWARE
+math_performance <- math_data %>%
+  rowwise() %>%
+  mutate(
+    # Nur die relevante Condition berechnen
+    round3_performance = case_when(
+      condition == "jitsi" ~ list(parse_team_performance(mathJitsi.3.player.action_log)),
+      condition == "chat" ~ list(parse_team_performance(mathChat.3.player.action_log)),
+      TRUE ~ list(list(total_trials = 0, successful_trials = 0, success_rate = NA, avg_response_time = NA, timeup_count = 0))
+    ),
+    round4_performance = case_when(
+      condition == "jitsi" ~ list(parse_team_performance(mathJitsi.4.player.action_log)),
+      condition == "chat" ~ list(parse_team_performance(mathChat.4.player.action_log)),
+      TRUE ~ list(list(total_trials = 0, successful_trials = 0, success_rate = NA, avg_response_time = NA, timeup_count = 0))
+    ),
+    round5_performance = case_when(
+      condition == "jitsi" ~ list(parse_team_performance(mathJitsi.5.player.action_log)),
+      condition == "chat" ~ list(parse_team_performance(mathChat.5.player.action_log)),
+      TRUE ~ list(list(total_trials = 0, successful_trials = 0, success_rate = NA, avg_response_time = NA, timeup_count = 0))
+    ),
+    round6_performance = case_when(
+      condition == "jitsi" ~ list(parse_team_performance(mathJitsi.6.player.action_log)),
+      condition == "chat" ~ list(parse_team_performance(mathChat.6.player.action_log)),
+      TRUE ~ list(list(total_trials = 0, successful_trials = 0, success_rate = NA, avg_response_time = NA, timeup_count = 0))
+    )
+  ) %>%
+  ungroup()
+
+# 6. Performance-Metriken nach SCHWIERIGKEITSGRAD gruppieren
+reorganize_by_difficulty <- function(df) {
+  # Erstelle leere Listen für jede Schwierigkeitsstufe
+  difficulty_data <- df %>%
+    mutate(
+      easy_performance = list(list(total_trials = 0, successful_trials = 0, success_rate = NA, avg_response_time = NA, timeup_count = 0)),
+      optimal_selected_performance = list(list(total_trials = 0, successful_trials = 0, success_rate = NA, avg_response_time = NA, timeup_count = 0)),
+      optimal_calibrated_performance = list(list(total_trials = 0, successful_trials = 0, success_rate = NA, avg_response_time = NA, timeup_count = 0)),
+      hard_performance = list(list(total_trials = 0, successful_trials = 0, success_rate = NA, avg_response_time = NA, timeup_count = 0))
+    )
+  
+  # Ordne jede Runde der entsprechenden Schwierigkeitsstufe zu
+  for (i in 1:nrow(difficulty_data)) {
+    # Runde 3
+    if (difficulty_data$difficulty_round3[i] == "Easy") {
+      difficulty_data$easy_performance[[i]] <- difficulty_data$round3_performance[[i]]
+    } else if (difficulty_data$difficulty_round3[i] == "Optimal_Selected") {
+      difficulty_data$optimal_selected_performance[[i]] <- difficulty_data$round3_performance[[i]]
+    } else if (difficulty_data$difficulty_round3[i] == "Optimal_Calibrated") {
+      difficulty_data$optimal_calibrated_performance[[i]] <- difficulty_data$round3_performance[[i]]
+    } else if (difficulty_data$difficulty_round3[i] == "Hard") {
+      difficulty_data$hard_performance[[i]] <- difficulty_data$round3_performance[[i]]
+    }
+    
+    # Runde 4
+    if (difficulty_data$difficulty_round4[i] == "Easy") {
+      difficulty_data$easy_performance[[i]] <- difficulty_data$round4_performance[[i]]
+    } else if (difficulty_data$difficulty_round4[i] == "Optimal_Selected") {
+      difficulty_data$optimal_selected_performance[[i]] <- difficulty_data$round4_performance[[i]]
+    } else if (difficulty_data$difficulty_round4[i] == "Optimal_Calibrated") {
+      difficulty_data$optimal_calibrated_performance[[i]] <- difficulty_data$round4_performance[[i]]
+    } else if (difficulty_data$difficulty_round4[i] == "Hard") {
+      difficulty_data$hard_performance[[i]] <- difficulty_data$round4_performance[[i]]
+    }
+    
+    # Runde 5
+    if (difficulty_data$difficulty_round5[i] == "Easy") {
+      difficulty_data$easy_performance[[i]] <- difficulty_data$round5_performance[[i]]
+    } else if (difficulty_data$difficulty_round5[i] == "Optimal_Selected") {
+      difficulty_data$optimal_selected_performance[[i]] <- difficulty_data$round5_performance[[i]]
+    } else if (difficulty_data$difficulty_round5[i] == "Optimal_Calibrated") {
+      difficulty_data$optimal_calibrated_performance[[i]] <- difficulty_data$round5_performance[[i]]
+    } else if (difficulty_data$difficulty_round5[i] == "Hard") {
+      difficulty_data$hard_performance[[i]] <- difficulty_data$round5_performance[[i]]
+    }
+    
+    # Runde 6
+    if (difficulty_data$difficulty_round6[i] == "Easy") {
+      difficulty_data$easy_performance[[i]] <- difficulty_data$round6_performance[[i]]
+    } else if (difficulty_data$difficulty_round6[i] == "Optimal_Selected") {
+      difficulty_data$optimal_selected_performance[[i]] <- difficulty_data$round6_performance[[i]]
+    } else if (difficulty_data$difficulty_round6[i] == "Optimal_Calibrated") {
+      difficulty_data$optimal_calibrated_performance[[i]] <- difficulty_data$round6_performance[[i]]
+    } else if (difficulty_data$difficulty_round6[i] == "Hard") {
+      difficulty_data$hard_performance[[i]] <- difficulty_data$round6_performance[[i]]
+    }
+  }
+  
+  return(difficulty_data)
+}
+
+# Anwenden der Neuorganisation
+math_performance_by_difficulty <- reorganize_by_difficulty(math_performance)
+
+# 7. Extrahiere Performance-Metriken nach Schwierigkeitsgrad
+extract_difficulty_metrics <- function(df) {
+  df %>%
+    mutate(
+      # Easy Performance
+      easy_success_rate = sapply(easy_performance, function(x) x$success_rate),
+      easy_trials = sapply(easy_performance, function(x) x$total_trials),
+      easy_timeups = sapply(easy_performance, function(x) x$timeup_count),
+      easy_avg_time = sapply(easy_performance, function(x) x$avg_response_time),
+      
+      # Optimal Selected Performance
+      optimal_selected_success_rate = sapply(optimal_selected_performance, function(x) x$success_rate),
+      optimal_selected_trials = sapply(optimal_selected_performance, function(x) x$total_trials),
+      optimal_selected_timeups = sapply(optimal_selected_performance, function(x) x$timeup_count),
+      optimal_selected_avg_time = sapply(optimal_selected_performance, function(x) x$avg_response_time),
+      
+      # Optimal Calibrated Performance  
+      optimal_calibrated_success_rate = sapply(optimal_calibrated_performance, function(x) x$success_rate),
+      optimal_calibrated_trials = sapply(optimal_calibrated_performance, function(x) x$total_trials),
+      optimal_calibrated_timeups = sapply(optimal_calibrated_performance, function(x) x$timeup_count),
+      optimal_calibrated_avg_time = sapply(optimal_calibrated_performance, function(x) x$avg_response_time),
+      
+      # Hard Performance
+      hard_success_rate = sapply(hard_performance, function(x) x$success_rate),
+      hard_trials = sapply(hard_performance, function(x) x$total_trials),
+      hard_timeups = sapply(hard_performance, function(x) x$timeup_count),
+      hard_avg_time = sapply(hard_performance, function(x) x$avg_response_time)
+    ) %>%
+    # Entferne die list-columns 
+    select(-c(easy_performance, optimal_selected_performance, optimal_calibrated_performance, hard_performance,
+              round3_performance, round4_performance, round5_performance, round6_performance))
+}
+
+# Anwenden der Metrik-Extraktion
+final_math_performance <- extract_difficulty_metrics(math_performance_by_difficulty)
+
+# 7. Aggregierte Metriken berechnen - CONDITION-AWARE
+final_math_performance <- final_math_performance %>%
+  mutate(
+    # Durchschnittliche Success Rate über alle 4 Runden
+    avg_success_rate = rowMeans(select(., starts_with("round") & ends_with("success_rate")), na.rm = TRUE),
+    
+    # Durchschnittliche Response Time über alle 4 Runden
+    avg_response_time = rowMeans(select(., starts_with("round") & ends_with("avg_time")), na.rm = TRUE),
+    
+    # Gesamtanzahl TimeUps über alle 4 Runden
+    total_timeups = rowSums(select(., starts_with("round") & ends_with("timeups")), na.rm = TRUE),
+    
+    # Gesamtanzahl Trials über alle 4 Runden
+    total_trials = rowSums(select(., starts_with("round") & ends_with("trials")), na.rm = TRUE)
+  )
+
+# 8. Sauberen Datensatz für weitere Analysen erstellen - DIFFICULTY-BASED
+math_analysis_data <- final_math_performance %>%
+  select(participant.code, team_id, condition, 
+         # Schwierigkeitsgrad-Zuordnung (für Referenz)
+         difficulty_round3, difficulty_round4, difficulty_round5, difficulty_round6,
+         # Performance nach Schwierigkeitsgrad
+         easy_success_rate, easy_trials, easy_timeups, easy_avg_time,
+         optimal_selected_success_rate, optimal_selected_trials, optimal_selected_timeups, optimal_selected_avg_time,
+         optimal_calibrated_success_rate, optimal_calibrated_trials, optimal_calibrated_timeups, optimal_calibrated_avg_time,
+         hard_success_rate, hard_trials, hard_timeups, hard_avg_time)
+
+# 9. Schwierigkeitsgrad-basierte Analysen und Überblick
+cat("=== MATH PERFORMANCE BY DIFFICULTY ===\n")
+cat("Anzahl Teams:", nrow(math_analysis_data), "\n")
+
+# Getrennte Analysen pro Condition
+jitsi_teams <- math_analysis_data %>% filter(condition == "jitsi")
+chat_teams <- math_analysis_data %>% filter(condition == "chat")
+
+cat("Jitsi Teams:", nrow(jitsi_teams), "\n")
+cat("Chat Teams:", nrow(chat_teams), "\n")
+
+# Performance nach Schwierigkeitsgrad
+difficulties <- c("easy", "optimal_selected", "optimal_calibrated", "hard")
+
+cat("\n=== SUCCESS RATES BY DIFFICULTY ===\n")
+for (diff in difficulties) {
+  success_var <- paste0(diff, "_success_rate")
+  
+  if (nrow(jitsi_teams) > 0) {
+    jitsi_rate <- mean(jitsi_teams[[success_var]], na.rm = TRUE)
+    cat(sprintf("%-20s Jitsi: %.3f", paste(diff, ":"), jitsi_rate), "\n")
+  }
+  
+  if (nrow(chat_teams) > 0) {
+    chat_rate <- mean(chat_teams[[success_var]], na.rm = TRUE)  
+    cat(sprintf("%-20s Chat:  %.3f", "", chat_rate), "\n")
+  }
+  cat("\n")
+}
+
+cat("=== RESPONSE TIMES BY DIFFICULTY (ms) ===\n")
+for (diff in difficulties) {
+  time_var <- paste0(diff, "_avg_time")
+  
+  if (nrow(jitsi_teams) > 0) {
+    jitsi_time <- mean(jitsi_teams[[time_var]], na.rm = TRUE)
+    cat(sprintf("%-20s Jitsi: %.0f", paste(diff, ":"), jitsi_time), "\n")
+  }
+  
+  if (nrow(chat_teams) > 0) {
+    chat_time <- mean(chat_teams[[time_var]], na.rm = TRUE)
+    cat(sprintf("%-20s Chat:  %.0f", "", chat_time), "\n")
+  }
+  cat("\n")
+}
+
+# Zeige ersten Datensatz
+head(math_analysis_data)
+
+# Optional: Speichere den Math-Datensatz
+# write.csv(math_analysis_data, "math_performance_analysis.csv", row.names = FALSE)
+
+# =============================================================================
+# HIDDEN PROFILE ANALYSIS
+# =============================================================================
+
+# HP Parser-Funktion für choice-basierte Performance - FIXED für Listen
+parse_hp_performance <- function(team_data_row, condition, hp_order) {
+  # Korrekte Antworten für jedes Project - KORRIGIERT
+  correct_answers <- list(
+    project1 = "Project A: EcoTrack",     # MED/Optimal
+    project2 = "Project B: InsightFlow",   # EASY
+    project3 = "Project D: AuditAce"      # HARD
+  )
+  
+  tryCatch({
+    # Robuste Extraktion des hp_order Vektors
+    if (is.list(hp_order) && length(hp_order) > 0) {
+      hp_vector <- hp_order[[1]]  # Extrahiere den Vektor aus der Liste
+    } else if (is.vector(hp_order)) {
+      hp_vector <- hp_order
+    } else {
+      hp_vector <- as.character(hp_order)
+    }
+    
+    round_results <- list()
+    
+    # Analysiere jede Runde (1-3)
+    for (round in 1:3) {
+      # Robuste Extraktion der Schwierigkeit
+      if (length(hp_vector) >= round) {
+        difficulty <- as.character(hp_vector[round])
+        difficulty <- str_trim(difficulty)  # Entferne Whitespace
+      } else {
+        difficulty <- NA_character_
+      }
+      
+      # Mappe Schwierigkeit zu Project
+      project_num <- case_when(
+        difficulty == "EASY" ~ 2,
+        difficulty == "MED" ~ 1, 
+        difficulty == "HARD" ~ 3,
+        TRUE ~ NA_real_
+      )
+      
+      if (!is.na(project_num)) {
+        # Erstelle Variablennamen für diese Runde
+        var_name <- if (condition == "jitsi") {
+          paste0("HiddenProfile_Jitsi.", round, ".player.project", project_num, "_choice")
+        } else {
+          paste0("HiddenProfile_Chat.", round, ".player.project", project_num, "_choice")
+        }
+        
+        # Hole den Wert
+        team_choice <- team_data_row[[var_name]]
+        correct_answer <- correct_answers[[paste0("project", project_num)]]
+        
+        # Vereinfachte Punktevergabe (später erweitern für alle 3 Spieler)
+        points <- if (!is.na(team_choice) && !is.null(team_choice) && team_choice != "") {
+          if (team_choice == correct_answer) {
+            15  # Korrekte Antwort
+          } else {
+            10  # Falsche aber einheitliche Antwort (vereinfacht)
+          }
+        } else {
+          0  # Keine Antwort
+        }
+        
+        round_results[[paste0("round", round, "_points")]] <- points
+        round_results[[paste0("round", round, "_difficulty")]] <- difficulty
+        round_results[[paste0("round", round, "_choice")]] <- team_choice
+        round_results[[paste0("round", round, "_correct")]] <- correct_answer
+        round_results[[paste0("round", round, "_variable")]] <- var_name
+      } else {
+        round_results[[paste0("round", round, "_points")]] <- NA
+        round_results[[paste0("round", round, "_difficulty")]] <- difficulty
+        round_results[[paste0("round", round, "_variable")]] <- NA
+        round_results[[paste0("round", round, "_choice")]] <- NA
+        round_results[[paste0("round", round, "_correct")]] <- NA
+      }
+    }
+    
+    # Mappe Punkte zu Schwierigkeitsgraden
+    easy_points <- NA
+    optimal_points <- NA 
+    hard_points <- NA
+    
+    for (round in 1:3) {
+      difficulty <- round_results[[paste0("round", round, "_difficulty")]]
+      points <- round_results[[paste0("round", round, "_points")]]
+      
+      if (!is.na(difficulty)) {
+        if (difficulty == "EASY") easy_points <- points
+        else if (difficulty == "MED") optimal_points <- points
+        else if (difficulty == "HARD") hard_points <- points
+      }
+    }
+    
+    return(list(
+      round1_points = round_results$round1_points,
+      round2_points = round_results$round2_points, 
+      round3_points = round_results$round3_points,
+      round1_variable = round_results$round1_variable,
+      round2_variable = round_results$round2_variable,
+      round3_variable = round_results$round3_variable,
+      round1_choice = round_results$round1_choice,
+      round2_choice = round_results$round2_choice,
+      round3_choice = round_results$round3_choice,
+      easy_points = easy_points,
+      optimal_points = optimal_points,
+      hard_points = hard_points
+    ))
+    
+  }, error = function(e) {
+    cat("ERROR in parse_hp_performance:", e$message, "\n")
+    return(list(
+      round1_points = NA, round2_points = NA, round3_points = NA,
+      round1_variable = NA, round2_variable = NA, round3_variable = NA,
+      round1_choice = NA, round2_choice = NA, round3_choice = NA,
+      easy_points = NA, optimal_points = NA, hard_points = NA
+    ))
+  })
+}
+
+# =============================================================================
+# VOLLSTÄNDIGE HIDDEN PROFILE ANALYSE FÜR ALLE TEAMS
+# =============================================================================
+
+# HP Daten für alle Teams erstellen
+hp_data <- team_data %>%
+  select(participant.code, team_id, hp_order, 
+         starts_with("HiddenProfile")) %>%
+  # Condition identifizieren (gleich wie bei Math)
+  mutate(
+    has_jitsi = !is.na(team_data$mathJitsi.3.player.action_log) & team_data$mathJitsi.3.player.action_log != "",
+    has_chat = !is.na(team_data$mathChat.3.player.action_log) & team_data$mathChat.3.player.action_log != "",
+    condition = case_when(
+      has_jitsi ~ "jitsi",
+      has_chat ~ "chat", 
+      TRUE ~ "unknown"
+    )
+  ) %>%
+  # HP Performance für alle Teams berechnen
+  rowwise() %>%
+  mutate(
+    hp_performance = list(parse_hp_performance(cur_data(), condition, hp_order))
+  ) %>%
+  ungroup()
+
+# Extrahiere HP Performance Metriken
+extract_hp_metrics <- function(df) {
+  df %>%
+    mutate(
+      # Performance pro Runde
+      hp_round1_points = sapply(hp_performance, function(x) x$round1_points),
+      hp_round2_points = sapply(hp_performance, function(x) x$round2_points),
+      hp_round3_points = sapply(hp_performance, function(x) x$round3_points),
+      
+      # Performance pro Schwierigkeitsgrad
+      hp_easy_points = sapply(hp_performance, function(x) x$easy_points),
+      hp_optimal_points = sapply(hp_performance, function(x) x$optimal_points),
+      hp_hard_points = sapply(hp_performance, function(x) x$hard_points)
+    ) %>%
+    # Entferne list-columns
+    select(-hp_performance)
+}
+
+# Anwenden der HP Metrik-Extraktion
+final_hp_performance <- extract_hp_metrics(hp_data)
+
+# Erstelle HP Analysis Datensatz
+hp_analysis_data <- final_hp_performance %>%
+  select(participant.code, team_id, condition,
+         hp_round1_points, hp_round2_points, hp_round3_points,
+         hp_easy_points, hp_optimal_points, hp_hard_points)
+
+# HP Performance Analyse
+cat("=== HIDDEN PROFILE PERFORMANCE ANALYSIS ===\n")
+cat("Anzahl Teams:", nrow(hp_analysis_data), "\n")
+
+# Getrennte Analysen pro Condition
+jitsi_teams_hp <- hp_analysis_data %>% filter(condition == "jitsi")
+chat_teams_hp <- hp_analysis_data %>% filter(condition == "chat")
+
+cat("Jitsi Teams:", nrow(jitsi_teams_hp), "\n")
+cat("Chat Teams:", nrow(chat_teams_hp), "\n")
+
+# Performance nach Schwierigkeitsgrad
+hp_difficulties <- c("easy", "optimal", "hard")
+
+cat("\n=== AVERAGE POINTS BY DIFFICULTY (HP) ===\n")
+for (diff in hp_difficulties) {
+  points_var <- paste0("hp_", diff, "_points")
+  
+  if (nrow(jitsi_teams_hp) > 0) {
+    jitsi_avg <- mean(jitsi_teams_hp[[points_var]], na.rm = TRUE)
+    cat(sprintf("%-10s Jitsi: %.1f", paste(diff, ":"), jitsi_avg), "\n")
+  }
+  
+  if (nrow(chat_teams_hp) > 0) {
+    chat_avg <- mean(chat_teams_hp[[points_var]], na.rm = TRUE)  
+    cat(sprintf("%-10s Chat:  %.1f", "", chat_avg), "\n")
+  }
+  cat("\n")
+}
+
+# =============================================================================
+# ERWEITERTE HP ANALYSE: DISKUSSIONSZEITEN & NEXT-BUTTON
+# =============================================================================
+
+# Erweiterte HP Parser-Funktion mit Zeitanalyse
+parse_hp_extended <- function(team_data_row, condition, hp_order) {
+  # Basis HP Performance
+  base_performance <- parse_hp_performance(team_data_row, condition, hp_order)
+  
+  # Zeit-Analyse für jede Runde
+  time_analysis <- list()
+  
+  tryCatch({
+    # Robuste hp_order Extraktion
+    if (is.list(hp_order) && length(hp_order) > 0) {
+      hp_vector <- hp_order[[1]]
+    } else {
+      hp_vector <- hp_order
+    }
+    
+    for (round in 1:3) {
+      # Zeit-Variablen für diese Runde - ZURÜCK ZU DISCUSSION
+      load_time_var <- if (condition == "jitsi") {
+        paste0("HiddenProfile_Jitsi.", round, ".player.task_load_time_discussion")
+      } else {
+        paste0("HiddenProfile_Chat.", round, ".player.task_load_time_discussion") 
+      }
+      
+      end_time_var <- if (condition == "jitsi") {
+        paste0("HiddenProfile_Jitsi.", round, ".player.task_end_time_discussion")
+      } else {
+        paste0("HiddenProfile_Chat.", round, ".player.task_end_time_discussion")
+      }
+      
+      # Next-Button Variable (falls vorhanden)
+      next_button_var <- if (condition == "jitsi") {
+        paste0("HiddenProfile_Jitsi.", round, ".player.next_ready")
+      } else {
+        paste0("HiddenProfile_Chat.", round, ".player.next_ready")
+      }
+      
+      # Hole Werte
+      load_time_raw <- team_data_row[[load_time_var]]
+      end_time_raw <- team_data_row[[end_time_var]]
+      next_button_raw <- team_data_row[[next_button_var]]
+      
+      # Konvertiere zu numerischen Werten
+      load_time <- as.numeric(if (is.list(load_time_raw)) unlist(load_time_raw)[1] else load_time_raw)
+      end_time <- as.numeric(if (is.list(end_time_raw)) unlist(end_time_raw)[1] else end_time_raw)
+      next_button <- if (!is.null(next_button_raw) && !is.na(next_button_raw)) {
+        as.logical(if (is.list(next_button_raw)) unlist(next_button_raw)[1] else next_button_raw)
+      } else FALSE
+      
+      # Berechne Diskussionszeit (in Millisekunden)
+      discussion_time <- if (!is.na(load_time) && !is.na(end_time) && end_time > load_time) {
+        end_time - load_time
+      } else NA
+      
+      # Schwierigkeit für diese Runde
+      difficulty <- if (length(hp_vector) >= round) {
+        str_trim(as.character(hp_vector[round]))
+      } else NA
+      
+      time_analysis[[paste0("round", round, "_load_time")]] <- load_time
+      time_analysis[[paste0("round", round, "_end_time")]] <- end_time
+      time_analysis[[paste0("round", round, "_discussion_time")]] <- discussion_time
+      time_analysis[[paste0("round", round, "_next_button")]] <- next_button
+      time_analysis[[paste0("round", round, "_difficulty")]] <- difficulty
+    }
+    
+    # Mappe zu Schwierigkeitsgraden
+    easy_discussion_time <- NA
+    optimal_discussion_time <- NA
+    hard_discussion_time <- NA
+    easy_next_button <- NA
+    optimal_next_button <- NA
+    hard_next_button <- NA
+    
+    for (round in 1:3) {
+      difficulty <- time_analysis[[paste0("round", round, "_difficulty")]]
+      discussion_time <- time_analysis[[paste0("round", round, "_discussion_time")]]
+      next_button <- time_analysis[[paste0("round", round, "_next_button")]]
+      
+      if (!is.na(difficulty)) {
+        if (difficulty == "EASY") {
+          easy_discussion_time <- discussion_time
+          easy_next_button <- next_button
+        } else if (difficulty == "MED") {
+          optimal_discussion_time <- discussion_time
+          optimal_next_button <- next_button
+        } else if (difficulty == "HARD") {
+          hard_discussion_time <- discussion_time
+          hard_next_button <- next_button
+        }
+      }
+    }
+    
+    # Kombiniere mit base performance
+    extended_performance <- c(base_performance, time_analysis, list(
+      easy_discussion_time = easy_discussion_time,
+      optimal_discussion_time = optimal_discussion_time,
+      hard_discussion_time = hard_discussion_time,
+      easy_next_button = easy_next_button,
+      optimal_next_button = optimal_next_button,
+      hard_next_button = hard_next_button
+    ))
+    
+    return(extended_performance)
+    
+  }, error = function(e) {
+    cat("ERROR in time analysis:", e$message, "\n")
+    return(base_performance)
+  })
+}
+
+# TESTE die erweiterte HP Analyse
+cat("=== HP ZEIT-ANALYSE TEST ===\n")
+
+sample_team <- team_data[1, ]
+sample_condition <- if (!is.na(sample_team$mathJitsi.3.player.action_log) && sample_team$mathJitsi.3.player.action_log != "") "jitsi" else "chat"
+sample_hp_order <- sample_team$hp_order
+
+# Schaue verfügbare Zeit-Variablen an
+time_vars <- names(team_data)[str_detect(names(team_data), "task_.*time|next_ready")]
+cat("Verfügbare Zeit-Variablen (erste 10):\n")
+print(head(time_vars, 10))
+
+# DEBUG: Schaue nach DISCUSSION Zeit-Variablen speziell
+cat("=== DISCUSSION ZEIT-VARIABLEN SUCHE ===\n")
+discussion_vars <- names(team_data)[str_detect(names(team_data), "discussion")]
+cat("Gefundene Discussion-Variablen:\n")
+print(discussion_vars)
+
+# Teste für eine Runde die Zeit-Werte - DISCUSSION VARIABLEN
+for (round in 1:3) {
+  load_var <- paste0("HiddenProfile_Jitsi.", round, ".player.task_load_time_discussion")
+  end_var <- paste0("HiddenProfile_Jitsi.", round, ".player.task_end_time_discussion")
+  next_var <- paste0("HiddenProfile_Jitsi.", round, ".player.next_ready")
+  
+  cat("Runde", round, ":\n")
+  cat("  Suche Variable:", load_var, "\n")
+  cat("  Existiert:", load_var %in% names(team_data), "\n")
+  cat("  Suche Variable:", end_var, "\n") 
+  cat("  Existiert:", end_var %in% names(team_data), "\n")
+  
+  if (load_var %in% names(team_data) && end_var %in% names(team_data)) {
+    load_val <- sample_team[[load_var]]
+    end_val <- sample_team[[end_var]]
+    next_val <- sample_team[[next_var]]
+    
+    cat("  Load time:", toString(load_val), "\n")
+    cat("  End time:", toString(end_val), "\n") 
+    cat("  Next button:", toString(next_val), "\n")
+    
+    # Konvertiere und berechne
+    load_num <- as.numeric(if (is.list(load_val)) unlist(load_val)[1] else load_val)
+    end_num <- as.numeric(if (is.list(end_val)) unlist(end_val)[1] else end_val)
+    
+    if (!is.na(load_num) && !is.na(end_num)) {
+      diff_ms <- end_num - load_num
+      diff_sec <- diff_ms / 1000
+      cat("  Diskussionszeit:", diff_ms, "ms =", round(diff_sec, 1), "Sekunden\n")
+    }
+  } else {
+    cat("  PROBLEM: Variablen existieren nicht!\n")
+  }
+  cat("\n")
+}
+
+cat("=== JETZT VOLLSTÄNDIGE ANALYSE FÜR ALLE TEAMS ===\n")
+
+# HP Daten mit Zeitanalyse für alle Teams erstellen
+hp_data_extended <- team_data %>%
+  select(participant.code, team_id, hp_order, 
+         starts_with("HiddenProfile")) %>%
+  # Condition identifizieren
+  mutate(
+    has_jitsi = !is.na(team_data$mathJitsi.3.player.action_log) & team_data$mathJitsi.3.player.action_log != "",
+    has_chat = !is.na(team_data$mathChat.3.player.action_log) & team_data$mathChat.3.player.action_log != "",
+    condition = case_when(
+      has_jitsi ~ "jitsi",
+      has_chat ~ "chat", 
+      TRUE ~ "unknown"
+    )
+  ) %>%
+  # Erweiterte HP Performance für alle Teams berechnen
+  rowwise() %>%
+  mutate(
+    hp_extended_performance = list(parse_hp_extended(cur_data(), condition, hp_order))
+  ) %>%
+  ungroup()
+
+# Extrahiere erweiterte HP Performance Metriken
+extract_hp_extended_metrics <- function(df) {
+  df %>%
+    mutate(
+      # Basis Performance
+      hp_easy_points = sapply(hp_extended_performance, function(x) x$easy_points),
+      hp_optimal_points = sapply(hp_extended_performance, function(x) x$optimal_points),
+      hp_hard_points = sapply(hp_extended_performance, function(x) x$hard_points),
+      
+      # Diskussionszeiten (in Sekunden konvertiert)
+      hp_easy_discussion_time = sapply(hp_extended_performance, function(x) {
+        time_ms <- x$easy_discussion_time
+        if (!is.null(time_ms) && !is.na(time_ms)) time_ms / 1000 else NA
+      }),
+      hp_optimal_discussion_time = sapply(hp_extended_performance, function(x) {
+        time_ms <- x$optimal_discussion_time
+        if (!is.null(time_ms) && !is.na(time_ms)) time_ms / 1000 else NA
+      }),
+      hp_hard_discussion_time = sapply(hp_extended_performance, function(x) {
+        time_ms <- x$hard_discussion_time
+        if (!is.null(time_ms) && !is.na(time_ms)) time_ms / 1000 else NA
+      }),
+      
+      # Next-Button Nutzung
+      hp_easy_next_button = sapply(hp_extended_performance, function(x) {
+        btn <- x$easy_next_button
+        if (!is.null(btn) && !is.na(btn)) as.logical(btn) else FALSE
+      }),
+      hp_optimal_next_button = sapply(hp_extended_performance, function(x) {
+        btn <- x$optimal_next_button
+        if (!is.null(btn) && !is.na(btn)) as.logical(btn) else FALSE
+      }),
+      hp_hard_next_button = sapply(hp_extended_performance, function(x) {
+        btn <- x$hard_next_button
+        if (!is.null(btn) && !is.na(btn)) as.logical(btn) else FALSE
+      })
+    ) %>%
+    # Entferne list-columns
+    select(-hp_extended_performance)
+}
+
+# Führe die Analyse aus
+final_hp_extended <- extract_hp_extended_metrics(hp_data_extended)
+
+# Erstelle finalen HP Analysis Datensatz
+hp_complete_analysis <- final_hp_extended %>%
+  select(participant.code, team_id, condition,
+         hp_easy_points, hp_optimal_points, hp_hard_points,
+         hp_easy_discussion_time, hp_optimal_discussion_time, hp_hard_discussion_time,
+         hp_easy_next_button, hp_optimal_next_button, hp_hard_next_button)
+
+cat("HP Complete Analysis erstellt! Anzahl Teams:", nrow(hp_complete_analysis), "\n")
+
+# ERWEITERTE HP PERFORMANCE ANALYSE
+cat("\n=== ERWEITERTE HP ANALYSE MIT ZEITMETRIKEN ===\n")
+
+# Getrennte Analysen pro Condition
+jitsi_teams_ext <- hp_complete_analysis %>% filter(condition == "jitsi")
+chat_teams_ext <- hp_complete_analysis %>% filter(condition == "chat")
+
+cat("Jitsi Teams:", nrow(jitsi_teams_ext), "\n")
+cat("Chat Teams:", nrow(chat_teams_ext), "\n")
+
+# Durchschnittliche Diskussionszeiten
+cat("\n=== DURCHSCHNITTLICHE DISKUSSIONSZEITEN (SEKUNDEN) ===\n")
+hp_difficulties <- c("easy", "optimal", "hard")
+
+for (diff in hp_difficulties) {
+  time_var <- paste0("hp_", diff, "_discussion_time")
+  
+  if (nrow(jitsi_teams_ext) > 0) {
+    jitsi_avg_time <- mean(jitsi_teams_ext[[time_var]], na.rm = TRUE)
+    cat(sprintf("%-10s Jitsi: %.1f sec", paste(diff, ":"), jitsi_avg_time), "\n")
+  }
+  
+  if (nrow(chat_teams_ext) > 0) {
+    chat_avg_time <- mean(chat_teams_ext[[time_var]], na.rm = TRUE)  
+    cat(sprintf("%-10s Chat:  %.1f sec", "", chat_avg_time), "\n")
+  }
+  cat("\n")
+}
+
+# Next-Button Nutzungsraten
+cat("=== NEXT-BUTTON NUTZUNGSRATEN (%) ===\n")
+for (diff in hp_difficulties) {
+  button_var <- paste0("hp_", diff, "_next_button")
+  
+  if (nrow(jitsi_teams_ext) > 0) {
+    jitsi_button_rate <- mean(jitsi_teams_ext[[button_var]], na.rm = TRUE) * 100
+    cat(sprintf("%-10s Jitsi: %.1f%%", paste(diff, ":"), jitsi_button_rate), "\n")
+  }
+  
+  if (nrow(chat_teams_ext) > 0) {
+    chat_button_rate <- mean(chat_teams_ext[[button_var]], na.rm = TRUE) * 100
+    cat(sprintf("%-10s Chat:  %.1f%%", "", chat_button_rate), "\n")
+  }
+  cat("\n")
+}
+
+# Performance vs Zeit Korrelationen (für Jitsi Teams)
+if (nrow(jitsi_teams_ext) > 0) {
+  cat("=== PERFORMANCE vs DISKUSSIONSZEIT KORRELATIONEN (JITSI) ===\n")
+  for (diff in hp_difficulties) {
+    points_var <- paste0("hp_", diff, "_points")
+    time_var <- paste0("hp_", diff, "_discussion_time")
+    
+    valid_data <- jitsi_teams_ext[!is.na(jitsi_teams_ext[[points_var]]) & !is.na(jitsi_teams_ext[[time_var]]), ]
+    if (nrow(valid_data) > 2) {
+      correlation <- cor(valid_data[[points_var]], valid_data[[time_var]])
+      cat(sprintf("%-10s r = %.3f", paste(diff, ":"), correlation), "\n")
+    }
+  }
+}
+
+cat("\n=== HP COMPLETE ANALYSIS SAMPLE ===\n")
+head(hp_complete_analysis)
+
+test_extended_result <- parse_hp_extended(sample_team, sample_condition, sample_hp_order)
+cat("Erweiterte HP Analyse Team 1 (Auszug):\n")
+print(list(
+  easy_discussion_time = test_extended_result$easy_discussion_time,
+  optimal_discussion_time = test_extended_result$optimal_discussion_time,
+  hard_discussion_time = test_extended_result$hard_discussion_time,
+  easy_next_button = test_extended_result$easy_next_button,
+  optimal_next_button = test_extended_result$optimal_next_button,
+  hard_next_button = test_extended_result$hard_next_button
+))
+```
+
+
 Regression of flow on familiarity scores
 
 ```{r}
