@@ -33,6 +33,7 @@ data <- read.csv("otree_cleaned1.csv")
 data_old <- read.csv("flow_reports_exp1.csv")
 data_old_rounds <- read.csv("round_reports_exp1.csv")
 data_old_final <- read.csv("final_reports_exp1.csv")
+data_old_performance <- read.csv("00-taskFeatures-All.csv")
 ```
 
 Data quality check
@@ -8835,16 +8836,399 @@ if (nrow(jitsi_teams_ext) > 0) {
 cat("\n=== HP COMPLETE ANALYSIS SAMPLE ===\n")
 head(hp_complete_analysis)
 
-test_extended_result <- parse_hp_extended(sample_team, sample_condition, sample_hp_order)
-cat("Erweiterte HP Analyse Team 1 (Auszug):\n")
-print(list(
-  easy_discussion_time = test_extended_result$easy_discussion_time,
-  optimal_discussion_time = test_extended_result$optimal_discussion_time,
-  hard_discussion_time = test_extended_result$hard_discussion_time,
-  easy_next_button = test_extended_result$easy_next_button,
-  optimal_next_button = test_extended_result$optimal_next_button,
-  hard_next_button = test_extended_result$hard_next_button
-))
+# =============================================================================
+# DATEN EXPORT
+# =============================================================================
+
+cat("\n=== DATEN EXPORT ===\n")
+
+# 1. Math Performance Datensatz exportieren
+cat("Exportiere Math Performance Daten...\n")
+write.csv(math_analysis_data, "math_performance_analysis.csv", row.names = FALSE)
+cat("✓ math_performance_analysis.csv erstellt\n")
+
+# 2. HP Performance Datensatz exportieren  
+cat("Exportiere HP Performance Daten...\n")
+write.csv(hp_complete_analysis, "hp_performance_analysis.csv", row.names = FALSE)
+cat("✓ hp_performance_analysis.csv erstellt\n")
+
+# 3. Kombinierter Datensatz (Math + HP zusammengeführt)
+cat("Erstelle kombinierten Datensatz...\n")
+combined_analysis <- merge(
+  math_analysis_data, 
+  hp_complete_analysis, 
+  by = c("participant.code", "team_id", "condition"),
+  all = TRUE
+)
+
+write.csv(combined_analysis, "combined_performance_analysis.csv", row.names = FALSE)
+cat("✓ combined_performance_analysis.csv erstellt\n")
+
+# 4. Summary-Statistiken exportieren
+cat("Erstelle Summary-Statistiken...\n")
+
+# Math Summary
+math_summary <- data.frame(
+  condition = rep(c("jitsi", "chat"), each = 4),
+  difficulty = rep(c("easy", "optimal_selected", "optimal_calibrated", "hard"), 2),
+  success_rate = c(
+    mean(jitsi_teams$easy_success_rate, na.rm = TRUE),
+    mean(jitsi_teams$optimal_selected_success_rate, na.rm = TRUE),
+    mean(jitsi_teams$optimal_calibrated_success_rate, na.rm = TRUE),
+    mean(jitsi_teams$hard_success_rate, na.rm = TRUE),
+    mean(chat_teams$easy_success_rate, na.rm = TRUE),
+    mean(chat_teams$optimal_selected_success_rate, na.rm = TRUE),
+    mean(chat_teams$optimal_calibrated_success_rate, na.rm = TRUE),
+    mean(chat_teams$hard_success_rate, na.rm = TRUE)
+  ),
+  avg_response_time = c(
+    mean(jitsi_teams$easy_avg_time, na.rm = TRUE),
+    mean(jitsi_teams$optimal_selected_avg_time, na.rm = TRUE),
+    mean(jitsi_teams$optimal_calibrated_avg_time, na.rm = TRUE),
+    mean(jitsi_teams$hard_avg_time, na.rm = TRUE),
+    mean(chat_teams$easy_avg_time, na.rm = TRUE),
+    mean(chat_teams$optimal_selected_avg_time, na.rm = TRUE),
+    mean(chat_teams$optimal_calibrated_avg_time, na.rm = TRUE),
+    mean(chat_teams$hard_avg_time, na.rm = TRUE)
+  ),
+  avg_correct_trials = c(
+    mean(jitsi_teams$easy_correct_trials, na.rm = TRUE),
+    mean(jitsi_teams$optimal_selected_correct_trials, na.rm = TRUE),
+    mean(jitsi_teams$optimal_calibrated_correct_trials, na.rm = TRUE),
+    mean(jitsi_teams$hard_correct_trials, na.rm = TRUE),
+    mean(chat_teams$easy_correct_trials, na.rm = TRUE),
+    mean(chat_teams$optimal_selected_correct_trials, na.rm = TRUE),
+    mean(chat_teams$optimal_calibrated_correct_trials, na.rm = TRUE),
+    mean(chat_teams$hard_correct_trials, na.rm = TRUE)
+  ),
+  task_type = "math"
+)
+
+# HP Summary
+hp_difficulties_full <- c("easy", "optimal", "hard")
+hp_summary <- data.frame(
+  condition = rep(c("jitsi", "chat"), each = 3),
+  difficulty = rep(hp_difficulties_full, 2),
+  avg_points = c(
+    mean(jitsi_teams_ext$hp_easy_points, na.rm = TRUE),
+    mean(jitsi_teams_ext$hp_optimal_points, na.rm = TRUE),
+    mean(jitsi_teams_ext$hp_hard_points, na.rm = TRUE),
+    mean(chat_teams_ext$hp_easy_points, na.rm = TRUE),
+    mean(chat_teams_ext$hp_optimal_points, na.rm = TRUE),
+    mean(chat_teams_ext$hp_hard_points, na.rm = TRUE)
+  ),
+  correct_rate = c(
+    sum(jitsi_teams_ext$hp_easy_points == 15, na.rm = TRUE) / sum(!is.na(jitsi_teams_ext$hp_easy_points)),
+    sum(jitsi_teams_ext$hp_optimal_points == 15, na.rm = TRUE) / sum(!is.na(jitsi_teams_ext$hp_optimal_points)),
+    sum(jitsi_teams_ext$hp_hard_points == 15, na.rm = TRUE) / sum(!is.na(jitsi_teams_ext$hp_hard_points)),
+    sum(chat_teams_ext$hp_easy_points == 15, na.rm = TRUE) / sum(!is.na(chat_teams_ext$hp_easy_points)),
+    sum(chat_teams_ext$hp_optimal_points == 15, na.rm = TRUE) / sum(!is.na(chat_teams_ext$hp_optimal_points)),
+    sum(chat_teams_ext$hp_hard_points == 15, na.rm = TRUE) / sum(!is.na(chat_teams_ext$hp_hard_points))
+  ),
+  avg_discussion_time = c(
+    mean(jitsi_teams_ext$hp_easy_discussion_time, na.rm = TRUE),
+    mean(jitsi_teams_ext$hp_optimal_discussion_time, na.rm = TRUE),
+    mean(jitsi_teams_ext$hp_hard_discussion_time, na.rm = TRUE),
+    mean(chat_teams_ext$hp_easy_discussion_time, na.rm = TRUE),
+    mean(chat_teams_ext$hp_optimal_discussion_time, na.rm = TRUE),
+    mean(chat_teams_ext$hp_hard_discussion_time, na.rm = TRUE)
+  ),
+  next_button_rate = c(
+    mean(jitsi_teams_ext$hp_easy_next_button, na.rm = TRUE),
+    mean(jitsi_teams_ext$hp_optimal_next_button, na.rm = TRUE),
+    mean(jitsi_teams_ext$hp_hard_next_button, na.rm = TRUE),
+    mean(chat_teams_ext$hp_easy_next_button, na.rm = TRUE),
+    mean(chat_teams_ext$hp_optimal_next_button, na.rm = TRUE),
+    mean(chat_teams_ext$hp_hard_next_button, na.rm = TRUE)
+  ),
+  task_type = "hp"
+)
+
+write.csv(math_summary, "math_summary_statistics.csv", row.names = FALSE)
+write.csv(hp_summary, "hp_summary_statistics.csv", row.names = FALSE)
+cat("✓ math_summary_statistics.csv erstellt\n")
+cat("✓ hp_summary_statistics.csv erstellt\n")
+
+# 5. Übersicht der exportierten Dateien
+cat("\n=== EXPORTIERTE DATEIEN ===\n")
+exported_files <- c(
+  "math_performance_analysis.csv",
+  "hp_performance_analysis.csv", 
+  "combined_performance_analysis.csv",
+  "math_summary_statistics.csv",
+  "hp_summary_statistics.csv"
+)
+
+for (file in exported_files) {
+  if (file.exists(file)) {
+    cat("✓", file, "\n")
+  } else {
+    cat("✗", file, "(nicht erstellt)\n")
+  }
+}
+
+cat("\nAlle Dateien wurden erfolgreich exportiert!\n")
+cat("Die Dateien enthalten:\n")
+cat("• math_performance_analysis.csv: Vollständige Math-Daten pro Team\n")
+cat("• hp_performance_analysis.csv: Vollständige HP-Daten pro Team\n") 
+cat("• combined_performance_analysis.csv: Math + HP kombiniert\n")
+cat("• math_summary_statistics.csv: Zusammenfassung Math-Performance\n")
+cat("• hp_summary_statistics.csv: Zusammenfassung HP-Performance\n")
+
+# =============================================================================
+# ANALYSE DES ALTEN DATENSATZES (MATH ONLY, MP vs SP)
+# =============================================================================
+
+cat("\n", rep("=", 80), "\n", sep="")
+cat("ANALYSE DES ALTEN DATENSATZES (MATH ONLY, MP vs SP)\n")
+cat(rep("=", 80), "\n", sep="")
+
+# FUNKTION: Lade und analysiere den alten Datensatz - ROBUSTE VERSION
+analyze_old_dataset <- function(data_old) {
+  
+  cat("=== ALTER DATENSATZ - DATENSTRUKTUR ===\n")
+  cat("Anzahl Zeilen:", nrow(data_old), "\n")
+  cat("Anzahl Sessions:", length(unique(data_old$SessionID)), "\n")
+  cat("Conditions:", paste(unique(data_old$Condition), collapse=", "), "\n")
+  cat("Treatments:", paste(unique(data_old$Treatment), collapse=", "), "\n")
+  
+  # Schaue dir die ersten Zeilen an
+  cat("\nErste Zeilen des Datensatzes:\n")
+  print(head(data_old))
+  
+  tryCatch({
+    # Datenaufbereitung ohne pivot_wider
+    old_analysis_data <- data_old %>%
+      # Mappe Conditions zu Schwierigkeitsgraden
+      mutate(
+        difficulty = case_when(
+          Condition == "MATH_BOREDOM" ~ "Easy",
+          Condition == "MATH_AUTONOMY" ~ "Optimal_Selected", 
+          Condition == "MATH_FLOW" ~ "Optimal_Calibrated",
+          Condition == "MATH_OVERLOAD" ~ "Hard",
+          TRUE ~ "Unknown"
+        ),
+        # Behandle Treatment als condition
+        condition = case_when(
+          Treatment == "MP" ~ "multiplayer",
+          Treatment == "SP" ~ "singleplayer", 
+          TRUE ~ "unknown"
+        ),
+        # Response time 
+        response_time_ms = TrialDurationMean
+      )
+    
+    cat("\nNach Datenaufbereitung:\n")
+    print(head(old_analysis_data))
+    
+    # Manuell zu Wide-Format konvertieren (ohne pivot_wider)
+    sessions <- unique(old_analysis_data$SessionID)
+    
+    old_team_data <- data.frame()
+    
+    for (session in sessions) {
+      session_data <- old_analysis_data[old_analysis_data$SessionID == session, ]
+      
+      if (nrow(session_data) > 0) {
+        # Erstelle eine Zeile für dieses Team
+        team_row <- data.frame(
+          team_id = session,
+          condition = session_data$condition[1]  # Sollte für alle gleich sein
+        )
+        
+        # Extrahiere Werte für jede Schwierigkeit
+        for (diff in c("Easy", "Optimal_Selected", "Optimal_Calibrated", "Hard")) {
+          diff_data <- session_data[session_data$difficulty == diff, ]
+          
+          if (nrow(diff_data) > 0) {
+            team_row[[paste0(tolower(gsub("_", "_", diff)), "_success_rate")]] <- diff_data$PctTrialsCorrect[1]
+            team_row[[paste0(tolower(gsub("_", "_", diff)), "_correct_trials")]] <- diff_data$NrTrialsCorrect[1]
+            team_row[[paste0(tolower(gsub("_", "_", diff)), "_avg_time")]] <- diff_data$response_time_ms[1]
+          } else {
+            team_row[[paste0(tolower(gsub("_", "_", diff)), "_success_rate")]] <- NA
+            team_row[[paste0(tolower(gsub("_", "_", diff)), "_correct_trials")]] <- NA
+            team_row[[paste0(tolower(gsub("_", "_", diff)), "_avg_time")]] <- NA
+          }
+        }
+        
+        old_team_data <- rbind(old_team_data, team_row)
+      }
+    }
+    
+    cat("\nTeam-level Daten erstellt. Anzahl Teams:", nrow(old_team_data), "\n")
+    
+    # Analysiere pro Treatment
+    mp_teams <- old_team_data[old_team_data$condition == "multiplayer", ]
+    sp_teams <- old_team_data[old_team_data$condition == "singleplayer", ]
+    
+    cat("\n=== ALTER DATENSATZ - PERFORMANCE ANALYSE ===\n")
+    cat("Anzahl Teams:", nrow(old_team_data), "\n")
+    cat("Multi-Player Teams:", nrow(mp_teams), "\n")
+    cat("Single-Player Teams:", nrow(sp_teams), "\n")
+    
+    # Performance nach Schwierigkeitsgrad
+    difficulties <- c("easy", "optimal_selected", "optimal_calibrated", "hard")
+    
+    cat("\n=== SUCCESS RATES BY DIFFICULTY (ALTER DATENSATZ) ===\n")
+    for (diff in difficulties) {
+      success_var <- paste0(diff, "_success_rate")
+      
+      if (nrow(mp_teams) > 0 && success_var %in% names(mp_teams)) {
+        mp_rate <- mean(mp_teams[[success_var]], na.rm = TRUE)
+        cat(sprintf("%-20s MP: %.3f", paste(diff, ":"), mp_rate), "\n")
+      }
+      
+      if (nrow(sp_teams) > 0 && success_var %in% names(sp_teams)) {
+        sp_rate <- mean(sp_teams[[success_var]], na.rm = TRUE)  
+        cat(sprintf("%-20s SP: %.3f", "", sp_rate), "\n")
+      }
+      cat("\n")
+    }
+    
+    cat("=== RESPONSE TIMES BY DIFFICULTY (ALTER DATENSATZ, ms) ===\n")
+    for (diff in difficulties) {
+      time_var <- paste0(diff, "_avg_time")
+      
+      if (nrow(mp_teams) > 0 && time_var %in% names(mp_teams)) {
+        mp_time <- mean(mp_teams[[time_var]], na.rm = TRUE)
+        cat(sprintf("%-20s MP: %.0f", paste(diff, ":"), mp_time), "\n")
+      }
+      
+      if (nrow(sp_teams) > 0 && time_var %in% names(sp_teams)) {
+        sp_time <- mean(sp_teams[[time_var]], na.rm = TRUE)
+        cat(sprintf("%-20s SP: %.0f", "", sp_time), "\n")
+      }
+      cat("\n")
+    }
+    
+    cat("=== DURCHSCHNITTLICHE ANZAHL KORREKTER TRIALS (ALTER DATENSATZ) ===\n")
+    for (diff in difficulties) {
+      correct_var <- paste0(diff, "_correct_trials")
+      
+      if (nrow(mp_teams) > 0 && correct_var %in% names(mp_teams)) {
+        mp_correct <- mean(mp_teams[[correct_var]], na.rm = TRUE)
+        cat(sprintf("%-20s MP: %.1f", paste(diff, ":"), mp_correct), "\n")
+      }
+      
+      if (nrow(sp_teams) > 0 && correct_var %in% names(sp_teams)) {
+        sp_correct <- mean(sp_teams[[correct_var]], na.rm = TRUE)  
+        cat(sprintf("%-20s SP: %.1f", "", sp_correct), "\n")
+      }
+      cat("\n")
+    }
+    
+    # Export
+    cat("=== EXPORT ALTER DATENSATZ ===\n")
+    write.csv(old_team_data, "old_math_performance_analysis.csv", row.names = FALSE)
+    cat("✓ old_math_performance_analysis.csv erstellt\n")
+    
+    # Summary Statistics
+    old_summary <- data.frame(
+      condition = rep(c("multiplayer", "singleplayer"), each = 4),
+      difficulty = rep(difficulties, 2),
+      success_rate = c(
+        mean(mp_teams$easy_success_rate, na.rm = TRUE),
+        mean(mp_teams$optimal_selected_success_rate, na.rm = TRUE),
+        mean(mp_teams$optimal_calibrated_success_rate, na.rm = TRUE),
+        mean(mp_teams$hard_success_rate, na.rm = TRUE),
+        mean(sp_teams$easy_success_rate, na.rm = TRUE),
+        mean(sp_teams$optimal_selected_success_rate, na.rm = TRUE),
+        mean(sp_teams$optimal_calibrated_success_rate, na.rm = TRUE),
+        mean(sp_teams$hard_success_rate, na.rm = TRUE)
+      ),
+      avg_response_time = c(
+        mean(mp_teams$easy_avg_time, na.rm = TRUE),
+        mean(mp_teams$optimal_selected_avg_time, na.rm = TRUE),
+        mean(mp_teams$optimal_calibrated_avg_time, na.rm = TRUE),
+        mean(mp_teams$hard_avg_time, na.rm = TRUE),
+        mean(sp_teams$easy_avg_time, na.rm = TRUE),
+        mean(sp_teams$optimal_selected_avg_time, na.rm = TRUE),
+        mean(sp_teams$optimal_calibrated_avg_time, na.rm = TRUE),
+        mean(sp_teams$hard_avg_time, na.rm = TRUE)
+      ),
+      avg_correct_trials = c(
+        mean(mp_teams$easy_correct_trials, na.rm = TRUE),
+        mean(mp_teams$optimal_selected_correct_trials, na.rm = TRUE),
+        mean(mp_teams$optimal_calibrated_correct_trials, na.rm = TRUE),
+        mean(mp_teams$hard_correct_trials, na.rm = TRUE),
+        mean(sp_teams$easy_correct_trials, na.rm = TRUE),
+        mean(sp_teams$optimal_selected_correct_trials, na.rm = TRUE),
+        mean(sp_teams$optimal_calibrated_correct_trials, na.rm = TRUE),
+        mean(sp_teams$hard_correct_trials, na.rm = TRUE)
+      )
+    )
+    
+    write.csv(old_summary, "old_math_summary_statistics.csv", row.names = FALSE)
+    cat("✓ old_math_summary_statistics.csv erstellt\n")
+    
+    cat("\n=== ALTER DATENSATZ SAMPLE ===\n")
+    print(head(old_team_data))
+    
+    return(old_team_data)
+    
+  }, error = function(e) {
+    cat("ERROR in analyze_old_dataset:", e$message, "\n")
+    cat("Versuche direkte Analyse ohne Transformation...\n")
+    
+    # Fallback: Direkte Analyse der Long-Format Daten
+    old_analysis_simple <- data_old %>%
+      mutate(
+        difficulty = case_when(
+          Condition == "MATH_BOREDOM" ~ "Easy",
+          Condition == "MATH_AUTONOMY" ~ "Optimal_Selected", 
+          Condition == "MATH_FLOW" ~ "Optimal_Calibrated",
+          Condition == "MATH_OVERLOAD" ~ "Hard",
+          TRUE ~ "Unknown"
+        ),
+        condition = case_when(
+          Treatment == "MP" ~ "multiplayer",
+          Treatment == "SP" ~ "singleplayer", 
+          TRUE ~ "unknown"
+        )
+      )
+    
+    cat("\n=== DIREKTE ANALYSE (LONG FORMAT) ===\n")
+    for (diff in c("Easy", "Optimal_Selected", "Optimal_Calibrated", "Hard")) {
+      diff_data <- old_analysis_simple[old_analysis_simple$difficulty == diff, ]
+      
+      mp_data <- diff_data[diff_data$condition == "multiplayer", ]
+      sp_data <- diff_data[diff_data$condition == "singleplayer", ]
+      
+      if (nrow(mp_data) > 0) {
+        mp_rate <- mean(mp_data$PctTrialsCorrect, na.rm = TRUE)
+        cat(sprintf("%-20s MP: %.3f", paste(tolower(diff), ":"), mp_rate), "\n")
+      }
+      
+      if (nrow(sp_data) > 0) {
+        sp_rate <- mean(sp_data$PctTrialsCorrect, na.rm = TRUE)
+        cat(sprintf("%-20s SP: %.3f", "", sp_rate), "\n")
+      }
+      cat("\n")
+    }
+    
+    return(old_analysis_simple)
+  })
+}
+
+# VERWENDUNG:
+# Lade deinen alten Datensatz und führe die Analyse aus:
+# data_old <- read.csv("alter_datensatz.csv")  # Ersetze mit deinem Dateinamen
+# old_results <- analyze_old_dataset(data_old)
+
+cat("\n=== ANLEITUNG FÜR ALTEN DATENSATZ ===\n")
+cat("Der Datensatz 'data_old_performance' wurde bereits eingelesen.\n")
+cat("Führe jetzt die Analyse aus:\n\n")
+
+# Führe die Analyse direkt aus, da der Datensatz bereits geladen ist
+if (exists("data_old_performance")) {
+  cat("=== STARTE ANALYSE DES ALTEN DATENSATZES ===\n")
+  old_results <- analyze_old_dataset(data_old_performance)
+  cat("✓ Analyse des alten Datensatzes abgeschlossen!\n")
+} else {
+  cat("HINWEIS: Datensatz 'data_old_performance' nicht gefunden.\n")
+  cat("Falls der Datensatz anders heißt, verwende:\n")
+  cat("old_results <- analyze_old_dataset(DEIN_DATENSATZ_NAME)\n")
+}
 ```
 
 

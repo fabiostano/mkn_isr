@@ -1,0 +1,7 @@
+"condition","difficulty","avg_points","correct_rate","avg_discussion_time","next_button_rate","task_type"
+"jitsi","easy",14.25,0.85,191.0552,1,"hp"
+"jitsi","optimal",14,0.8,248.2751,1,"hp"
+"jitsi","hard",13,0.6,240.05005,1,"hp"
+"chat","easy",14,0.8,247.709882352941,1,"hp"
+"chat","optimal",13.75,0.75,263.026473684211,1,"hp"
+"chat","hard",12.5,0.5,283.144888888889,1,"hp"
