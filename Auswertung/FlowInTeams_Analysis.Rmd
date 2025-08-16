@@ -9231,6 +9231,1598 @@ if (exists("data_old_performance")) {
 }
 ```
 
+Manipulation Check - Subjective & Objective Difficulty
+
+```{r}
+# =============================================================================
+# ERWEITERTE MANIPULATION CHECKS FÜR EXPERIMENT 1 & 2
+# Appendix A1 – Manipulation Checks & Task Performance Comparison
+# =============================================================================
+
+library(dplyr)
+library(tidyr)
+library(stringr)
+library(ggplot2)
+library(lme4)
+library(lmerTest)
+library(emmeans)
+
+# =============================================================================
+# A1.1 SUBJECTIVE & OBJECTIVE DIFFICULTY 
+# =============================================================================
+
+# Hilfsfunktionen (wie in deinem Code)
+parse_order_string <- function(s) {
+  s %>%
+    str_remove_all("\\[|\\]|'|\"") %>%
+    str_split(",\\s*") %>%
+    unlist()
+}
+
+map_math_difficulty <- function(code) {
+  dplyr::recode(code,
+         "B" = "Easy",
+         "A" = "Optimal_Selected", 
+         "F" = "Optimal_Calibrated",
+         "O" = "Hard")
+}
+
+# Datenaufbereitung für Experiment 2
+data_exp2 <- data %>%
+  mutate(
+    math_order = map(as.character(participant.condition_order), parse_order_string) %>%
+                   map(~ map_chr(.x, map_math_difficulty)),
+    hp_order   = map(as.character(participant.hp_condition_order), parse_order_string) %>%
+                   map(str_to_title),
+    # Condition identifizieren 
+    condition = case_when(
+      !is.na(mathJitsi.3.player.action_log) & mathJitsi.3.player.action_log != "" ~ "Video",
+      !is.na(mathChat.3.player.action_log) & mathChat.3.player.action_log != "" ~ "Chat",
+      TRUE ~ "Unknown"
+    ),
+    experiment = "Experiment_2"
+  )
+
+# =============================================================================
+# MATH TASK - SUBJECTIVE DIFFICULTY (Experiment 2)
+# =============================================================================
+
+math_difficulty_long_exp2 <- data_exp2 %>%
+  select(participant.code, math_order, condition, experiment,
+         # Nur csb1 (erstes Item = Perceived Difficulty)
+         mathChat.3.player.csb1, mathChat.4.player.csb1, 
+         mathChat.5.player.csb1, mathChat.6.player.csb1,
+         mathJitsi.3.player.csb1, mathJitsi.4.player.csb1,
+         mathJitsi.5.player.csb1, mathJitsi.6.player.csb1) %>%
+  pivot_longer(cols = -c(participant.code, math_order, condition, experiment),
+               names_to = "var", values_to = "subjective_difficulty") %>%
+  mutate(
+    round = str_extract(var, "\\d+"),
+    comm_type = ifelse(str_detect(var, "Chat"), "Chat", "Video"),
+    index = as.integer(round) - 2  # round 3 = index 1
+  ) %>%
+  filter(comm_type == condition) %>%  # Nur relevante Condition
+  drop_na(subjective_difficulty) %>%
+  rowwise() %>%
+  mutate(
+    # KONSISTENTE METHODE: unlist(math_order) 
+    difficulty = tryCatch({
+      math_vec <- unlist(math_order)
+      if (length(math_vec) >= index) math_vec[index] else NA_character_
+    }, error = function(e) NA_character_)
+  ) %>%
+  ungroup() %>%
+  drop_na(difficulty) %>%
+  mutate(
+    difficulty = factor(difficulty, levels = c("Easy", "Optimal_Selected", "Optimal_Calibrated", "Hard")),
+    task_type = "Math"
+  )
+
+# =============================================================================
+# HIDDEN PROFILE TASK - SUBJECTIVE DIFFICULTY (Experiment 2)
+# =============================================================================
+
+hp_difficulty_long_exp2 <- data_exp2 %>%
+  select(participant.code, hp_order, condition, experiment,
+         HiddenProfile_Chat.1.player.csb1, HiddenProfile_Chat.2.player.csb1, HiddenProfile_Chat.3.player.csb1,
+         HiddenProfile_Jitsi.1.player.csb1, HiddenProfile_Jitsi.2.player.csb1, HiddenProfile_Jitsi.3.player.csb1) %>%
+  pivot_longer(cols = matches("HiddenProfile_.*\\.player\\.csb1$"),
+               names_to = "var", values_to = "subjective_difficulty") %>%
+  mutate(
+    round = str_extract(var, "(?<=\\.)\\d+"),
+    comm_type = ifelse(str_detect(var, "Chat"), "Chat", "Video"),
+    index = as.integer(round)
+  ) %>%
+  filter(comm_type == condition) %>%
+  drop_na(subjective_difficulty) %>%
+  rowwise() %>%
+  mutate(
+    # KORRIGIERTE METHODE: unlist(hp_order)
+    difficulty = tryCatch({
+      hp_vec <- unlist(hp_order)
+      if (length(hp_vec) >= index) hp_vec[index] else NA_character_
+    }, error = function(e) NA_character_)
+  ) %>%
+  ungroup() %>%
+  drop_na(difficulty) %>%
+  mutate(
+    # Normalisiere Schwierigkeitsnamen für HP
+    difficulty = case_when(
+      str_to_upper(difficulty) == "EASY" ~ "Easy",
+      str_to_upper(difficulty) %in% c("MED", "MEDIUM") ~ "Medium", 
+      str_to_upper(difficulty) == "HARD" ~ "Hard",
+      TRUE ~ difficulty
+    ),
+    difficulty = factor(difficulty, levels = c("Easy", "Medium", "Hard")),
+    task_type = "Hidden_Profile"
+  ) %>%
+  filter(!is.na(difficulty))
+
+# =============================================================================
+# EXPERIMENT 1 DATEN VORBEREITEN 
+# =============================================================================
+
+# Subjective Difficulty (aus data_old_rounds - Long Format)
+prepare_exp1_subjective <- function(data_old_rounds) {
+  if (!exists("data_old_rounds")) {
+    cat("Warnung: data_old_rounds nicht gefunden. Überspringe Experiment 1 subjective analysis.\n")
+    return(NULL)
+  }
+  
+  exp1_difficulty_long <- data_old_rounds %>%
+    mutate(
+      # Schwierigkeit direkt aus Condition Variable extrahieren
+      difficulty = case_when(
+        Condition == "1_EASY" ~ "Easy",
+        Condition == "3_AUTO" ~ "Optimal_Selected", 
+        Condition == "2_CAL" ~ "Optimal_Calibrated",
+        Condition == "4_HARD" ~ "Hard",
+        TRUE ~ "Unknown"
+      ),
+      # Team vs. Alone aus Treatment
+      condition = case_when(
+        Treatment == "MP" ~ "Team",
+        Treatment == "SP" ~ "Alone", 
+        TRUE ~ "Unknown"
+      ),
+      experiment = "Experiment_1",
+      task_type = "Math",
+      difficulty = factor(difficulty, levels = c("Easy", "Optimal_Selected", "Optimal_Calibrated", "Hard"))
+    ) %>%
+    dplyr::rename(
+      participant.code = SessionID,
+      subjective_difficulty = iDifficulty
+    ) %>%
+    select(participant.code, difficulty, condition, experiment, task_type, subjective_difficulty) %>%
+    drop_na(subjective_difficulty) %>%
+    filter(difficulty != "Unknown")  # Entferne unbekannte Schwierigkeitsgrade
+  
+  return(exp1_difficulty_long)
+}
+
+# Objective Difficulty (aus data_old_performance - Wide Format)
+prepare_exp1_objective <- function(data_old_performance) {
+  if (!exists("data_old_performance")) {
+    cat("Warnung: data_old_performance nicht gefunden. Überspringe Experiment 1 objective analysis.\n")
+    return(NULL)
+  }
+  
+  exp1_objective_long <- data_old_performance %>%
+    mutate(
+      # Schwierigkeit aus Condition Variable - KORRIGIERTE KODIERUNG für data_old_performance
+      difficulty = case_when(
+        Condition == "MATH_BOREDOM" ~ "Easy",           # Easy
+        Condition == "MATH_AUTONOMY" ~ "Optimal_Selected",  # Optimal Selected
+        Condition == "MATH_FLOW" ~ "Optimal_Calibrated",    # Optimal Calibrated  
+        Condition == "MATH_OVERLOAD" ~ "Hard",          # Hard
+        TRUE ~ paste("Unknown:", Condition)
+      ),
+      condition = case_when(
+        Treatment == "MP" ~ "Team",
+        Treatment == "SP" ~ "Alone", 
+        TRUE ~ paste("Unknown:", Treatment)
+      ),
+      experiment = "Experiment_1",
+      task_type = "Math",
+      difficulty = factor(difficulty, levels = c("Easy", "Optimal_Selected", "Optimal_Calibrated", "Hard")),
+      # Verwende NrTrialsCorrect als objective measure
+      correct_trials = NrTrialsCorrect
+    ) %>%
+    dplyr::rename(participant.code = SessionID) %>%
+    select(participant.code, difficulty, condition, experiment, task_type, correct_trials) %>%
+    drop_na(correct_trials) %>%
+    filter(!str_detect(difficulty, "Unknown"))  # Entferne unbekannte Schwierigkeitsgrade
+  
+  return(exp1_objective_long)
+}
+
+# Experiment 1 Daten laden (falls vorhanden)
+if (exists("data_old_rounds")) {
+  exp1_difficulty_long <- prepare_exp1_subjective(data_old_rounds)
+  if (!is.null(exp1_difficulty_long)) {
+    cat("✓ Experiment 1 subjective data geladen: ", nrow(exp1_difficulty_long), " Beobachtungen\n")
+    cat("  Schwierigkeitsgrade: ", paste(unique(exp1_difficulty_long$difficulty), collapse = ", "), "\n")
+  }
+} else {
+  exp1_difficulty_long <- NULL
+  cat("Experiment 1 subjective data (data_old_rounds) nicht verfügbar\n")
+}
+
+if (exists("data_old_performance")) {
+  exp1_objective_long <- prepare_exp1_objective(data_old_performance)
+  if (!is.null(exp1_objective_long)) {
+    cat("✓ Experiment 1 objective data geladen: ", nrow(exp1_objective_long), " Beobachtungen\n")
+    cat("  Schwierigkeitsgrade: ", paste(unique(exp1_objective_long$difficulty), collapse = ", "), "\n")
+    cat("  Conditions: ", paste(unique(exp1_objective_long$condition), collapse = ", "), "\n")
+    
+    # Debug: Prüfe ob alle Kombinationen vorhanden sind
+    combo_check <- exp1_objective_long %>%
+      group_by(difficulty, condition) %>%
+      summarise(n = n(), .groups = "drop")
+    cat("  Kombinationen:\n")
+    print(combo_check)
+  }
+} else {
+  exp1_objective_long <- NULL
+  cat("Experiment 1 objective data (data_old_performance) nicht verfügbar\n")
+}
+
+# =============================================================================
+# OBJECTIVE DIFFICULTY - PERFORMANCE METRIKEN
+# =============================================================================
+
+# Math Performance aus deiner Analyse verwenden
+extract_math_objective_difficulty <- function(math_analysis_data) {
+  math_analysis_data %>%
+    select(participant.code, condition, 
+           easy_correct_trials, optimal_selected_correct_trials, 
+           optimal_calibrated_correct_trials, hard_correct_trials) %>%
+    pivot_longer(cols = ends_with("_correct_trials"),
+                 names_to = "difficulty_raw", 
+                 values_to = "correct_trials") %>%
+    mutate(
+      difficulty = case_when(
+        str_detect(difficulty_raw, "easy") ~ "Easy",
+        str_detect(difficulty_raw, "optimal_selected") ~ "Optimal_Selected",
+        str_detect(difficulty_raw, "optimal_calibrated") ~ "Optimal_Calibrated", 
+        str_detect(difficulty_raw, "hard") ~ "Hard"
+      ),
+      difficulty = factor(difficulty, levels = c("Easy", "Optimal_Selected", "Optimal_Calibrated", "Hard")),
+      condition = ifelse(condition == "jitsi", "Video", "Chat"),
+      experiment = "Experiment_2",
+      task_type = "Math"
+    ) %>%
+    drop_na(correct_trials)
+}
+
+# HP Performance extrahieren
+extract_hp_objective_difficulty <- function(hp_complete_analysis) {
+  hp_complete_analysis %>%
+    select(participant.code, condition,
+           hp_easy_points, hp_optimal_points, hp_hard_points) %>%
+    pivot_longer(cols = starts_with("hp_"),
+                 names_to = "difficulty_raw",
+                 values_to = "points") %>%
+    mutate(
+      difficulty = case_when(
+        str_detect(difficulty_raw, "easy") ~ "Easy",
+        str_detect(difficulty_raw, "optimal") ~ "Medium", 
+        str_detect(difficulty_raw, "hard") ~ "Hard"
+      ),
+      difficulty = factor(difficulty, levels = c("Easy", "Medium", "Hard")),
+      condition = ifelse(condition == "jitsi", "Video", "Chat"),
+      experiment = "Experiment_2", 
+      task_type = "Hidden_Profile",
+      # Konvertiere Punkte zu Erfolgsrate (15 = korrekt, <15 = falsch)
+      success_rate = ifelse(points == 15, 1, 0)
+    ) %>%
+    drop_na(points)
+}
+
+# Extrahiere objective difficulty data (verwende deine bereits erstellten Datensätze)
+if (exists("math_analysis_data")) {
+  math_objective_exp2 <- extract_math_objective_difficulty(math_analysis_data)
+} else {
+  math_objective_exp2 <- NULL
+  cat("math_analysis_data nicht gefunden\n")
+}
+
+if (exists("hp_complete_analysis")) {
+  hp_objective_exp2 <- extract_hp_objective_difficulty(hp_complete_analysis)
+} else {
+  hp_objective_exp2 <- NULL
+  cat("hp_complete_analysis nicht gefunden\n")
+}
+
+# =============================================================================
+# KOMBINIERTE MATH-MODELLE FÜR EXPERIMENT 1 & 2 - INTEGRIERT
+# =============================================================================
+
+# Diese Sektion ersetzt die separaten Exp1/Exp2 Math Analysen im bestehenden Code
+# Füge nach der Datenaufbereitung, aber vor den ursprünglichen LMM Analysen ein
+
+# Funktion zur Standardisierung und Kombination der Math Daten
+create_combined_math_datasets <- function() {
+  
+  cat("\n=== KOMBINIERE MATH DATENSÄTZE ===\n")
+  
+  # SUBJECTIVE DIFFICULTY: Kombiniere und standardisiere
+  combined_math_subjective <- NULL
+  
+  # Exp1 Daten hinzufügen (falls vorhanden)
+  if (!is.null(exp1_difficulty_long)) {
+    exp1_subj_clean <- exp1_difficulty_long %>%
+      mutate(
+        condition = case_when(
+          condition == "Team" ~ "Together_None",
+          condition == "Alone" ~ "Alone",
+          TRUE ~ condition
+        )
+      ) %>%
+      select(participant.code, difficulty, condition, task_type, subjective_difficulty)
+    
+    combined_math_subjective <- exp1_subj_clean
+    cat("✓ Exp1 Subjective hinzugefügt:", nrow(exp1_subj_clean), "Beobachtungen\n")
+  }
+  
+  # Exp2 Daten hinzufügen (falls vorhanden)
+  if (!is.null(math_difficulty_long_exp2)) {
+    exp2_subj_clean <- math_difficulty_long_exp2 %>%
+      mutate(
+        condition = case_when(
+          condition == "Video" ~ "Together_Video",
+          condition == "Chat" ~ "Together_Chat",
+          TRUE ~ condition
+        )
+      ) %>%
+      select(participant.code, difficulty, condition, task_type, subjective_difficulty)
+    
+    if (is.null(combined_math_subjective)) {
+      combined_math_subjective <- exp2_subj_clean
+    } else {
+      combined_math_subjective <- bind_rows(combined_math_subjective, exp2_subj_clean)
+    }
+    cat("✓ Exp2 Subjective hinzugefügt:", nrow(exp2_subj_clean), "Beobachtungen\n")
+  }
+  
+  # OBJECTIVE DIFFICULTY: Kombiniere und standardisiere
+  combined_math_objective <- NULL
+  
+  # Exp1 Daten hinzufügen (falls vorhanden)
+  if (!is.null(exp1_objective_long)) {
+    exp1_obj_clean <- exp1_objective_long %>%
+      mutate(
+        condition = case_when(
+          condition == "Team" ~ "Together_None",
+          condition == "Alone" ~ "Alone", 
+          TRUE ~ condition
+        )
+      ) %>%
+      select(participant.code, difficulty, condition, task_type, correct_trials)
+    
+    combined_math_objective <- exp1_obj_clean
+    cat("✓ Exp1 Objective hinzugefügt:", nrow(exp1_obj_clean), "Beobachtungen\n")
+  }
+  
+  # Exp2 Daten hinzufügen (falls vorhanden)
+  if (!is.null(math_objective_exp2)) {
+    exp2_obj_clean <- math_objective_exp2 %>%
+      mutate(
+        condition = case_when(
+          condition == "Video" ~ "Together_Video",
+          condition == "Chat" ~ "Together_Chat",
+          TRUE ~ condition
+        )
+      ) %>%
+      select(participant.code, difficulty, condition, task_type, correct_trials)
+    
+    if (is.null(combined_math_objective)) {
+      combined_math_objective <- exp2_obj_clean
+    } else {
+      combined_math_objective <- bind_rows(combined_math_objective, exp2_obj_clean)
+    }
+    cat("✓ Exp2 Objective hinzugefügt:", nrow(exp2_obj_clean), "Beobachtungen\n")
+  }
+  
+  # Faktor-Levels setzen
+  if (!is.null(combined_math_subjective)) {
+    combined_math_subjective <- combined_math_subjective %>%
+      mutate(
+        difficulty = factor(difficulty, levels = c("Easy", "Optimal_Selected", "Optimal_Calibrated", "Hard")),
+        condition = factor(condition, levels = c("Alone", "Together_None", "Together_Chat", "Together_Video"))
+      )
+    cat("✓ Kombinierte Math Subjective:", nrow(combined_math_subjective), "Beobachtungen\n")
+    cat("  Conditions:", paste(levels(combined_math_subjective$condition), collapse = ", "), "\n")
+  }
+  
+  if (!is.null(combined_math_objective)) {
+    combined_math_objective <- combined_math_objective %>%
+      mutate(
+        difficulty = factor(difficulty, levels = c("Easy", "Optimal_Selected", "Optimal_Calibrated", "Hard")),
+        condition = factor(condition, levels = c("Alone", "Together_None", "Together_Chat", "Together_Video"))
+      )
+    cat("✓ Kombinierte Math Objective:", nrow(combined_math_objective), "Beobachtungen\n")
+  }
+  
+  return(list(
+    subjective = combined_math_subjective,
+    objective = combined_math_objective
+  ))
+}
+
+# Erstelle kombinierte Datensätze
+combined_math_data <- create_combined_math_datasets()
+combined_math_subjective <- combined_math_data$subjective
+combined_math_objective <- combined_math_data$objective
+
+# =============================================================================
+# LMM ANALYSEN - SUBJECTIVE DIFFICULTY
+# =============================================================================
+
+run_subjective_difficulty_lmm <- function(data_long, title) {
+  cat("\n=== LMM ANALYSIS:", title, "===\n")
+  
+  # Prüfe auf Singular Fit mit vollem Modell
+  tryCatch({
+    full_model <- lmer(subjective_difficulty ~ difficulty * condition + (1|participant.code), 
+                       data = data_long, REML = FALSE)
+    
+    # Check for singular fit
+    if (isSingular(full_model)) {
+      cat("Singular fit detected - removing random effects\n")
+      model <- lm(subjective_difficulty ~ difficulty * condition, data = data_long)
+      anova_result <- anova(model)
+    } else {
+      model <- full_model
+      anova_result <- anova(model)
+    }
+    
+    print(summary(model))
+    print(anova_result)
+    
+    # Post-hoc tests if significant effects
+    if (any(anova_result$`Pr(>F)` < 0.05, na.rm = TRUE) || 
+        any(anova_result$`Pr(>Chisq)` < 0.05, na.rm = TRUE)) {
+      cat("\n--- Post-hoc contrasts ---\n")
+      emm <- emmeans(model, ~ difficulty | condition)
+      print(pairs(emm, adjust = "bonferroni"))
+    }
+    
+    return(model)
+    
+  }, error = function(e) {
+    cat("Error in LMM analysis:", e$message, "\n")
+    return(NULL)
+  })
+}
+
+# Führe Analysen durch
+if (!is.null(math_difficulty_long_exp2) && nrow(math_difficulty_long_exp2) > 0) {
+  math_subj_model_exp2 <- run_subjective_difficulty_lmm(math_difficulty_long_exp2, "MATH SUBJECTIVE DIFFICULTY - EXPERIMENT 2")
+}
+
+if (!is.null(hp_difficulty_long_exp2) && nrow(hp_difficulty_long_exp2) > 0) {
+  # QUICK DEBUG: Was kommt wirklich an?
+  cat("\n=== QUICK HP DEBUG ===\n")
+  cat("Anzahl HP Beobachtungen:", nrow(hp_difficulty_long_exp2), "\n")
+  cat("Anzahl unique Teilnehmer:", length(unique(hp_difficulty_long_exp2$participant.code)), "\n")
+  
+  hp_counts <- hp_difficulty_long_exp2 %>%
+    group_by(participant.code) %>%
+    summarise(n_obs = n(), .groups = "drop")
+  
+  cat("Beobachtungen pro Teilnehmer:\n")
+  print(table(hp_counts$n_obs))
+  
+  # Wenn immer noch zu wenige, verwende linear model statt LMM
+  if (length(unique(hp_difficulty_long_exp2$participant.code)) >= nrow(hp_difficulty_long_exp2)) {
+    cat("Zu wenig Beobachtungen pro Teilnehmer - verwende linear model\n")
+    
+    # Direkte linear model Analyse
+    tryCatch({
+      lm_model <- lm(subjective_difficulty ~ difficulty * condition, data = hp_difficulty_long_exp2)
+      cat("\n=== HP SUBJECTIVE DIFFICULTY - LINEAR MODEL ===\n")
+      print(summary(lm_model))
+      print(anova(lm_model))
+      
+      # Post-hoc tests
+      library(emmeans)
+      emm <- emmeans(lm_model, ~ difficulty | condition)
+      cat("\n--- Post-hoc contrasts ---\n")
+      print(pairs(emm, adjust = "bonferroni"))
+      
+      hp_subj_model_exp2 <- lm_model
+      
+    }, error = function(e) {
+      cat("Auch linear model fehlgeschlagen:", e$message, "\n")
+    })
+    
+  } else {
+    hp_subj_model_exp2 <- run_subjective_difficulty_lmm(hp_difficulty_long_exp2, "HP SUBJECTIVE DIFFICULTY - EXPERIMENT 2")
+  }
+} else {
+  cat("HP difficulty data nicht verfügbar oder leer\n")
+}
+
+if (!is.null(exp1_difficulty_long) && nrow(exp1_difficulty_long) > 0) {
+  math_subj_model_exp1 <- run_subjective_difficulty_lmm(exp1_difficulty_long, "MATH SUBJECTIVE DIFFICULTY - EXPERIMENT 1")
+}
+
+# Kombinierte Math Subjective Difficulty Analysis
+if (!is.null(combined_math_subjective)) {
+  combined_math_subj_model <- run_subjective_difficulty_lmm(
+    combined_math_subjective, 
+    "MATH SUBJECTIVE DIFFICULTY - COMBINED EXPERIMENTS"
+  )
+}
+
+# =============================================================================
+# LMM ANALYSEN - OBJECTIVE DIFFICULTY  
+# =============================================================================
+
+run_objective_difficulty_lmm <- function(data_long, dv_var, title) {
+  cat("\n=== LMM ANALYSIS:", title, "===\n")
+  
+  # Erstelle Formel basierend auf abhängiger Variable
+  formula_str <- paste0(dv_var, " ~ difficulty * condition + (1|participant.code)")
+  
+  tryCatch({
+    full_model <- lmer(as.formula(formula_str), data = data_long, REML = FALSE)
+    
+    if (isSingular(full_model)) {
+      cat("Singular fit detected - removing random effects\n")
+      formula_simple <- paste0(dv_var, " ~ difficulty * condition")
+      model <- lm(as.formula(formula_simple), data = data_long)
+      anova_result <- anova(model)
+    } else {
+      model <- full_model
+      anova_result <- anova(model)
+    }
+    
+    print(summary(model))
+    print(anova_result)
+    
+    # Post-hoc tests
+    if (any(anova_result$`Pr(>F)` < 0.05, na.rm = TRUE) || 
+        any(anova_result$`Pr(>Chisq)` < 0.05, na.rm = TRUE)) {
+      cat("\n--- Post-hoc contrasts ---\n")
+      emm <- emmeans(model, ~ difficulty | condition)
+      print(pairs(emm, adjust = "bonferroni"))
+    }
+    
+    return(model)
+    
+  }, error = function(e) {
+    cat("Error in objective difficulty LMM:", e$message, "\n")
+    return(NULL)
+  })
+}
+
+# Objective difficulty analyses
+if (!is.null(math_objective_exp2) && nrow(math_objective_exp2) > 0) {
+  math_obj_model_exp2 <- run_objective_difficulty_lmm(math_objective_exp2, "correct_trials", "MATH OBJECTIVE DIFFICULTY - EXPERIMENT 2")
+}
+
+if (!is.null(hp_objective_exp2) && nrow(hp_objective_exp2) > 0) {
+  hp_obj_model_exp2 <- run_objective_difficulty_lmm(hp_objective_exp2, "success_rate", "HP OBJECTIVE DIFFICULTY - EXPERIMENT 2")
+}
+
+if (!is.null(exp1_objective_long) && nrow(exp1_objective_long) > 0) {
+  math_obj_model_exp1 <- run_objective_difficulty_lmm(exp1_objective_long, "correct_trials", "MATH OBJECTIVE DIFFICULTY - EXPERIMENT 1")
+}
+
+# Kombinierte Math Objective Difficulty Analysis  
+if (!is.null(combined_math_objective)) {
+  combined_math_obj_model <- run_objective_difficulty_lmm(
+    combined_math_objective, 
+    "correct_trials",
+    "MATH OBJECTIVE DIFFICULTY - COMBINED EXPERIMENTS"
+  )
+}
+
+# =============================================================================
+# VISUALISIERUNGEN
+# =============================================================================
+
+# Funktion für subjective difficulty plots
+create_subjective_difficulty_plot <- function(data_long, title) {
+  if (is.null(data_long) || nrow(data_long) == 0) {
+    return(NULL)
+  }
+  
+  ggplot(data_long, aes(x = difficulty, y = subjective_difficulty, fill = condition)) +
+    geom_boxplot(position = position_dodge(width = 0.75), alpha = 0.7) +
+    stat_summary(fun = mean, geom = "point", position = position_dodge(width = 0.75),
+                 shape = 23, size = 3, color = "black") +
+    labs(
+      title = paste("Subjective Difficulty:", title),
+      x = "Difficulty Condition", 
+      y = "Subjective Difficulty Rating",
+      fill = "Communication"
+    ) +
+    scale_fill_manual(values = c("lightblue", "darkblue")    ) +
+    scale_fill_manual(values = c("lightblue", "darkblue")) +
+    theme_minimal() +
+    theme(
+      plot.title = element_text(hjust = 0.5, size = 14, face = "bold"),
+      axis.text.x = element_text(angle = 45, hjust = 1),
+      legend.position = "bottom"
+    ) +
+    scale_fill_manual(values = c("lightblue", "darkblue")) +
+    theme_minimal()
+}
+
+# Funktion für objective difficulty plots
+create_objective_difficulty_plot <- function(data_long, dv_var, y_label, title) {
+  if (is.null(data_long) || nrow(data_long) == 0) {
+    return(NULL)
+  }
+  
+  ggplot(data_long, aes_string(x = "difficulty", y = dv_var, fill = "condition")) +
+    geom_boxplot(position = position_dodge(width = 0.75), alpha = 0.7) +
+    stat_summary(fun = mean, geom = "point", position = position_dodge(width = 0.75),
+                 shape = 23, size = 3, color = "black") +
+    labs(
+      title = paste("Objective Difficulty:", title),
+      x = "Difficulty Condition",
+      y = y_label,
+      fill = "Communication"
+    ) +
+    scale_fill_manual(values = c("lightblue", "darkblue")    ) +
+    scale_fill_manual(values = c("lightblue", "darkblue")) +
+    theme_minimal() +
+    theme(
+      plot.title = element_text(hjust = 0.5, size = 14, face = "bold"),
+      axis.text.x = element_text(angle = 45, hjust = 1),
+      legend.position = "bottom"
+    ) +
+    scale_fill_manual(values = c("lightblue", "darkblue")) +
+    theme_minimal()
+}
+
+# Funktion für HP objective difficulty plots (Barplot statt Boxplot)
+create_hp_objective_plot <- function(data_long, title) {
+  if (is.null(data_long) || nrow(data_long) == 0) {
+    return(NULL)
+  }
+  
+  # Berechne Success Rates pro Gruppe
+  summary_data <- data_long %>%
+    group_by(difficulty, condition) %>%
+    summarise(
+      success_rate = mean(success_rate, na.rm = TRUE),
+      n = n(),
+      se = sqrt(success_rate * (1 - success_rate) / n),  # Binomial SE
+      .groups = "drop"
+    )
+  
+  ggplot(summary_data, aes(x = difficulty, y = success_rate, fill = condition)) +
+    geom_col(position = position_dodge(width = 0.8), alpha = 0.8) +
+    geom_errorbar(aes(ymin = pmax(0, success_rate - se), 
+                      ymax = pmin(1, success_rate + se)),
+                  position = position_dodge(width = 0.8), 
+                  width = 0.25, color = "black") +
+    geom_text(aes(label = paste0("n=", n)), 
+              position = position_dodge(width = 0.8),
+              vjust = -0.5, size = 3) +
+    labs(
+      title = paste("Objective Difficulty:", title),
+      x = "Difficulty Condition",
+      y = "Success Rate (Proportion Correct)",
+      fill = "Communication"
+    ) +
+    scale_y_continuous(limits = c(0, 1), labels = scales::percent_format()) +
+    scale_fill_manual(values = c("lightblue", "darkblue")    ) +
+    scale_fill_manual(values = c("lightblue", "darkblue")) +
+    theme_minimal() +
+    theme(
+      plot.title = element_text(hjust = 0.5, size = 14, face = "bold"),
+      axis.text.x = element_text(angle = 45, hjust = 1),
+      legend.position = "bottom"
+    ) +
+    scale_fill_manual(values = c("lightblue", "darkblue")) +
+    theme_minimal()
+}
+
+# Erstelle Plots
+math_subj_plot_exp2 <- create_subjective_difficulty_plot(math_difficulty_long_exp2, "Math Task (Experiment 2)")
+hp_subj_plot_exp2 <- create_subjective_difficulty_plot(hp_difficulty_long_exp2, "Hidden Profile Task (Experiment 2)")
+
+if (!is.null(exp1_difficulty_long)) {
+  math_subj_plot_exp1 <- create_subjective_difficulty_plot(exp1_difficulty_long, "Math Task (Experiment 1)")
+} else {
+  math_subj_plot_exp1 <- NULL
+}
+
+if (!is.null(math_objective_exp2)) {
+  math_obj_plot_exp2 <- create_objective_difficulty_plot(math_objective_exp2, "correct_trials", 
+                                                         "Number of Correct Trials", "Math Task (Experiment 2)")
+} else {
+  math_obj_plot_exp2 <- NULL
+}
+
+# HP: Verwende spezielle Barplot-Funktion für Success Rate
+if (!is.null(hp_objective_exp2)) {
+  hp_obj_plot_exp2 <- create_hp_objective_plot(hp_objective_exp2, "Hidden Profile Task (Experiment 2)")
+} else {
+  hp_obj_plot_exp2 <- NULL
+}
+
+if (!is.null(exp1_objective_long)) {
+  math_obj_plot_exp1 <- create_objective_difficulty_plot(exp1_objective_long, "correct_trials", 
+                                                         "Number of Correct Trials", "Math Task (Experiment 1)")
+} else {
+  math_obj_plot_exp1 <- NULL
+}
+
+# Zeige Plots an
+if (!is.null(math_subj_plot_exp2)) print(math_subj_plot_exp2)
+if (!is.null(hp_subj_plot_exp2)) print(hp_subj_plot_exp2)
+if (!is.null(math_subj_plot_exp1)) print(math_subj_plot_exp1)
+if (!is.null(math_obj_plot_exp2)) print(math_obj_plot_exp2)
+if (!is.null(hp_obj_plot_exp2)) print(hp_obj_plot_exp2)
+if (!is.null(math_obj_plot_exp1)) print(math_obj_plot_exp1)
+
+# =============================================================================
+# KOMBINIERTE MATH PLOTS MIT SCHÖNEN LABELS
+# =============================================================================
+
+create_combined_math_plot <- function(data_long, dv_var, y_label, title) {
+  if (is.null(data_long) || nrow(data_long) == 0) {
+    return(NULL)
+  }
+  
+  # Erstelle schöne Labels für Plots
+  data_plot <- data_long %>%
+    mutate(
+      condition_label = case_when(
+        condition == "Alone" ~ "Alone",
+        condition == "Together_None" ~ "No Communication", 
+        condition == "Together_Chat" ~ "Chat",
+        condition == "Together_Video" ~ "Video",
+        TRUE ~ as.character(condition)
+      ),
+      condition_label = factor(condition_label, 
+                              levels = c("Alone", "No Communication", "Chat", "Video"))
+    )
+  
+  # Farben für die 4 Bedingungen - ANGEPASST
+  colors <- c(
+    "Alone" = "#E91E63",           # Rosarot
+    "No Communication" = "#DDA0DD", # Helles Flieder
+    "Chat" = "#87CEEB",            # Hellblau
+    "Video" = "#1E3A8A"            # Dunkelblau
+  )
+  
+  ggplot(data_plot, aes_string(x = "difficulty", y = dv_var, fill = "condition_label")) +
+    geom_boxplot(position = position_dodge(width = 0.8), alpha = 0.7) +
+    stat_summary(fun = mean, geom = "point", position = position_dodge(width = 0.8),
+                 shape = 23, size = 2, color = "black") +
+    scale_fill_manual(values = colors) +
+    labs(
+      title = title,
+      x = "Difficulty Condition",
+      y = y_label,
+      fill = "Communication Format"
+    ) +
+    theme_minimal() +
+    theme(
+      plot.title = element_text(hjust = 0.5, size = 14, face = "bold"),
+      axis.text.x = element_text(angle = 0, hjust = 0.5),
+      legend.position = "bottom"
+    )
+}
+
+# Erstelle kombinierte Math Plots (ersetzen die separaten Exp1/Exp2 Math Plots)
+if (!is.null(combined_math_subjective)) {
+  combined_math_subj_plot <- create_combined_math_plot(
+    combined_math_subjective, 
+    "subjective_difficulty",
+    "Subjective Difficulty Rating", 
+    "Math Task: Subjective Difficulty"
+  )
+  
+  print(combined_math_subj_plot)
+}
+
+if (!is.null(combined_math_objective)) {
+  combined_math_obj_plot <- create_combined_math_plot(
+    combined_math_objective,
+    "correct_trials", 
+    "Number of Correct Trials",
+    "Math Task: Objective Difficulty"
+  )
+  
+  print(combined_math_obj_plot)
+}
+
+# =============================================================================
+# CROSS-TASK & CROSS-EXPERIMENT VERGLEICHE
+# =============================================================================
+
+# Funktionen für Vergleichsanalysen
+compare_across_tasks_exp2 <- function() {
+  if (!is.null(math_difficulty_long_exp2) && !is.null(hp_difficulty_long_exp2)) {
+    cat("\n=== CROSS-TASK COMPARISON (EXPERIMENT 2) ===\n")
+    
+    # Normalisiere Schwierigkeitsgrade für Vergleich
+    math_norm <- math_difficulty_long_exp2 %>%
+      mutate(difficulty_norm = case_when(
+        difficulty == "Easy" ~ "Easy",
+        difficulty %in% c("Optimal_Selected", "Optimal_Calibrated") ~ "Medium",
+        difficulty == "Hard" ~ "Hard"
+      ))
+    
+    hp_norm <- hp_difficulty_long_exp2 %>%
+      mutate(difficulty_norm = case_when(
+        difficulty == "Easy" ~ "Easy", 
+        difficulty == "Medium" ~ "Medium",
+        difficulty == "Hard" ~ "Hard"
+      ))
+    
+    # Kombiniere für Vergleich
+    combined_exp2 <- bind_rows(
+      math_norm %>% select(participant.code, condition, difficulty_norm, subjective_difficulty, task_type),
+      hp_norm %>% select(participant.code, condition, difficulty_norm, subjective_difficulty, task_type)
+    ) %>%
+      mutate(difficulty_norm = factor(difficulty_norm, levels = c("Easy", "Medium", "Hard")))
+    
+    # Cross-task LMM
+    if (nrow(combined_exp2) > 0) {
+      cat("Running cross-task difficulty comparison...\n")
+      tryCatch({
+        cross_task_model <- lmer(subjective_difficulty ~ difficulty_norm * task_type * condition + 
+                                (1|participant.code), data = combined_exp2, REML = FALSE)
+        
+        if (isSingular(cross_task_model)) {
+          cross_task_model <- lm(subjective_difficulty ~ difficulty_norm * task_type * condition, 
+                                data = combined_exp2)
+        }
+        
+        print(summary(cross_task_model))
+        print(anova(cross_task_model))
+        
+        # Plot für Cross-Task Vergleich
+        cross_task_plot <- ggplot(combined_exp2, aes(x = difficulty_norm, y = subjective_difficulty, 
+                                                     fill = interaction(task_type, condition))) +
+          geom_boxplot(position = position_dodge(width = 0.8), alpha = 0.7) +
+          labs(
+            title = "Cross-Task Difficulty Comparison (Experiment 2)",
+            x = "Normalized Difficulty", 
+            y = "Subjective Difficulty Rating",
+            fill = "Task × Communication"
+          ) +
+          theme_minimal() +
+          theme(
+            plot.title = element_text(hjust = 0.5, size = 14, face = "bold"),
+            legend.position = "bottom"
+          )
+        
+        print(cross_task_plot)
+        
+        return(cross_task_model)
+      }, error = function(e) {
+        cat("Error in cross-task analysis:", e$message, "\n")
+        return(NULL)
+      })
+    }
+  }
+}
+
+# Führe Cross-Task Analyse durch
+cross_task_results <- compare_across_tasks_exp2()
+
+# =============================================================================
+# 1. DIFFICULTY PLOTS EXPORTIEREN
+# =============================================================================
+
+cat("\n--- EXPORTIERE DIFFICULTY PLOTS ---\n")
+
+# Plot-Dimensionen für verschiedene Zwecke
+# Für Papers/Journals: kleinere Plots, höhere Auflösung
+paper_width <- 7
+paper_height <- 5
+paper_dpi <- 600
+
+# Für Präsentationen: größere Plots, mittlere Auflösung  
+presentation_width <- 10
+presentation_height <- 7
+presentation_dpi <- 300
+
+difficulty_plots_updated <- list(
+  "combined_math_subj" = if(exists("combined_math_subj_plot")) combined_math_subj_plot else NULL,
+  "combined_math_obj" = if(exists("combined_math_obj_plot")) combined_math_obj_plot else NULL,
+  "hp_subj_exp2" = if(exists("hp_subj_plot_exp2")) hp_subj_plot_exp2 else NULL,
+  "hp_obj_exp2" = if(exists("hp_obj_plot_exp2")) hp_obj_plot_exp2 else NULL
+)
+
+# Exportiere jeden Difficulty Plot
+for (plot_name in names(difficulty_plots)) {
+  plot_obj <- difficulty_plots[[plot_name]]
+  
+  if (!is.null(plot_obj)) {
+    # Für Publikationen (TIFF, hochauflösend)
+    tryCatch({
+      ggsave(file.path("plots_export", paste0(plot_name, "_publication.tiff")), 
+             plot = plot_obj,
+             width = paper_width, height = paper_height, 
+             dpi = paper_dpi, compression = "lzw", bg = "white")
+      cat("✓ Exportiert:", paste0(plot_name, "_publication.tiff"), "\n")
+    }, error = function(e) {
+      cat("❌ Fehler beim Export von", plot_name, "TIFF:", e$message, "\n")
+    })
+    
+    # Für Präsentationen (PNG, mittlere Auflösung)
+    tryCatch({
+      ggsave(file.path("plots_export", paste0(plot_name, "_presentation.png")), 
+             plot = plot_obj,
+             width = presentation_width, height = presentation_height, 
+             dpi = presentation_dpi, bg = "white")
+      cat("✓ Exportiert:", paste0(plot_name, "_presentation.png"), "\n")
+    }, error = function(e) {
+      cat("❌ Fehler beim Export von", plot_name, "PNG:", e$message, "\n")
+    })
+    
+    # Für Vector Graphics (PDF)
+    tryCatch({
+      ggsave(file.path("plots_export", paste0(plot_name, "_vector.pdf")), 
+             plot = plot_obj,
+             width = paper_width, height = paper_height, 
+             bg = "white")
+      cat("✓ Exportiert:", paste0(plot_name, "_vector.pdf"), "\n")
+    }, error = function(e) {
+      cat("❌ Fehler beim Export von", plot_name, "PDF:", e$message, "\n")
+    })
+  } else {
+    cat("⚠️ Plot", plot_name, "nicht verfügbar - übersprungen\n")
+  }
+}
+
+# =============================================================================
+# ZUSAMMENFASSUNG & EXPORT
+# =============================================================================
+
+cat("\n=== MANIPULATION CHECK ZUSAMMENFASSUNG ===\n")
+cat("Abgeschlossene Analysen:\n")
+if (exists("math_subj_model_exp2")) cat("✓ Math Subjective Difficulty - Experiment 2\n")
+if (exists("hp_subj_model_exp2")) cat("✓ HP Subjective Difficulty - Experiment 2\n") 
+if (exists("math_subj_model_exp1")) cat("✓ Math Subjective Difficulty - Experiment 1\n")
+if (exists("math_obj_model_exp2")) cat("✓ Math Objective Difficulty - Experiment 2\n")
+if (exists("hp_obj_model_exp2")) cat("✓ HP Objective Difficulty - Experiment 2\n")
+if (exists("math_obj_model_exp1")) cat("✓ Math Objective Difficulty - Experiment 1\n")
+if (exists("cross_task_results")) cat("✓ Cross-Task Comparison\n")
+
+cat("\nErstellte Plots:\n")
+if (exists("math_subj_plot_exp2")) cat("✓ Math Subjective - Experiment 2\n")
+if (exists("hp_subj_plot_exp2")) cat("✓ HP Subjective - Experiment 2\n")
+if (exists("math_subj_plot_exp1")) cat("✓ Math Subjective - Experiment 1\n")
+if (exists("math_obj_plot_exp2")) cat("✓ Math Objective - Experiment 2\n")
+if (exists("hp_obj_plot_exp2")) cat("✓ HP Objective - Experiment 2\n")
+if (exists("math_obj_plot_exp1")) cat("✓ Math Objective - Experiment 1\n")
+
+cat("\n=== AKTUALISIERTE DIFFICULTY ANALYSIS STRUKTUR ===\n")
+cat("📊 MATH TASK (KOMBINIERT - Exp1 & Exp2):\n")
+if (exists("combined_math_subj_model")) cat("✓ Subjective Difficulty - 4 Conditions kombiniert\n")
+if (exists("combined_math_obj_model")) cat("✓ Objective Difficulty - 4 Conditions kombiniert\n")
+
+cat("\n📋 HIDDEN PROFILE TASK (NUR EXP2):\n") 
+if (exists("hp_subj_model_exp2")) cat("✓ Subjective Difficulty - Video vs Chat\n")
+if (exists("hp_obj_model_exp2")) cat("✓ Objective Difficulty - Video vs Chat\n")
+
+```
+
+Manipulation Check - Team interaction format
+
+```{r}
+# =============================================================================
+# A1.2 TEAM INTERACTION FORMAT ASSESSMENT - KORRIGIERT
+# Appendix A1 – Manipulation Checks & Task Performance Comparison
+# =============================================================================
+
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(lme4)
+library(lmerTest)
+library(emmeans)
+library(gridExtra)
+library(knitr)
+library(kableExtra)
+
+# =============================================================================
+# TEAM-FAKTOREN VARIABLEN & LABELS - KORRIGIERT
+# =============================================================================
+
+# Definiere Team-Faktoren Variablen (OHNE perceived_task_complexity_value)
+team_factor_vars <- c(
+  "interdependence_value", "common_goal_value", "means_coordination_value",
+  "group_size_value", "group_diversity_value", "group_skill_value", 
+  "team_composition_value", "team_motivation_value",
+  "communication_required_value", "work_independence_value", 
+  "social_presence_value"
+  # "perceived_task_complexity_value" ENTFERNT
+)
+
+# Variable Labels für bessere Plots
+variable_labels <- c(
+  "interdependence_value" = "Mutual\nDependence",
+  "common_goal_value" = "Clear Goal &\nProcess", 
+  "means_coordination_value" = "Coordination\nPossible",
+  "group_size_value" = "Group Size\nJust Right",
+  "group_diversity_value" = "Adequate Perspective\nDiversity",
+  "group_skill_value" = "Complementary\nSkills",
+  "team_composition_value" = "Team Composition\nAdequate",
+  "team_motivation_value" = "Team\nMotivation",
+  "communication_required_value" = "Communication\nRequired",
+  "work_independence_value" = "Work\nIndependence",
+  "social_presence_value" = "Social\nPresence"
+  # perceived_task_complexity_value entfernt
+)
+
+# =============================================================================
+# DATENAUFBEREITUNG FÜR ALLE DREI TEIL-EXPERIMENTE - KORRIGIERT
+# =============================================================================
+
+prepare_all_experiments_data <- function(integrated_data_full) {
+  
+  cat("=== DATENAUFBEREITUNG FÜR ALLE DREI TEIL-EXPERIMENTE ===\n")
+  
+  if (!exists("integrated_data_full")) {
+    cat("❌ integrated_data_full nicht gefunden\n")
+    return(NULL)
+  }
+  
+  # Team-Faktoren sind Post-Task Measurements
+  all_experiments_data <- integrated_data_full %>%
+    filter(
+      # Nur Team-Settings (KORRIGIERT: Together_None statt MP)
+      comm %in% c("Together_Chat", "Together_Jitsi", "Together_None"),
+      # Nur Post-Task Measurements für Team-Faktoren
+      round == "Post"
+    ) %>%
+    mutate(
+      # Erstelle einheitliche Experiment-Task Kategorien (KORRIGIERT)
+      experiment_task = case_when(
+        comm == "Together_None" ~ "Exp1_Math_Team",  # KORRIGIERT
+        comm == "Together_Chat" & task == "Math" ~ "Exp2_Math_Chat",
+        comm == "Together_Chat" & task == "HP" ~ "Exp2_HP_Chat", 
+        comm == "Together_Jitsi" & task == "Math" ~ "Exp2_Math_Video",
+        comm == "Together_Jitsi" & task == "HP" ~ "Exp2_HP_Video",
+        TRUE ~ "Unknown"
+      ),
+      # Vereinfachte Kategorien für Hauptvergleich
+      experiment_simplified = case_when(
+        comm == "Together_None" ~ "Exp1_Math_Team",  # KORRIGIERT
+        comm %in% c("Together_Chat", "Together_Jitsi") & task == "Math" ~ "Exp2_Math_Team",
+        comm %in% c("Together_Chat", "Together_Jitsi") & task == "HP" ~ "Exp2_HP_Team",
+        TRUE ~ "Unknown"
+      ),
+      # Communication Type
+      communication = case_when(
+        comm == "Together_None" ~ "No_Medium",  # KORRIGIERT
+        comm == "Together_Chat" ~ "Chat", 
+        comm == "Together_Jitsi" ~ "Video",
+        TRUE ~ "Unknown"
+      )
+    ) %>%
+    filter(experiment_task != "Unknown") %>%
+    select(participant.code, experiment_task, experiment_simplified, communication, 
+           task, all_of(team_factor_vars))
+  
+  # Prüfe verfügbare Team-Variablen
+  available_vars <- team_factor_vars[team_factor_vars %in% names(all_experiments_data)]
+  
+  cat("Gesamtdaten erstellt:\n")
+  cat("Anzahl Teilnehmer:", nrow(all_experiments_data), "\n")
+  cat("Experiment-Task Kombinationen:\n")
+  print(table(all_experiments_data$experiment_task))
+  cat("Vereinfachte Kategorien:\n")
+  print(table(all_experiments_data$experiment_simplified))
+  cat("Verfügbare Team-Variablen:", length(available_vars), "von", length(team_factor_vars), "\n")
+  
+  if (length(available_vars) == 0) {
+    cat("❌ Keine Team-Variablen gefunden\n")
+    return(NULL)
+  }
+  
+  # Debug: Zeige verfügbare Variablen
+  cat("Verfügbare Variablen:", paste(available_vars, collapse = ", "), "\n")
+  
+  return(list(
+    data = all_experiments_data,
+    available_vars = available_vars
+  ))
+}
+
+# =============================================================================
+# TEAM PROFILE PLOTS - DREI SEPARATE PLOTS FÜR BESSERE ÜBERSICHT - KORRIGIERT
+# =============================================================================
+
+create_comprehensive_team_profile_plots <- function(data, available_vars) {
+  
+  cat("\n=== TEAM PROFILE PLOTS FÜR ALLE TEIL-EXPERIMENTE (3 SEPARATE PLOTS) ===\n")
+  
+  if (length(available_vars) == 0) {
+    cat("❌ Keine Variablen verfügbar\n")
+    return(NULL)
+  }
+  
+  # Bereite Basisdaten vor
+  profile_data <- data %>%
+    select(participant.code, experiment_simplified, all_of(available_vars)) %>%
+    pivot_longer(cols = all_of(available_vars), 
+                 names_to = "factor", values_to = "score") %>%
+    filter(!is.na(score)) %>%
+    mutate(
+      factor_clean = variable_labels[factor],
+      factor_clean = ifelse(is.na(factor_clean), factor, factor_clean),
+      # Kategorisierung (OHNE perceived_task_complexity_value)
+      category = case_when(
+        factor %in% c("interdependence_value", "common_goal_value", "means_coordination_value") ~ 
+          "Flow Pre-Conditions",
+        factor %in% c("group_size_value", "group_diversity_value", "group_skill_value", "team_composition_value") ~ 
+          "Team Composition", 
+        factor %in% c("communication_required_value", "work_independence_value", "social_presence_value") ~ 
+          "Team Interaction Experience",  # KORRIGIERT: perceived_task_complexity_value entfernt
+        TRUE ~ "Other"
+      ),
+      # Schönere Labels für Experimente + Reihenfolge festlegen
+      experiment_label = case_when(
+        experiment_simplified == "Exp1_Math_Team" ~ "Exp1: Math Team",
+        experiment_simplified == "Exp2_Math_Team" ~ "Exp2: Math Team", 
+        experiment_simplified == "Exp2_HP_Team" ~ "Exp2: HP Team",
+        TRUE ~ experiment_simplified
+      ),
+      # Factor mit gewünschter Reihenfolge: Math Exp1, Math Exp2, HP Exp2
+      experiment_label = factor(experiment_label, 
+                               levels = c("Exp1: Math Team", "Exp2: Math Team", "Exp2: HP Team"))
+    ) %>%
+    filter(category != "Other")
+  
+  if (nrow(profile_data) == 0) {
+    cat("❌ Keine Daten nach Filterung verfügbar\n")
+    return(NULL)
+  }
+  
+  # Farben für die drei Experimente - ANGEPASST
+  colors <- c(
+    "Exp1: Math Team" = "#54ACD1",      # Blau
+    "Exp2: Math Team" = "#1E576F",      # Blau 
+    "Exp2: HP Team" = "#E74C3C"         # Rot
+  )
+  
+  # Berechne Mittelwerte für alle Kategorien
+  mean_data <- profile_data %>%
+    group_by(factor_clean, experiment_label, category) %>%
+    summarise(mean_score = mean(score, na.rm = TRUE), .groups = "drop")
+  
+  # Funktion für einzelne Kategorie-Plots
+  create_category_plot <- function(category_name) {
+    
+    cat("Erstelle Plot für Kategorie:", category_name, "\n")
+    
+    # Filtere Daten für diese Kategorie
+    category_data <- profile_data %>% filter(category == category_name)
+    category_means <- mean_data %>% filter(category == category_name)
+    
+    if (nrow(category_data) == 0) {
+      cat("Keine Daten für Kategorie", category_name, "\n")
+      return(NULL)
+    }
+    
+    cat("  Variablen:", length(unique(category_data$factor_clean)), "\n")
+    cat("  Beobachtungen:", nrow(category_data), "\n")
+    
+    # Erstelle Plot
+    ggplot(category_data, aes(x = factor_clean, y = score, fill = experiment_label)) +
+      geom_boxplot(position = position_dodge(width = 0.8), 
+                   alpha = 0.7, 
+                   outlier.shape = 16,
+                   outlier.size = 1.2,
+                   width = 0.75) +
+      # Mittelwerte als Text
+      geom_text(data = category_means, 
+                aes(x = factor_clean, y = mean_score, label = round(mean_score, 1)),
+                position = position_dodge(width = 0.8), 
+                vjust = -0.5, 
+                size = 3, 
+                fontface = "bold",
+                color = "black") +
+      scale_fill_manual(values = colors) +
+      scale_y_continuous(limits = c(1, 7), breaks = 1:7) +
+      labs(
+        title = paste(category_name, "- Team Assessment Across Experiments"),
+        x = "Self-Reported Construct",
+        y = "Response (7Pt-Likert)",
+        fill = "Experiment",
+        caption = "Numbers show mean averages."
+      ) +
+      theme_minimal() +
+      theme(
+        # Bessere Lesbarkeit - horizontale Labels
+        axis.text.x = element_text(angle = 0, hjust = 0.5, size = 10),
+        axis.text.y = element_text(size = 10),
+        axis.title = element_text(size = 11, face = "bold"),
+        
+        # Titel
+        plot.title = element_text(size = 13, face = "bold", hjust = 0.5),
+        plot.caption = element_text(size = 9, hjust = 0.5, face = "italic"),
+        
+        # Legende
+        legend.position = "bottom",
+        legend.title = element_text(size = 10, face = "bold"),
+        legend.text = element_text(size = 9),
+        
+        # Grid
+        panel.grid.minor = element_blank(),
+        panel.grid.major.x = element_blank(),
+        panel.grid.major.y = element_line(color = "gray90", size = 0.3),
+        
+        # Mehr Platz für Variablennamen
+        plot.margin = margin(15, 15, 15, 15)
+      )
+  }
+  
+  # Erstelle alle drei Plots
+  categories <- c("Flow Pre-Conditions", "Team Composition", "Team Interaction Experience")
+  plots <- list()
+  
+  for (cat_name in categories) {
+    plot <- create_category_plot(cat_name)
+    if (!is.null(plot)) {
+      plots[[cat_name]] <- plot
+    }
+  }
+  
+  cat("Erstellte Plots:", length(plots), "von", length(categories), "\n")
+  
+  return(plots)
+}
+
+# =============================================================================
+# VERGLEICHSTABELLE - ERWEITERT FÜR DREI KATEGORIEN - KORRIGIERT
+# =============================================================================
+
+create_detailed_comparison_tables <- function(data, available_vars) {
+  
+  cat("\n=== DETAILLIERTE VERGLEICHSTABELLEN PRO KATEGORIE ===\n")
+  
+  # Berechne Descriptive Statistics
+  descriptive_stats <- data %>%
+    select(experiment_simplified, all_of(available_vars)) %>%
+    pivot_longer(cols = all_of(available_vars), 
+                 names_to = "variable", values_to = "value") %>%
+    filter(!is.na(value)) %>%
+    mutate(
+      variable_clean = variable_labels[variable],
+      variable_clean = ifelse(is.na(variable_clean), variable, variable_clean),
+      # Kategorisierung (OHNE perceived_task_complexity_value)
+      category = case_when(
+        variable %in% c("interdependence_value", "common_goal_value", "means_coordination_value") ~ 
+          "Flow Pre-Conditions",
+        variable %in% c("group_size_value", "group_diversity_value", "group_skill_value", "team_composition_value") ~ 
+          "Team Composition", 
+        variable %in% c("communication_required_value", "work_independence_value", "social_presence_value") ~ 
+          "Team Interaction Experience",  # KORRIGIERT
+        TRUE ~ "Other"
+      )
+    ) %>%
+    filter(category != "Other") %>%
+    group_by(category, variable_clean, experiment_simplified) %>%
+    summarise(
+      n = n(),
+      mean = round(mean(value, na.rm = TRUE), 2),
+      sd = round(sd(value, na.rm = TRUE), 2),
+      min_val = round(min(value, na.rm = TRUE), 1),
+      max_val = round(max(value, na.rm = TRUE), 1),
+      .groups = "drop"
+    ) %>%
+    mutate(mean_sd = paste0(mean, " ± ", sd))
+  
+  # Debug: Prüfe die Datenstruktur
+  cat("Descriptive Stats Dimensionen:", nrow(descriptive_stats), "x", ncol(descriptive_stats), "\n")
+  cat("Unique Kategorien:", paste(unique(descriptive_stats$category), collapse = ", "), "\n")
+  cat("Unique Experimente:", paste(unique(descriptive_stats$experiment_simplified), collapse = ", "), "\n")
+  
+  # Erstelle separate Tabellen pro Kategorie
+  categories <- unique(descriptive_stats$category)
+  tables <- list()
+  
+  for (cat_name in categories) {
+    
+    cat("Erstelle Tabelle für:", cat_name, "\n")
+    
+    # Filtere Daten für diese Kategorie
+    cat_data <- descriptive_stats %>%
+      filter(category == cat_name) %>%
+      select(variable_clean, experiment_simplified, mean_sd, n)
+    
+    cat("  Gefilterte Daten:", nrow(cat_data), "Zeilen\n")
+    
+    if (nrow(cat_data) > 0) {
+      # Prüfe verfügbare Experimente für diese Kategorie
+      available_experiments <- unique(cat_data$experiment_simplified)
+      cat("  Verfügbare Experimente:", paste(available_experiments, collapse = ", "), "\n")
+      
+      # Erstelle Pivot-Tabelle nur mit verfügbaren Experimenten
+      tryCatch({
+        pivot_data <- cat_data %>%
+          select(variable_clean, experiment_simplified, mean_sd) %>%
+          pivot_wider(names_from = experiment_simplified, 
+                      values_from = mean_sd,
+                      names_prefix = "Mean_SD_")
+        
+        # Sample sizes separat
+        n_data <- cat_data %>%
+          select(variable_clean, experiment_simplified, n) %>%
+          pivot_wider(names_from = experiment_simplified, 
+                      values_from = n,
+                      names_prefix = "N_")
+        
+        # Kombiniere beide
+        combined_table <- pivot_data %>%
+          left_join(n_data, by = "variable_clean")
+        
+        tables[[cat_name]] <- combined_table
+        cat("  ✓ Tabelle erstellt mit", nrow(combined_table), "Variablen\n")
+        
+      }, error = function(e) {
+        cat("  ❌ Fehler beim Erstellen der Tabelle:", e$message, "\n")
+        # Fallback: Einfache Tabelle ohne Pivot
+        tables[[cat_name]] <- cat_data
+      })
+    }
+  }
+  
+  return(list(
+    tables = tables,
+    descriptive_stats = descriptive_stats
+  ))
+}
+
+# Erstelle formatierte Tabellen - KORRIGIERT
+format_category_tables <- function(table_data) {
+  
+  formatted_tables <- list()
+  
+  for (cat_name in names(table_data$tables)) {
+    
+    table <- table_data$tables[[cat_name]]
+    
+    if (nrow(table) > 0) {
+      
+      # Prüfe welche Spalten verfügbar sind
+      mean_cols <- names(table)[grepl("^Mean_SD_", names(table))]
+      n_cols <- names(table)[grepl("^N_", names(table))]
+      
+      cat("Formatiere Tabelle für", cat_name, "- Mean Spalten:", length(mean_cols), "N Spalten:", length(n_cols), "\n")
+      cat("  Mean Spalten:", paste(mean_cols, collapse = ", "), "\n")
+      cat("  N Spalten:", paste(n_cols, collapse = ", "), "\n")
+      
+      if (length(mean_cols) > 0 && length(n_cols) > 0) {
+        # Normale formatierte Tabelle - KORRIGIERT: Spaltenanzahl prüfen
+        
+        # Erstelle korrekte Spaltennamen
+        mean_names <- gsub("^Mean_SD_", "", mean_cols)
+        n_names <- paste0("N (", gsub("^N_", "", n_cols), ")")
+        
+        # Gesamtzahl der Spalten: 1 (Variable) + Mean Spalten + N Spalten
+        total_cols <- 1 + length(mean_cols) + length(n_cols)
+        col_names <- c("Variable", mean_names, n_names)
+        
+        cat("  Erwartete Spalten:", total_cols, "Erstellte col_names:", length(col_names), "\n")
+        
+        # Prüfe ob Anzahl stimmt
+        selected_table <- table %>% select(variable_clean, all_of(mean_cols), all_of(n_cols))
+        actual_cols <- ncol(selected_table)
+        
+        cat("  Tatsächliche Tabellenspalten:", actual_cols, "\n")
+        
+        if (length(col_names) == actual_cols) {
+          formatted_table <- selected_table %>%
+            kable(
+              col.names = col_names,
+              caption = paste(cat_name, ": Descriptive Statistics Across Experiments"),
+              format = "html"
+            ) %>%
+            kable_styling(bootstrap_options = c("striped", "hover", "condensed"), 
+                          full_width = TRUE) %>%
+            add_header_above(c(" " = 1, "Mean ± SD" = length(mean_cols), "Sample Size" = length(n_cols)))
+        } else {
+          cat("  ❌ Spaltenanzahl stimmt nicht überein - verwende einfache Tabelle\n")
+          # Fallback: Einfache Tabelle ohne Header
+          formatted_table <- selected_table %>%
+            kable(
+              caption = paste(cat_name, ": Descriptive Statistics Across Experiments"),
+              format = "html"
+            ) %>%
+            kable_styling(bootstrap_options = c("striped", "hover", "condensed"), 
+                          full_width = TRUE)
+        }
+        
+      } else {
+        # Fallback: Einfache Tabelle
+        formatted_table <- table %>%
+          kable(
+            caption = paste(cat_name, ": Descriptive Statistics"),
+            format = "html"
+          ) %>%
+          kable_styling(bootstrap_options = c("striped", "hover", "condensed"), 
+                        full_width = TRUE)
+      }
+      
+      formatted_tables[[cat_name]] <- formatted_table
+    }
+  }
+  
+  return(formatted_tables)
+}
+
+# =============================================================================
+# DURCHFÜHRUNG DER ERWEITERTEN ANALYSE - KORRIGIERT
+# =============================================================================
+
+# Hauptanalyse
+if (exists("integrated_data_full")) {
+  
+  # Bereite Daten für alle Experimente vor
+  all_experiments_result <- prepare_all_experiments_data(integrated_data_full)
+  
+  if (!is.null(all_experiments_result)) {
+    
+    # Erstelle drei separate Team Profile Plots
+    team_profile_plots <- create_comprehensive_team_profile_plots(
+      all_experiments_result$data, 
+      all_experiments_result$available_vars
+    )
+    
+    if (!is.null(team_profile_plots) && length(team_profile_plots) > 0) {
+      
+      # Zeige alle Plots
+      for (plot_name in names(team_profile_plots)) {
+        cat("\n--- Plot für", plot_name, "---\n")
+        print(team_profile_plots[[plot_name]])
+        
+        # Speichere jeden Plot separat
+        filename <- paste0("team_profile_", gsub(" ", "_", tolower(plot_name)), ".png")
+        ggsave(filename, team_profile_plots[[plot_name]], 
+               width = 12, height = 6, dpi = 300, bg = "white")
+        cat("✓ Plot gespeichert als", filename, "\n")
+      }
+      
+    } else {
+      cat("❌ Keine Team Profile Plots erstellt\n")
+    }
+    
+    # Erstelle detaillierte Vergleichstabellen pro Kategorie
+    detailed_tables <- create_detailed_comparison_tables(
+      all_experiments_result$data,
+      all_experiments_result$available_vars
+    )
+    
+    # Formatiere und zeige Tabellen
+    if (!is.null(detailed_tables) && length(detailed_tables$tables) > 0) {
+      
+      formatted_tables <- format_category_tables(detailed_tables)
+      
+      if (length(formatted_tables) > 0) {
+        for (table_name in names(formatted_tables)) {
+          cat("\n=== TABELLE:", table_name, "===\n")
+          print(formatted_tables[[table_name]])
+        }
+        
+        # Exportiere detaillierte Daten
+        write.csv(detailed_tables$descriptive_stats, "team_factors_detailed_stats.csv", row.names = FALSE)
+        
+        # Exportiere separate CSV pro Kategorie
+        for (cat_name in names(detailed_tables$tables)) {
+          filename <- paste0("team_factors_", gsub(" ", "_", tolower(cat_name)), ".csv")
+          write.csv(detailed_tables$tables[[cat_name]], filename, row.names = FALSE)
+          cat("✓ Tabelle exportiert als", filename, "\n")
+        }
+        
+      } else {
+        cat("❌ Keine formatierten Tabellen erstellt\n")
+      }
+    } else {
+      cat("❌ Keine Tabellen erstellt\n")
+    }
+    
+  } else {
+    cat("❌ Konnte Daten für alle Experimente nicht vorbereiten\n")
+  }
+  
+} else {
+  cat("❌ integrated_data_full nicht gefunden\n")
+  cat("Bitte lade zuerst deine integrierten Daten\n")
+}
+
+# =============================================================================
+# 2. TEAM PROFILE PLOTS EXPORTIEREN  
+# =============================================================================
+
+cat("\n--- EXPORTIERE TEAM PROFILE PLOTS ---\n")
+
+# Team Profile Plots (falls vorhanden)
+if (exists("team_profile_plots") && !is.null(team_profile_plots)) {
+  
+  # Team Profile Plots sind breiter, daher andere Dimensionen
+  team_width_paper <- 10
+  team_height_paper <- 6
+  team_width_presentation <- 14
+  team_height_presentation <- 8
+  
+  for (plot_name in names(team_profile_plots)) {
+    plot_obj <- team_profile_plots[[plot_name]]
+    
+    if (!is.null(plot_obj)) {
+      # Sauberer Dateiname (entferne Sonderzeichen)
+      clean_name <- gsub("[^A-Za-z0-9_]", "_", plot_name)
+      clean_name <- gsub("_{2,}", "_", clean_name)  # Mehrfache Unterstriche entfernen
+      clean_name <- tolower(clean_name)
+      
+      # Für Publikationen (TIFF)
+      tryCatch({
+        ggsave(file.path("plots_export", paste0("team_", clean_name, "_publication.tiff")), 
+               plot = plot_obj,
+               width = team_width_paper, height = team_height_paper, 
+               dpi = paper_dpi, compression = "lzw", bg = "white")
+        cat("✓ Exportiert: team_", clean_name, "_publication.tiff\n")
+      }, error = function(e) {
+        cat("❌ Fehler beim Export von", plot_name, "TIFF:", e$message, "\n")
+      })
+      
+      # Für Präsentationen (PNG)
+      tryCatch({
+        ggsave(file.path("plots_export", paste0("team_", clean_name, "_presentation.png")), 
+               plot = plot_obj,
+               width = team_width_presentation, height = team_height_presentation, 
+               dpi = presentation_dpi, bg = "white")
+        cat("✓ Exportiert: team_", clean_name, "_presentation.png\n")
+      }, error = function(e) {
+        cat("❌ Fehler beim Export von", plot_name, "PNG:", e$message, "\n")
+      })
+      
+      # Für Vector Graphics (PDF)
+      tryCatch({
+        ggsave(file.path("plots_export", paste0("team_", clean_name, "_vector.pdf")), 
+               plot = plot_obj,
+               width = team_width_paper, height = team_height_paper, 
+               bg = "white")
+        cat("✓ Exportiert: team_", clean_name, "_vector.pdf\n")
+      }, error = function(e) {
+        cat("❌ Fehler beim Export von", plot_name, "PDF:", e$message, "\n")
+      })
+    }
+  }
+} else {
+  cat("⚠️ Keine Team Profile Plots gefunden\n")
+}
+
+# =============================================================================
+# A1.2 ZUSAMMENFASSUNG
+# =============================================================================
+
+cat("\n=== A1.2 TEAM INTERACTION FORMAT ASSESSMENT ZUSAMMENFASSUNG ===\n")
+
+# Zähle erfolgreiche Analysen
+cat("Abgeschlossene Analysen:\n")
+if (exists("team_profile_plots")) cat("✓ Team Profile Plots erstellt:", length(team_profile_plots), "\n")
+if (exists("detailed_tables")) cat("✓ Detaillierte Tabellen erstellt:", length(detailed_tables$tables), "\n")
+
+cat("\nAnalysierte Experimente:\n")
+cat("✓ Experiment 1: Math Team (Together_None)\n")
+cat("✓ Experiment 2: Math Team (Together_Chat + Together_Jitsi)\n") 
+cat("✓ Experiment 2: HP Team (Together_Chat + Together_Jitsi)\n")
+
+cat("\n💡 Team Interaction Format Assessment Interpretation:\n")
+cat("• Vergleich zwischen Experimenten und Kommunikationsformaten\n")
+cat("• Flow Pre-Conditions, Team Composition, und Interaction Experience analysiert\n")
+cat("• Basis für Verständnis der Kommunikationseffekte auf Teamdynamik\n")
+
+cat("\n=== A1.2 TEAM INTERACTION FORMAT ASSESSMENT ABGESCHLOSSEN ===\n")
+```
+
 
 Regression of flow on familiarity scores
 
