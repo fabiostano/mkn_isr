@@ -1,6 +1,7 @@
 
 from otree.api import *
 from otree.api import models, widgets
+import random
 
 c = cu
 
@@ -110,6 +111,29 @@ class Player(BasePlayer):
                                      choices=[[1, '1'], [2, '2'], [3, '3'], [4, '4'], [5, '5'], [6, '6'], [7, '7']],
                                      widget=widgets.RadioSelectHorizontal, blank=True)
 
+    # ----- Qual. Fields ----- #
+    # Individual Flow
+    qual_indiv_q1_general = models.LongStringField(blank=True, label="When working on the mental arithmetic tasks, did you experience flow more strongly in the chat or video meeting setting, if at all? Please describe what made this setting more or less conducive to flow for you.")
+    qual_indiv_q2_moment = models.LongStringField(blank=True, label="Can you describe a moment or aspect of the task where you particularly noticed being more (or less) “in flow” in one of the two settings?")
+    qual_indiv_q3_task = models.LongStringField(blank=True, label="Did characteristics of the task (e.g., task type, structure, or difficulty) influence your flow experience in chat versus video meetings?<br>If yes, how? Please explain.")
+    qual_indiv_q4_medium = models.LongStringField(blank=True, label="Did the communication setting (chat vs. video meeting) influence your flow experience? If yes, how? Please explain.")
+    qual_indiv_q5_mst_velocity = models.LongStringField(blank=True, label="... how quickly you received responses from your team members?")
+    qual_indiv_q5_mst_parallel = models.LongStringField(blank=True, label="... whether multiple messages or exchanges could occur at the same time?")
+    qual_indiv_q5_mst_symbols = models.LongStringField(blank=True, label="... how easily tone, emphasis, or subtle meaning could be expressed in communication?")
+    qual_indiv_q5_mst_rehearse = models.LongStringField(blank=True, label="... how you could think about and change what you wanted to say before sending it?")
+    qual_indiv_q5_mst_reprocess = models.LongStringField(blank=True, label="... whether you could go back and review earlier messages or information from your team members?")
+
+    # Reciprocal Flow
+    qual_recip_q1_general = models.LongStringField(blank=True, label="When working on the mental arithmetic tasks, did interactions with your team members influence your flow experience differently in chat and video meetings? If yes, please describe how.")
+    qual_recip_q2_moment = models.LongStringField(blank=True, label="Can you describe a moment during the task when the interaction with your team members especially helped or disrupted your experience of being “in flow” in the chat or video meeting settings?")
+    qual_recip_q3_task = models.LongStringField(blank=True, label="Did characteristics of the task (e.g., task type, structure, or difficulty) influence how your team members affected your flow experience in chat versus video meetings? If yes, how? Please explain.")
+    qual_recip_q4_medium = models.LongStringField(blank=True, label="Did characteristics of the communication setting (chat vs. video meeting) influence how your team members affected your flow experience? If yes, how? Please explain.")
+    qual_recip_q5_mst_velocity = models.LongStringField(blank=True, label="... how quickly you received responses from your team members?")
+    qual_recip_q5_mst_parallel = models.LongStringField(blank=True, label="... whether multiple messages or exchanges could occur at the same time?")
+    qual_recip_q5_mst_symbols = models.LongStringField(blank=True, label="... how easily tone, emphasis, or subtle meaning could be expressed in communication?")
+    qual_recip_q5_mst_rehearse = models.LongStringField(blank=True, label="... how you could think about and change what you wanted to say before sending it?")
+    qual_recip_q5_mst_reprocess = models.LongStringField(blank=True, label="... whether you could go back and review earlier messages or information from your team members?")
+
 def creating_session(subsession: Subsession):
     for group in subsession.get_groups():
         for p in group.get_players():
@@ -148,4 +172,44 @@ class TraitQuestionnaire(Page):
 
         return all_fields
 
-page_sequence = [TraitQuestionnaire, ThankYou, Goodbye]
+class Qual_Intro(Page):
+    form_model = 'player'
+
+class Qual_Individual_General(Page):
+    form_model = 'player'
+
+    @staticmethod
+    def get_form_fields(player: Player):
+        all_fields = ['qual_indiv_q1_general', 'qual_indiv_q2_moment']
+        return all_fields
+
+class Qual_Individual_Specific(Page):
+    form_model = 'player'
+
+    @staticmethod
+    def get_form_fields(player: Player):
+        all_fields = ['qual_indiv_q3_task', 'qual_indiv_q4_medium',
+                      'qual_indiv_q5_mst_velocity', 'qual_indiv_q5_mst_parallel', 'qual_indiv_q5_mst_symbols', 'qual_indiv_q5_mst_rehearse', 'qual_indiv_q5_mst_reprocess']
+        return all_fields
+
+class Qual_Reciproc_General(Page):
+    form_model = 'player'
+
+    @staticmethod
+    def get_form_fields(player: Player):
+        all_fields = ['qual_recip_q1_general', 'qual_recip_q2_moment']
+        return all_fields
+
+class Qual_Reciproc_Specific(Page):
+    form_model = 'player'
+
+    @staticmethod
+    def get_form_fields(player: Player):
+        all_fields = ['qual_recip_q3_task', 'qual_recip_q4_medium',
+                      'qual_recip_q5_mst_velocity', 'qual_recip_q5_mst_parallel', 'qual_recip_q5_mst_symbols', 'qual_recip_q5_mst_rehearse', 'qual_recip_q5_mst_reprocess']
+        return all_fields
+
+page_sequence = [TraitQuestionnaire, Qual_Intro,
+                 Qual_Individual_General, Qual_Individual_Specific,
+                 Qual_Reciproc_General, Qual_Reciproc_Specific,
+                 ThankYou, Goodbye]

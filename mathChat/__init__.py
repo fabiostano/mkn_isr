@@ -8,7 +8,7 @@ doc = ''
 class C(BaseConstants):
     NAME_IN_URL = 'mathChat'
     PLAYERS_PER_GROUP = 3
-    NUM_ROUNDS = 6
+    NUM_ROUNDS = 4
     TASK_TIME_LIMIT = 5 * 60 # Task Time
     TRIAL_TIME = 28
     BREAK_TIME = 4
@@ -17,10 +17,8 @@ class C(BaseConstants):
 
     COLORMAP = ['lightcoral', 'lightgreen', 'lightblue']
     LATIN_SQUARE_ORDERS = [
-        ["B", "F", "O", "A"],
-        ["F", "A", "B", "O"],
-        ["O", "B", "A", "F"],
-        ["A", "O", "F", "B"]
+        ["O", "A"],
+        ["A", "O"] # , "F", "B"
     ]
 
 class Subsession(BaseSubsession):
@@ -125,91 +123,91 @@ class Player(BasePlayer):
     ### Task Phase Survey
 
     # ----- Perceived Task Complexity ----- #
-    ptc1 = make_7p_likert_field('This task was a complex task.')
-    ptc2 = make_7p_likert_field('This task was mentally demanding.')
-    ptc3 = make_7p_likert_field('This task required a lot of thought and problem-solving.')
-    ptc4 = make_7p_likert_field('This task was challenging.')
+    # ptc1 = make_7p_likert_field('This task was a complex task.')
+    # ptc2 = make_7p_likert_field('This task was mentally demanding.')
+    # ptc3 = make_7p_likert_field('This task required a lot of thought and problem-solving.')
+    # ptc4 = make_7p_likert_field('This task was challenging.')
 
     # ----- Quality of Team Interaction ----- #
-    qti1 = make_7p_likert_field('There was a lot of unpleasantness among members of this team.')
-    qti2 = make_7p_likert_field('The longer we worked together as a team, the less well we did.')
-    qti3 = make_7p_likert_field('Working together energised and uplifted members of our team.')
-    qti4 = make_7p_likert_field('Every time someone attempted to correct a solution, things seemed to get worse rather than better.')
+    # qti1 = make_7p_likert_field('There was a lot of unpleasantness among members of this team.')
+    # qti2 = make_7p_likert_field('The longer we worked together as a team, the less well we did.')
+    # qti3 = make_7p_likert_field('Working together energised and uplifted members of our team.')
+    # qti4 = make_7p_likert_field('Every time someone attempted to correct a solution, things seemed to get worse rather than better.')
 
     # ----- Teamwork Enjoyment ----- #
-    twe1 = make_7p_likert_field('My relations with other team members were strained.')
-    twe2 = make_7p_likert_field('I very much enjoyed talking and working with my teammates.')
-    twe3 = make_7p_likert_field('The chance to interact was one of the best parts of working on this team.')
+    # twe1 = make_7p_likert_field('My relations with other team members were strained.')
+    # twe2 = make_7p_likert_field('I very much enjoyed talking and working with my teammates.')
+    # twe3 = make_7p_likert_field('The chance to interact was one of the best parts of working on this team.')
 
     # ----- Team Effort ----- #
-    te1 = make_7p_likert_field('Team members demonstrated their commitment by putting in a lot of effort to help us succeed.')
-    te2 = make_7p_likert_field('Everyone on this team was motivated to have the team succeed.')
-    te3 = make_7p_likert_field('Some members of our team did not carry their fair share of the overall workload.')
+    # te1 = make_7p_likert_field('Team members demonstrated their commitment by putting in a lot of effort to help us succeed.')
+    # te2 = make_7p_likert_field('Everyone on this team was motivated to have the team succeed.')
+    # te3 = make_7p_likert_field('Some members of our team did not carry their fair share of the overall workload.')
 
     # ----- Interdependence ----- #
-    int1 = make_7p_likert_field('Members of this group had their own individual jobs to do, with little need for them to work together.')
-    int2 = make_7p_likert_field('Generating the outcome or product of this group required a great deal of communication and coordination among members.')
-    int3 = make_7p_likert_field('Members of this group had to depend heavily on one another to get the group’s work done.')
+    # int1 = make_7p_likert_field('Members of this group had their own individual jobs to do, with little need for them to work together.')
+    # int2 = make_7p_likert_field('Generating the outcome or product of this group required a great deal of communication and coordination among members.')
+    # int3 = make_7p_likert_field('Members of this group had to depend heavily on one another to get the group’s work done.')
 
     # ----- Common Goal ----- #
-    cg1 = make_7p_likert_field('There was great uncertainty and ambiguity about what this group is supposed to accomplish.')
-    cg2 = make_7p_likert_field('This group’s purposes were specified so clearly that all members knew exactly what the group had to accomplish.')
-    cg3 = make_7p_likert_field('This group’s purposes were so challenging that members had to stretch to accomplish them.')
-    cg4 = make_7p_likert_field('This group’s purposes were not especially challenging—achieving them was well within reach.')
-    cg5 = make_7p_likert_field('The actions of this group don’t make much of a difference to anybody else.')
-    cg6 = make_7p_likert_field('This group’s actions were of great importance for those giving us the tasks.')
+    # cg1 = make_7p_likert_field('There was great uncertainty and ambiguity about what this group is supposed to accomplish.')
+    # cg2 = make_7p_likert_field('This group’s purposes were specified so clearly that all members knew exactly what the group had to accomplish.')
+    # cg3 = make_7p_likert_field('This group’s purposes were so challenging that members had to stretch to accomplish them.')
+    # cg4 = make_7p_likert_field('This group’s purposes were not especially challenging—achieving them was well within reach.')
+    # cg5 = make_7p_likert_field('The actions of this group don’t make much of a difference to anybody else.')
+    # cg6 = make_7p_likert_field('This group’s actions were of great importance for those giving us the tasks.')
 
     # ----- Teamwork Behaviors ----- #
-    twb1 = make_7p_likert_field('Our team often comes up with innovative ways of proceeding with the work that turn out to be just what is needed.')
-    twb2 = make_7p_likert_field('Our team often falls into mindless routines, without noticing any changes that may have occurred in our situation.')
-    twb3 = make_7p_likert_field('Our team has a great deal of difficulty actually carrying out the plans we make for how we will proceed with the task.')
-    twb4 = make_7p_likert_field('How seriously a member’s ideas are taken by others on our team often depends more on who the person is than on how much he or she actually knows.')
-    twb5 = make_7p_likert_field('Members of our team actively share their special knowledge and expertise with one another.')
-    twb6 = make_7p_likert_field('Our team is quite skilled at capturing the lessons that can be learned from our work experiences.')
+    # twb1 = make_7p_likert_field('Our team often comes up with innovative ways of proceeding with the work that turn out to be just what is needed.')
+    # twb2 = make_7p_likert_field('Our team often falls into mindless routines, without noticing any changes that may have occurred in our situation.')
+    # twb3 = make_7p_likert_field('Our team has a great deal of difficulty actually carrying out the plans we make for how we will proceed with the task.')
+    # twb4 = make_7p_likert_field('How seriously a member’s ideas are taken by others on our team often depends more on who the person is than on how much he or she actually knows.')
+    # twb5 = make_7p_likert_field('Members of our team actively share their special knowledge and expertise with one another.')
+    # twb6 = make_7p_likert_field('Our team is quite skilled at capturing the lessons that can be learned from our work experiences.')
 
     # ----- Team Size ----- #
-    tsz1 = make_7p_likert_field('This group was larger than it needed to be.')
-    tsz2 = make_7p_likert_field('This group had too few members for what it had to accomplish.')
-    tsz3 = make_7p_likert_field('This group was just the right size to accomplish its purposes.')
+    # tsz1 = make_7p_likert_field('This group was larger than it needed to be.')
+    # tsz2 = make_7p_likert_field('This group had too few members for what it had to accomplish.')
+    # tsz3 = make_7p_likert_field('This group was just the right size to accomplish its purposes.')
 
     # ----- Team Diversity ----- #
-    td1 = make_7p_likert_field('Members of this group were too dissimilar to work together well.')
-    td2 = make_7p_likert_field('This group did not have a broad enough range of experiences and perspectives to accomplish its purposes.')
-    td3 = make_7p_likert_field('This group had a nearly ideal “mix” of members’  abilities and experiences.')
+    # td1 = make_7p_likert_field('Members of this group were too dissimilar to work together well.')
+    # td2 = make_7p_likert_field('This group did not have a broad enough range of experiences and perspectives to accomplish its purposes.')
+    # td3 = make_7p_likert_field('This group had a nearly ideal “mix” of members’  abilities and experiences.')
 
     # ----- Team Skills Complementarity ----- #
-    tsc1 = make_7p_likert_field('Members of this group had more than enough talent and experience for the kind of task that we did.')
-    tsc2 = make_7p_likert_field('Everyone in this group had the skills that are needed for the group’s work.')
-    tsc3 = make_7p_likert_field('Some members of this group lacked the knowledge and skills that they needed to do their parts of the group’s work.')
+    # tsc1 = make_7p_likert_field('Members of this group had more than enough talent and experience for the kind of task that we did.')
+    # tsc2 = make_7p_likert_field('Everyone in this group had the skills that are needed for the group’s work.')
+    # tsc3 = make_7p_likert_field('Some members of this group lacked the knowledge and skills that they needed to do their parts of the group’s work.')
 
     # ----- Means for Coordination ----- #
     mc1 = make_7p_likert_field('The format of the task made it difficult to coordinate our interaction.')
     mc2 = make_7p_likert_field('During the tasks, it was sufficiently possible to coordinate our work.')
 
     # ----- Work Motivation ----- #
-    wm1 = make_7p_likert_field('I felt a real sense of personal satisfaction when our team did well.')
-    wm2 = make_7p_likert_field('I felt bad and unhappy when our team had performed poorly.')
-    wm3 = make_7p_likert_field('My own feelings were not affected one way or the other by how well our team performed.')
-    wm4 = make_7p_likert_field('When our team has done well, I have done well.')
+    # wm1 = make_7p_likert_field('I felt a real sense of personal satisfaction when our team did well.')
+    # wm2 = make_7p_likert_field('I felt bad and unhappy when our team had performed poorly.')
+    # wm3 = make_7p_likert_field('My own feelings were not affected one way or the other by how well our team performed.')
+    # wm4 = make_7p_likert_field('When our team has done well, I have done well.')
 
     # ----- Work Satisfaction ----- #
-    ws1 = make_7p_likert_field('I enjoy the kind of work we did in this team.')
-    ws2 = make_7p_likert_field('Working on this team is an exercise in frustration.')
-    ws3 = make_7p_likert_field('Generally speaking, I am very satisfied with this team.')
+    # ws1 = make_7p_likert_field('I enjoy the kind of work we did in this team.')
+    # ws2 = make_7p_likert_field('Working on this team is an exercise in frustration.')
+    # ws3 = make_7p_likert_field('Generally speaking, I am very satisfied with this team.')
 
     # ----- Personal Growth ----- #
-    perg1 = make_7p_likert_field('I learn a great deal from my work on this team.')
-    perg2 = make_7p_likert_field('My own creativity and initiative are suppressed by this team.')
-    perg3 = make_7p_likert_field('Working on this team stretches my personal knowledge and skills.')
+    # perg1 = make_7p_likert_field('I learn a great deal from my work on this team.')
+    # perg2 = make_7p_likert_field('My own creativity and initiative are suppressed by this team.')
+    # perg3 = make_7p_likert_field('Working on this team stretches my personal knowledge and skills.')
 
     # ----- Collective Efficacy ----- #
-    ce1 = make_7p_likert_field('Our team shows more abilities than other groups.')
-    ce2 = make_7p_likert_field('Our team is more efficiently prepared to complete such tasks.')
-    ce3 = make_7p_likert_field('Our team has the ability to overcome problems.')
+    # ce1 = make_7p_likert_field('Our team shows more abilities than other groups.')
+    # ce2 = make_7p_likert_field('Our team is more efficiently prepared to complete such tasks.')
+    # ce3 = make_7p_likert_field('Our team has the ability to overcome problems.')
 
     # ----- Skill Level ----- #
-    sl1 = make_7p_likert_field('I think that my competence in this area is ...')
-    sl2 = make_7p_likert_field('I think that our team’s competence in this area is ...')
+    # sl1 = make_7p_likert_field('I think that my competence in this area is ...')
+    # sl2 = make_7p_likert_field('I think that our team’s competence in this area is ...')
 
     # ----- Perceived Social Presence ----- #
     psp1 = make_7p_likert_field('There was a sense of human contact during the group work.')
@@ -219,8 +217,8 @@ class Player(BasePlayer):
     psp5 = make_7p_likert_field('There was a sense of human sensitivity during the group work.')
 
     # ----- Identity Fusion ----- #
-    fusion = models.IntegerField(label="test", choices=[[1, '1'], [2, '2'], [3, '3'], [4, '4'], [5, '5']],
-                                 widget=widgets.RadioSelectHorizontal)
+    # fusion = models.IntegerField(label="test", choices=[[1, '1'], [2, '2'], [3, '3'], [4, '4'], [5, '5']],
+    #                              widget=widgets.RadioSelectHorizontal)
 
     # ----- Familiarity ----- #
     fam1_lightcoral = make_7p_likert_field('After this task, how well do you know the player labeled lightcoral?', blank=True)
@@ -262,9 +260,6 @@ class PracticeAfter(Page):
 class RestEyesOpen(Page):
     form_model = 'player'
     form_fields = ['rest_actions_eo']
-
-    def is_displayed(player: Player):
-        return player.round_number > 1
 
 class BeforeTask(Page):
     form_model = 'player'
@@ -347,9 +342,6 @@ class TaskSurvey(Page):
         all_fields += info_fields
         return all_fields
 
-    def is_displayed(player: Player):
-        return player.round_number > 2
-
 class TaskPhaseSurvey(Page):
     form_model = 'player'
 
@@ -361,61 +353,61 @@ class TaskPhaseSurvey(Page):
     def get_form_fields(player: Player):
         import random
         all_fields = []
-        ptc_fields = ['ptc1', 'ptc2', 'ptc3', 'ptc4']
-        random.shuffle(ptc_fields)
-        all_fields += ptc_fields
-        qti_fields = ['qti1', 'qti2', 'qti3', 'qti4']
-        random.shuffle(qti_fields)
-        all_fields += qti_fields
-        twe_fields = ['twe1', 'twe2', 'twe3']
-        random.shuffle(twe_fields)
-        all_fields += twe_fields
-        te_fields = ['te1', 'te2', 'te3']
-        random.shuffle(te_fields)
-        all_fields += te_fields
-        int_fields = ['int1', 'int2', 'int3']
-        random.shuffle(int_fields)
-        all_fields += int_fields
-        cg_fields = ['cg1', 'cg2', 'cg3', 'cg4', 'cg5', 'cg6']
-        random.shuffle(cg_fields)
-        all_fields += cg_fields
-        twb_fields = ['twb1', 'twb2', 'twb3', 'twb4', 'twb5', 'twb6']
-        random.shuffle(twb_fields)
-        all_fields += twb_fields
-        tsz_fields = ['tsz1', 'tsz2', 'tsz3']
-        random.shuffle(tsz_fields)
-        all_fields += tsz_fields
-        td_fields = ['td1', 'td2', 'td3']
-        random.shuffle(td_fields)
-        all_fields += td_fields
-        tsc_fields = ['tsc1', 'tsc2', 'tsc3']
-        random.shuffle(tsc_fields)
-        all_fields += tsc_fields
+        # ptc_fields = ['ptc1', 'ptc2', 'ptc3', 'ptc4']
+        # random.shuffle(ptc_fields)
+        # all_fields += ptc_fields
+        # qti_fields = ['qti1', 'qti2', 'qti3', 'qti4']
+        # random.shuffle(qti_fields)
+        # all_fields += qti_fields
+        # twe_fields = ['twe1', 'twe2', 'twe3']
+        # random.shuffle(twe_fields)
+        # all_fields += twe_fields
+        # te_fields = ['te1', 'te2', 'te3']
+        # random.shuffle(te_fields)
+        # all_fields += te_fields
+        # int_fields = ['int1', 'int2', 'int3']
+        # random.shuffle(int_fields)
+        # all_fields += int_fields
+        # cg_fields = ['cg1', 'cg2', 'cg3', 'cg4', 'cg5', 'cg6']
+        # random.shuffle(cg_fields)
+        # all_fields += cg_fields
+        # twb_fields = ['twb1', 'twb2', 'twb3', 'twb4', 'twb5', 'twb6']
+        # random.shuffle(twb_fields)
+        # all_fields += twb_fields
+        # tsz_fields = ['tsz1', 'tsz2', 'tsz3']
+        # random.shuffle(tsz_fields)
+        # all_fields += tsz_fields
+        # td_fields = ['td1', 'td2', 'td3']
+        # random.shuffle(td_fields)
+        # all_fields += td_fields
+        # tsc_fields = ['tsc1', 'tsc2', 'tsc3']
+        # random.shuffle(tsc_fields)
+        # all_fields += tsc_fields
         mc_fields = ['mc1', 'mc2']
         random.shuffle(mc_fields)
         all_fields += mc_fields
-        wm_fields = ['wm1', 'wm2', 'wm3', 'wm4']
-        random.shuffle(wm_fields)
-        all_fields += wm_fields
-        ws_fields = ['ws1', 'ws2', 'ws3']
-        random.shuffle(ws_fields)
-        all_fields += ws_fields
-        perg_fields = ['perg1', 'perg2', 'perg3']
-        random.shuffle(perg_fields)
-        all_fields += perg_fields
-        ce_fields = ['ce1', 'ce2', 'ce3']
-        random.shuffle(ce_fields)
-        all_fields += ce_fields
-        sl_fields = ['sl1', 'sl2']
-        random.shuffle(sl_fields)
-        all_fields += sl_fields
+        # wm_fields = ['wm1', 'wm2', 'wm3', 'wm4']
+        # random.shuffle(wm_fields)
+        # all_fields += wm_fields
+        # ws_fields = ['ws1', 'ws2', 'ws3']
+        # random.shuffle(ws_fields)
+        # all_fields += ws_fields
+        # perg_fields = ['perg1', 'perg2', 'perg3']
+        # random.shuffle(perg_fields)
+        # all_fields += perg_fields
+        # ce_fields = ['ce1', 'ce2', 'ce3']
+        # random.shuffle(ce_fields)
+        # all_fields += ce_fields
+        # sl_fields = ['sl1', 'sl2']
+        # random.shuffle(sl_fields)
+        # all_fields += sl_fields
         psp_fields = ['psp1', 'psp2', 'psp3', 'psp4', 'psp5']
         random.shuffle(psp_fields)
         all_fields += psp_fields
         fam_fields = ['fam1_lightcoral', 'fam2_lightcoral', 'fam1_lightgreen', 'fam2_lightgreen', 'fam1_lightblue', 'fam2_lightblue']
         all_fields += fam_fields
-        fusion_fields = ['fusion']
-        all_fields += fusion_fields
+        # fusion_fields = ['fusion']
+        # all_fields += fusion_fields
         return all_fields
 
     def is_displayed(player: Player):
@@ -457,26 +449,16 @@ class Task(Page):
             min_level = C.MIN_DIFFICULTY
 
         # Now start the "real" task rounds (after practice and calibration)
-        else: # Rounds 3–6: Experimental rounds
+        else: # Rounds 3–4: Experimental rounds
             # Get current condition letter from the Latin square
-            index = player.round_number - 3  # 0 for round 3, up to 3 for round 6
+            index = player.round_number - 3  # 0 for round 3, up to 1 for round 4
             condition = player.participant.condition_order[index]
 
-            if condition == "B":
-                level = 1
-                difficulty = "Easy"
-                min_level = C.MIN_DIFFICULTY
-
-            elif condition == "F":
-                level = player.participant.calibrated_difficulty
-                difficulty = "Optimal"
-                min_level = C.MIN_DIFFICULTY
-
-            elif condition == "A":
+            if condition == "A":
                 # Check all difficulty selections and calculate the median
                 selected_difficulties = []
                 for p in player.group.get_players():
-                    selected_difficulties.append(p.participant.selected_difficulty)
+                    selected_difficulties.append(p.participant.selected_difficulty_chat)
                 median_difficulty = statistics.median(selected_difficulties)
                 # Set the parameters
                 level = median_difficulty
@@ -488,7 +470,7 @@ class Task(Page):
                 # three levels below the calibrated starting level. This starting level
                 # was set to be twelve levels higher than the level calibrated as optimal
                 # for the participant(s) in a calibration stage before the main task."
-                level = player.participant.calibrated_difficulty + 12
+                level = player.participant.calibrated_difficulty_chat + 12
                 # print("Level: " + str(level))
                 difficulty = "Hard"
                 min_level = level-3
@@ -514,15 +496,15 @@ class Task(Page):
         if player.round_number == 2:  # This is the calibration round!
             # Check if the level_history object is not empty
             if player.level_history and player.level_history.strip():
-                calibrated_difficulty = calculate_baseline_level(player.level_history)
-                print("Calibrated difficulty: " + str(calibrated_difficulty))
+                calibrated_difficulty_chat = calculate_baseline_level(player.level_history)
+                print("Calibrated difficulty: " + str(calibrated_difficulty_chat))
 
                 # Set this level for all participants
                 for p in player.subsession.get_players():
-                    p.participant.calibrated_difficulty = calibrated_difficulty
+                    p.participant.calibrated_difficulty_chat = calibrated_difficulty_chat
 
             # else: # This would be the case if I auto-advance (even just one player...)
-            #    player.participant.calibrated_difficulty = -1
+            #    player.participant.calibrated_difficulty_chat = -1
 
     @staticmethod
     def live_method(player, data):
@@ -647,10 +629,10 @@ class DifficultySelection(Page):
 
     def before_next_page(player, timeout_happened):
         # Set this level for this participant
-        player.participant.selected_difficulty = player.level_storage
+        player.participant.selected_difficulty_chat = player.level_storage
 
     def is_displayed(player: Player):
-        # Only applicable for rounds 3–6
+        # Only applicable for rounds 3–4
         if player.round_number < 3:
             return False
 
@@ -660,8 +642,8 @@ class DifficultySelection(Page):
 page_sequence = [BeforeTask, BeforeChat, # Only shown once
                  DifficultySelection, # Only shown once
                  Explanation, Wait_Page, Task, # All repeated (incl. practice and calibration)
-                 PracticeAfter,
                  TaskSurvey, RestEyesOpen, # All repeated (only after calibration)
+                 PracticeAfter,
                  TaskPhaseSurvey # Only shown once
                  ]
 

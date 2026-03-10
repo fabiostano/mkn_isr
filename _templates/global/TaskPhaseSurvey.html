@@ -32,62 +32,6 @@
         }
     </style>
 
-    <div id="ptcANDqtiANDtweANDte" class="jumbotron" style="padding-top: 5%">
-        <p>How much do you agree with the following statements?</p>
-        <table class="table mytable" frame="void" style="width:100%; ">
-            <tr>
-                <th></th>
-                <th style="text-align:center"> Strongly disagree </th>
-                <th>  </th>
-                <th>  </th>
-                <th>  </th>
-                <th>  </th>
-                <th>  </th>
-                <th style="text-align:center"> Strongly agree </th>
-            </tr>
-
-            {% for field in form %}
-            {% if field.id.startswith("id_ptc") or field.id.startswith("id_qti") or field.id.startswith("id_twe") or field.id.startswith("id_te")%}
-                <tr>
-                    <td align="left" style="width:33%">{{ field.label }}</td>
-
-                    {% for choice in field %}
-                        <td align="center" >{{ choice }}</td>
-                    {% endfor %}
-                </tr>
-            {% endif %}
-        {% endfor %}
-        </table>
-    </div>
-
-<div id="intANDcgANDtwb" class="jumbotron" style="padding-top: 5%">
-        <p>How much do you agree with the following statements?</p>
-        <table class="table mytable" frame="void" style="width:100%; ">
-            <tr>
-                <th></th>
-                <th style="text-align:center"> Strongly disagree </th>
-                <th>  </th>
-                <th>  </th>
-                <th>  </th>
-                <th>  </th>
-                <th>  </th>
-                <th style="text-align:center"> Strongly agree </th>
-            </tr>
-
-             {% for field in form %}
-            {% if field.id.startswith("id_int") or field.id.startswith("id_cg") or field.id.startswith("id_twb")%}
-                <tr>
-                    <td align="left" style="width:33%">{{ field.label }}</td>
-
-                    {% for choice in field %}
-                        <td align="center" >{{ choice }}</td>
-                    {% endfor %}
-                </tr>
-            {% endif %}
-        {% endfor %}
-        </table>
-    </div>
-
     <div id="tszANDtdANDtscANDmcANDwm" class="jumbotron" style="padding-top: 5%">
         <p>How much do you agree with the following statements?</p>
         <table class="table mytable" frame="void" style="width:100%; ">
@@ -103,63 +47,7 @@
             </tr>
 
              {% for field in form %}
-            {% if field.id.startswith("id_tsz") or field.id.startswith("id_td") or field.id.startswith("id_tsc") or field.id.startswith("id_mc") or field.id.startswith("id_wm")%}
-                <tr>
-                    <td align="left" style="width:33%">{{ field.label }}</td>
-
-                    {% for choice in field %}
-                        <td align="center" >{{ choice }}</td>
-                    {% endfor %}
-                </tr>
-            {% endif %}
-        {% endfor %}
-        </table>
-    </div>
-
-    <div id="wsANDpergANDceANDpsp" class="jumbotron" style="padding-top: 5%">
-        <p>How much do you agree with the following statements?</p>
-        <table class="table mytable" frame="void" style="width:100%; ">
-            <tr>
-                <th></th>
-                <th style="text-align:center"> Strongly disagree </th>
-                <th>  </th>
-                <th>  </th>
-                <th>  </th>
-                <th>  </th>
-                <th>  </th>
-                <th style="text-align:center"> Strongly agree </th>
-            </tr>
-
-             {% for field in form %}
-            {% if field.id.startswith("id_ws") or field.id.startswith("id_perg") or field.id.startswith("id_ce") or field.id.startswith("id_psp")%}
-                <tr>
-                    <td align="left" style="width:33%">{{ field.label }}</td>
-
-                    {% for choice in field %}
-                        <td align="center" >{{ choice }}</td>
-                    {% endfor %}
-                </tr>
-            {% endif %}
-        {% endfor %}
-        </table>
-    </div>
-
-<div id="sl" class="jumbotron" style="padding-top: 5%">
-        <p>Please complete the following statements.</p>
-        <table class="table mytable" frame="void" style="width:100%; ">
-            <tr>
-                <th></th>
-                <th style="text-align:center"> Very low </th>
-                <th>  </th>
-                <th>  </th>
-                <th>  </th>
-                <th>  </th>
-                <th>  </th>
-                <th style="text-align:center"> Very high </th>
-            </tr>
-
-             {% for field in form %}
-            {% if field.id.startswith("id_sl")%}
+            {% if field.id.startswith("id_mc") or field.id.startswith("id_psp") %}
                 <tr>
                     <td align="left" style="width:33%">{{ field.label }}</td>
 
@@ -253,43 +141,6 @@
     </div>
         </table>
     </div>
-
-    <div class="survey-container">
-        <div class="row">
-            <h3><b>Please choose the diagram that best describes the relationship between you and the other participants.</b></h3>
-        </div>
-
-        <div class="row" style="margin-bottom:20px">
-            <div class="col d-flex justify-content-center">
-            </div>
-            <div class="col d-flex justify-content-center">
-                <img src="{% static 'FusionA.png' %}" alt="1">
-            </div>
-             <div class="col d-flex justify-content-center">
-                <img src="{% static 'FusionB.png' %}" alt="2">
-            </div>
-             <div class="col d-flex justify-content-center">
-                <img src="{% static 'FusionC.png' %}" alt="3">
-            </div>
-             <div class="col d-flex justify-content-center">
-                <img src="{% static 'FusionD.png' %}" alt="4">
-             </div>
-            <div class="col d-flex justify-content-center">
-                <img src="{% static 'FusionE.png' %}" alt="5">
-            </div>
-            <div class="col d-flex justify-content-center">
-            </div>
-        </div>
-
-        <div class="row">
-            <div class="col"></div>
-            {% for choice in form.fusion %}
-                <div class="col d-flex justify-content-center"> {{ choice }} </div>
-            {% endfor %}
-            <div class="col"></div>
-        </div>
-
-        <hr/>
 
     <div class="d-flex justify-content-center" style="clear:both">
     <button class="otree-btn-next btn btn-primary next-button otree-next-button">Next</button>

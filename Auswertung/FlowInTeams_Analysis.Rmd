@@ -28,11 +28,16 @@ library(multilevel)
 library(emmeans)
 library(tibble)
 library(rmcorr)
+```
 
-data <- read.csv("otree_cleaned1.csv")
-data_old <- read.csv("flow_reports_exp1.csv")
-data_old_rounds <- read.csv("round_reports_exp1.csv")
-data_old_final <- read.csv("final_reports_exp1.csv")
+Loading the survey data
+
+```{r}
+# Load and show the data
+(data <- read.csv("otree_cleaned1.csv"))
+(data_old <- read.csv("flow_reports_exp1.csv"))
+(data_old_rounds <- read.csv("round_reports_exp1.csv"))
+(data_old_final <- read.csv("final_reports_exp1.csv"))
 ```
 
 Data quality check
@@ -83,7 +88,7 @@ if(length(fss_columns) > 0) {
 # (Item 1 ist invers kodiert in jeder Dimension)
 if(all(c("Outro.1.player.fpw1", "Outro.1.player.fpw2") %in% names(data))) {
   consistency_check <- data %>%
-    select(participant.code, 
+    dplyr::select(participant.code, 
            fpw1 = Outro.1.player.fpw1, fpw2 = Outro.1.player.fpw2,
            fph1 = Outro.1.player.fph1, fph2 = Outro.1.player.fph2,
            fpl1 = Outro.1.player.fpl1, fpl2 = Outro.1.player.fpl2) %>%

@@ -2,17 +2,18 @@ from os import environ
 SESSION_CONFIG_DEFAULTS = dict(real_world_currency_per_point=1, participation_fee=15)
 
 SESSION_CONFIGS = [
-                   dict(name='Chat_Math_HP', num_demo_participants=3, app_sequence=['Intro','mathChat', 'HiddenProfile_Chat', 'Outro']),
-                   dict(name='Chat_HP_Math', num_demo_participants=9, app_sequence=['Intro', 'HiddenProfile_Chat', 'mathChat', 'Outro']),
-                   dict(name='Jitsi_Math_HP', num_demo_participants=3, app_sequence=['Intro','mathJitsi', 'HiddenProfile_Jitsi', 'Outro']),
-                   dict(name='Jitsi_HP_Math', num_demo_participants=3, app_sequence=['Intro', 'HiddenProfile_Jitsi', 'mathJitsi', 'Outro'])
+                   # dict(name='dev', num_demo_participants=3, app_sequence=['Outro']),
+                   dict(name='Math_Chat_Jitsi', num_demo_participants=3, app_sequence=['Intro', 'mathChat', 'mathJitsi', 'Outro']),
+                   dict(name='Math_Jitsi_Chat', num_demo_participants=3, app_sequence=['Intro', 'mathJitsi', 'mathChat', 'Outro'])
                   ]
 
 LANGUAGE_CODE = 'en'
 REAL_WORLD_CURRENCY_CODE = 'EUR'
 USE_POINTS = False
 DEMO_PAGE_INTRO_HTML = ''
-PARTICIPANT_FIELDS = ["condition_order", "calibrated_difficulty", "selected_difficulty",
+PARTICIPANT_FIELDS = ["condition_order",
+                      "calibrated_difficulty_chat", "calibrated_difficulty_jitsi",
+                      "selected_difficulty_chat", "selected_difficulty_jitsi",
                       "hp_condition_order"]
 SESSION_FIELDS = []
 ROOMS = [dict(name='my_room', display_name='my_room')]
