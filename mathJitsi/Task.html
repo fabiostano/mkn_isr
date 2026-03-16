@@ -750,20 +750,28 @@
 </script>
 
 <!-- JITSI -->
-<script src="https://video-meeting-system-backend.k8s.iism.kit.edu/external_api.js"></script>
+<!--<script src="https://video-meeting-system-backend.k8s.iism.kit.edu/external_api.js"></script>-->
+<script src="https://haps-meeting.k8s.iism.kit.edu/external_api.js"></script>
+
 <script>
     /////////// JITSI STUFF
 
-    const domain = "video-meeting-system-backend.k8s.iism.kit.edu/";
+    // const domain = "video-meeting-system-backend.k8s.iism.kit.edu/";
+    const domain = "haps-meeting.k8s.iism.kit.edu";
     const options = {
         roomName: "{{ room_id }}",   // hier otree group variable oder alternativ ein string
         lang: "en",
         width:  1000,   // anpassen je nach px größe
         height: 480,   // anpassen je nach px größe
+        parentNode: document.getElementById("jitsi-surface"),  // wenn div anders benannt, dann hier anpassen
         configOverwrite: {
             prejoinConfig: {
                 enabled: false,
             },
+            startWithTileView: true,
+            disableTileView: false,
+            disableStageFilmstrip: true,
+            disableDominantSpeakerIndicator: true,
             startWithAudioMuted: false,
             startWithVideoMuted: false,
             disableSelfView: false,
@@ -780,43 +788,55 @@
             },
             toolbarButtons: [],
             buttonsWithNotifyClick: [],
-            participantMenuButtonsWithNotifyClick: [],
+            participantMenuButtonsWithNotifyClick: ['pinToStage'],
             disableLocalVideoFlip: true,
             hideDominantSpeakerBadge: true,
             hideConferenceTimer: true,
             hideConferenceSubject: true,
             hideRecordingLabel: true,
             readOnlyName: true,
-            /**
-            disableFilmstripAutohiding: true,
-            filmstrip: {
-                disableResizable: true,
-                // disabled: true,
-                alwaysShowResizeBar: false
+
+            participantsPane: {
+                enabled: false,
+                hideModeratorSettingsTab: true,
+                hideMoreActionsButton: true,
+                hideMuteAllButton: true
             },
-            disableResponsiveTiles: true,
-            disable1On1Mode: true,
-            deeplinking: {
-                disabled: true,
-                hideLogo: true,
+
+            disableAEC: false,
+            disableNS: false,
+
+            resolution: 360,
+
+            constraints: {
+                video: {
+                    height: {
+                        ideal: 360,
+                        max: 360,
+                        min: 180
+                    }
+                }
             },
-            defaultLogoUrl: '',
-            branding: {
-                disableDeepLinking: true,
-                disableBranding: true,
-                disableLogo: true,
+
+            disableSimulcast: true,
+            enableLayerSuspension: false,
+
+            remoteVideoMenu: {
+                disableKick: true,
+                disableGrantModerator: true
             },
-            **/
+            disableRemoteMute: true,
+            disableModeratorIndicator: true,
         },
-        parentNode: document.getElementById("jitsi-surface"),  // wenn div anders benannt, dann hier anpassen
+
         userInfo: {
-            displayName: "{{ color }}",
+            displayName: "{{ color }}",  // hier otree participant name
         },
     };
 
     api = new JitsiMeetExternalAPI(domain, options);
 
-    // Code snippets für unterschiedliche Logs
+    // code snippets für unterschiedliche Logs
 
     //get participant ID after I joined   - braucht man um herauszufinden wer wer ist beim speaker
     api.on("videoConferenceJoined", function (abc) {
@@ -848,7 +868,7 @@
         console.log("audioMuteStatusChanged" + muted.muted);
     });
 
-    // particiapnt joined
+    // participant joined
     api.on("participantJoined", function (parjoin) {
         console.log("partjoined_id_" + parjoin.id);
         //console.log(      new Date().toString() + ": " + "partjoinedvarname",      parjoin.id    );
@@ -881,27 +901,27 @@
         console.log("leave_overview_all_ids:" + allIds);
     });
 
-    // dominant speaker changed event  , required for audio check
+    // Additional event listeners (BGA recommendation)
+    api.addEventListener('videoConferenceJoined', () => {
+        api.executeCommand('setTileView', true);
+    });
+
+    api.addEventListener('tileViewChanged', (event) => {
+        if (!event.enabled) {
+            api.executeCommand('setTileView', true);
+        }
+    });
+
+    api.addEventListener('participantClicked', () => {
+        api.executeCommand('setTileView', true);
+    });
+
+    //dominant speaker changed event  , required for audio check
     let speakingEvents = "";
     let lastSpeaker = null;
 
     api.on("dominantSpeakerChanged", function (event) {
         console.log("dominantspeakerchanged_to_" + event.id);
-
-        let timestamp = Date.now();
-
-        if (event.id == my_ID) {
-            lastSpeaker = event.id;
-            document.getElementById("speech_time").value += "[S_" + timestamp + "];";
-
-        } else {
-            document.getElementById("speech_time").value += "[E_" + timestamp + "];";
-            if (lastSpeaker == my_ID) {
-                document.getElementById("speech_time").value += "[E_" + timestamp + "];";
-            }
-        }
-
-        lastSpeaker = event.id;
     });
 </script>
 
