@@ -1,0 +1,35 @@
+{{ extends 'global/Page.html' }}
+
+{{ block title }}
+
+    <div class="d-flex justify-content-center" style="margin-top: -50px">
+        <h2 style="margin-bottom:20px">WELCOME!</h2>
+    </div>
+
+{{ endblock }}
+
+{{ block content }}
+
+    <div class="explanation-container">
+        <p>This study consists of four blocks:</p>
+        <p style="color: #c0392b;"><b>Please note: you'll need a Chromium-based browser (e.g. Chrome, Edge, or Arc) and a working webcam and microphone.</b></p>
+        <ol>
+            <li><b>Block 1 – Headphone-EEG at home</b> (~1 hour)<br>
+                <i>Start whenever suits you – the sooner, the better.</i></li>
+            <li><b>Block 2 – Headphone-EEG outside</b> (~30 min)<br>
+                <i>Start whenever suits you – the sooner, the better.</i></li>
+            <li><b>Block 3 – Headphone-EEG in a virtual meeting</b> (~30 min)<br>
+                <i>At the afternoon time we agreed on.</i></li>
+            <li><b>Block 4 – Short questionnaire</b> (8 questions)<br>
+                <i>At the end of your workday.</i></li>
+        </ol>
+        <p>Please complete the blocks in this order. Once you finish one, the study will automatically move you to the next.</p>
+        <p>You can return to the study at any time using your personal link.</p>
+        <p><b>Ready to begin? Click Next to start Block 1 (Recording at home).</b></p>
+    </div>
+
+    <div class="d-flex justify-content-center">
+        <button class="otree-btn-next btn btn-primary next-button otree-next-button">Next</button>
+    </div>
+
+{{ endblock }}

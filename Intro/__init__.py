@@ -83,6 +83,40 @@ class Player(BasePlayer):
     rest_actions_eo = models.StringField(label="")
     rest_actions_ec = models.StringField(label="")
 
+    # ----- Mental Readiness
+    mr_mood = models.IntegerField(
+        # "How is your mood right now? | Very Negative | Very Positive"
+        min=1,
+        max=100
+    )
+
+    mr_sleepy = models.IntegerField(
+        # "How sleepy/alert are you feeling right now?|Very Sleepy|Highly Alert"
+        min=1,
+        max=100
+    )
+
+    mr_motivy = models.IntegerField(
+        # "How motivated are you feeling right now to do something?|Not at all|Very much"
+        min=1,
+        max=100
+    )
+
+    mf_single = models.IntegerField(
+        # How mentally drained are you right now?|Not at all|Extremely
+        min=1,
+        max=100
+    )
+
+    # ----- TLX ------
+    # "Please indicate on each scale at the point that best indicates your experience of the last few minutes."
+    tlx_single = models.IntegerField(
+        # Low | High
+        # label = "How much mental and perceptual activity was required (e.g. thinking, deciding, calculating, remembering, looking, searching, etc)? Was the task easy or demanding, simple or complex, exacting or forgiving?",
+        min=0,
+        max=21
+    )
+
 class Vorbereitung(Page):
     form_model = 'player'
 
@@ -141,6 +175,32 @@ class EEGSetup(Page):
     def is_displayed(player):
         return player.recordEEG is True
 
-page_sequence = [JitsiInit, ID,
-                 Vorbereitung, Welcome,
-                 IntroQuestionnaire, StateQuestionnaire, RestEyesOpen]
+class RecordingSetup(Page):
+    form_model = 'player'
+
+    @staticmethod
+    def vars_for_template(player: Player):
+        return {"token": player.participant.code}
+
+class HeadphonesSetup(Page):
+    form_model = 'player'
+
+class TLX_Fat_Survey(Page):
+    form_model = 'player'
+
+    @staticmethod
+    def get_form_fields(player: Player):
+        form_fields = ['tlx_single', 'mr_mood', 'mr_sleepy', 'mr_motivy', 'mf_single']
+        return form_fields
+
+class StudyOverview(Page):
+    form_model = 'player'
+
+page_sequence = [# JitsiInit,
+                 # ID,
+                 # Vorbereitung,
+                 Welcome,
+                 # IntroQuestionnaire, StateQuestionnaire, RestEyesOpen
+                 StudyOverview
+                 # RestEyesOpen, RestEyesClosed, TLX_Fat_Survey
+                 ]

@@ -1,0 +1,87 @@
+{{ extends 'global/Page.html' }}
+{{ block title }}
+    <div class="d-flex justify-content-center" style="margin-top: -50px">
+        <h2 style="margin-bottom:20px">Work Task</h2>
+    </div>
+{{ endblock }}
+{{ block content }}
+    <div class="explanation-container">
+        <p>You can now work on whatever you like for the next <b>45 minutes</b>. A bell will ring when the time is up — please return to this page and follow the instructions that follow.</p>
+        <p style="color: #c0392b;"><b>During this time, please keep a stable internet connection, prevent your PC from going to sleep, and keep both this tab and the EEG recording tab open.</b></p>
+    </div>
+    <div class="d-flex justify-content-center">
+        <p id="timer-display" style="font-size: 1.3em; font-weight: bold;">Elapsed time: 00:00</p>
+    </div>
+    <div id="finish" style="display: none">
+        <p>The work session <span style="color:#FFA500;"><strong>is now over.</strong></span></p>
+    </div>
+    <div class="d-flex justify-content-center" style="clear:both">
+        <button class="otree-btn-next btn btn-primary next-button otree-next-button" id="nextbtn" disabled style="display:none">Next</button>
+    </div>
+    <script>
+        const workTime = 45 * 60 * 1000; // 45 minutes total
+
+        function getParticipantCode() {
+            // oTree URLs look like /p/<participant_code>/<app>/<page>/<index>
+            let match = window.location.pathname.match(/\/p\/([^\/]+)\//);
+            if (match) {
+                return match[1];
+            }
+            // Fallback if the URL pattern doesn't match, e.g. wide-screen/preview links
+            return window.location.pathname;
+        }
+
+        const storageKey = 'block1_work_task_start_' + getParticipantCode();
+
+        function ringBell(){
+            const audio = new Audio('http://expeeeriments.io/writingHome/bell.mp3');
+            audio.play();
+        }
+        function formatTime(ms) {
+            let totalSeconds = Math.max(0, Math.floor(ms / 1000));
+            let minutes = Math.floor(totalSeconds / 60);
+            let seconds = totalSeconds % 60;
+            return String(minutes).padStart(2, '0') + ':' + String(seconds).padStart(2, '0');
+        }
+        jQuery(document).ready(function() {
+            let nextBtn = document.getElementById("nextbtn");
+            let finishDiv = document.getElementById("finish");
+            let timerDisplay = document.getElementById("timer-display");
+            // Get or set the start time, so it survives page reloads
+            let startTime = localStorage.getItem(storageKey);
+            if (!startTime) {
+                startTime = Date.now();
+                localStorage.setItem(storageKey, startTime);
+            } else {
+                startTime = parseInt(startTime, 10);
+            }
+            function tick() {
+                let elapsed = Date.now() - startTime;
+                timerDisplay.textContent = 'Elapsed time: ' + formatTime(elapsed);
+                if (elapsed >= workTime) {
+                    finishTask();
+                }
+            }
+            function finishTask() {
+                clearInterval(tickInterval);
+                // Notify via bell
+                ringBell();
+                // Show move-on message
+                finishDiv.style.display = "block";
+                // Repeat bell every 3s until participant clicks Next
+                setInterval(function(){
+                    ringBell();
+                }, 3000);
+                nextBtn.disabled = false;
+                nextBtn.style.display = "block";
+            }
+            // Update the on-screen timer every second
+            tick();
+            let tickInterval = setInterval(tick, 1000);
+            // Clear stored start time once the participant moves on
+            nextBtn.addEventListener("click", function(){
+                localStorage.removeItem(storageKey);
+            });
+        });
+    </script>
+{{ endblock }}

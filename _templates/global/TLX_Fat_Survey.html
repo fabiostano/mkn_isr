@@ -1,0 +1,95 @@
+{% extends 'global/Page.html' %}
+
+{% block title %}
+    <div class="d-flex justify-content-center" style="margin-top: -50px">
+        <h2 style="margin-bottom:20px">Questionnaire</h2>
+    </div>
+    <div class="jumbotron" style="padding-top: 2%; padding-bottom: 2%; font-size: 21px; font-weight: 200">
+        Please answer the following questions.
+        There are no right or wrong answers in this experiment.
+        We are only interested in <b>your personal opinion.</b>
+    </div>
+{% endblock %}
+
+{% block content %}
+
+    <style>
+        #fss tr:nth-child(even) {background-color: #f9f9f9;}
+        #dcd tr:nth-child(even) {background-color: #f9f9f9;}
+        #aut tr:nth-child(even) {background-color: #f9f9f9;}
+        th {
+            text-align:center;
+            width: 5%;
+        }
+        input[type="radio"]{margin-left:-5.5px}
+
+        input[type="range"] {
+            -webkit-appearance: slider-horizontal;
+            max-width: 85%;
+            display: inline;
+            margin-left: 2%;
+            margin-right: 2%;
+        }
+    </style>
+
+    <div id="tlx" class="jumbotron" style="padding-top: 5%">
+        <!--
+        <p>Please indicate on each scale at the point that best indicates your experience of the last few minutes.</p>
+        -->
+        <div>
+            <span>How much mental activity was required (e.g. thinking, deciding, calculating, remembering, looking, searching, etc.?)</span>
+            <div style="margin: 15px 0 30px 0; text-align: center;">
+                <span>Very little</span>
+                    <input name="tlx_single" class="input-range" type="range" step="1" value="11" min="0" max="21" style="display: inline; max-width: 70%;">
+                <span>Very much</span>
+            </div>
+        </div>
+    </div>
+
+    <div id="mr" class="jumbotron" style="padding-top: 5%">
+        <!--
+        <p>Please indicate on each scale at the point that best indicates your experience of the last few minutes.</p>
+        -->
+        <div>
+            <span>How is your mood right now?</span>
+            <div style="margin: 15px 0 30px 0; text-align: center;">
+                <span>Very Negative</span>
+                    <input name="mr_mood" class="input-range" type="range" step="1" value="50" min="1" max="100" style="display: inline; max-width: 70%;">
+                <span>Very Positive</span>
+            </div>
+
+            <span>How sleepy/alert are you feeling right now?</span>
+            <div style="margin: 15px 0 30px 0; text-align: center;">
+                <span>Very Sleepy</span>
+                    <input name="mr_sleepy" class="input-range" type="range" step="1" value="50" min="1" max="100" style="display: inline; max-width: 70%;">
+                <span>Highly Alert</span>
+            </div>
+
+            <span>How motivated are you feeling right now to do something?</span>
+            <div style="margin: 15px 0 30px 0; text-align: center;">
+                <span>Not at all</span>
+                    <input name="mr_motivy" class="input-range" type="range" step="1" value="50" min="1" max="100" style="display: inline; max-width: 70%;">
+                <span>Very much</span>
+            </div>
+
+            <span>How mentally drained are you right now?</span>
+            <div style="margin: 15px 0 30px 0; text-align: center;">
+                <span>Not at all</span>
+                    <input name="mf_single" class="input-range" type="range" step="1" value="50" min="1" max="100" style="display: inline; max-width: 70%;">
+                <span>Extremely</span>
+            </div>
+        </div>
+    </div>
+
+    <div id="next-page" class="d-flex justify-content-center" style="display:none">
+        {% next_button %}
+    </div>
+
+    <script>
+        // For better UX: Select radio button when clicking into a table cell
+        $('td').click(function() {
+            $(this).find('input:radio').prop('checked', true);
+        })
+    </script>
+
+{% endblock %}

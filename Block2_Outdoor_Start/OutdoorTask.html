@@ -1,0 +1,77 @@
+{{ extends 'global/Page.html' }}
+
+{{ block title }}
+
+    <div class="d-flex justify-content-center" style="margin-top: -50px">
+        <h2 style="margin-bottom:20px">Outdoor Task</h2>
+    </div>
+
+{{ endblock }}
+
+{{ block content }}
+
+    <div class="explanation-container">
+        <p><b>Block 2: Time to Walk</b></p>
+        <p>Please walk around freely for the next <b>10 minutes</b>. An internet connection isn't needed during this part.</p>
+        <p style="color: #c0392b;"><b>Please keep your headphones on the whole time as you walk.</b></p>
+        <p>When the 10 minutes are up, return to this page. You'll then set up the EEG recording once more for the final rest & mental arithmetic task — ideally at the same spot where you did the first recording.</p>
+    </div>
+
+    <div class="d-flex justify-content-center">
+        <p id="timer-display" style="font-size: 1.3em; font-weight: bold;">Elapsed time: 00:00</p>
+    </div>
+
+    <div class="d-flex justify-content-center">
+        <button class="otree-btn-next btn btn-primary next-button otree-next-button" id="nextbtn">Next</button>
+    </div>
+
+    <script>
+        function getParticipantCode() {
+            // oTree URLs look like /p/<participant_code>/<app>/<page>/<index>
+            let match = window.location.pathname.match(/\/p\/([^\/]+)\//);
+            if (match) {
+                return match[1];
+            }
+            // Fallback if the URL pattern doesn't match, e.g. wide-screen/preview links
+            return window.location.pathname;
+        }
+
+        const storageKey = 'block2_walk_task_start_' + getParticipantCode();
+
+        function formatTime(ms) {
+            let totalSeconds = Math.max(0, Math.floor(ms / 1000));
+            let minutes = Math.floor(totalSeconds / 60);
+            let seconds = totalSeconds % 60;
+            return String(minutes).padStart(2, '0') + ':' + String(seconds).padStart(2, '0');
+        }
+
+        jQuery(document).ready(function() {
+            let nextBtn = document.getElementById("nextbtn");
+            let timerDisplay = document.getElementById("timer-display");
+
+            // Get or set the start time, so it survives page reloads
+            let startTime = localStorage.getItem(storageKey);
+            if (!startTime) {
+                startTime = Date.now();
+                localStorage.setItem(storageKey, startTime);
+            } else {
+                startTime = parseInt(startTime, 10);
+            }
+
+            function tick() {
+                let elapsed = Date.now() - startTime;
+                timerDisplay.textContent = 'Elapsed time: ' + formatTime(elapsed);
+            }
+
+            // Update the on-screen timer every second
+            tick();
+            setInterval(tick, 1000);
+
+            // Clear stored start time once the participant moves on
+            nextBtn.addEventListener("click", function(){
+                localStorage.removeItem(storageKey);
+            });
+        });
+    </script>
+
+{{ endblock }}

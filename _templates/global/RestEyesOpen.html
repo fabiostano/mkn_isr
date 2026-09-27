@@ -19,7 +19,9 @@
 
 <div class="jumbotron" style="padding-top: 5%; background-color: #f2f2f2">
     <div id="instructions">
-        <p>Over the next minute please try to relax. You can let your mind wander where it takes you.</p>
+        <p>Over the next few minutes please try to relax. You can let your mind wander where it takes you.</p>
+
+        <p><b>A white noise sound</b> will start to play in the background after a few seconds.</p>
 
         <p><br />Please <a style="color: #18bc9c"><b>keep your eyes open</b></a> and focused on the cross in the middle of the screen the whole time. Also, please avoid unnecessary movements.</p>
 
@@ -47,6 +49,9 @@
 <script>
     // Logging elements
     var loggingField;
+    // Task duration
+    const intTime = 30*1000;
+    const assrTime = intTime/2;
 
     function getTSString(){
         let clickTs = new Date();
@@ -54,17 +59,17 @@
       }
 
       // See: https://stackoverflow.com/questions/16310423/addeventlistener-calls-the-function-without-me-even-asking-it-to
-      function logTime(tsFieldObject, msg) {
+    function logTime(tsFieldObject, msg) {
         return function () {
           // Add time to field
           tsFieldObject.value = tsFieldObject.value + ';' + msg + ';' + getTSString();
         }
-      }
+    }
 
-      function logTimeDirect(tsFieldObject, msg) {
+    function logTimeDirect(tsFieldObject, msg) {
         // Add time to field
         tsFieldObject.value = tsFieldObject.value + ';' + msg + ';' + getTSString();
-      }
+    }
 
     function startTask(instField, taskField, taskOverField, nextBtn) {
         return function () {
@@ -74,14 +79,15 @@
             instField.style.display = "none";
             taskField.style.display = "block";
 
-            // Schedule the timer
+            // Play ASSR simulus after a certain amount of time has elapsed
+            setTimeout(function(){ playASSRNoise(); }, assrTime);
+
+            // Schedule the task timer
             scheduleInterruption(nextBtn, taskField, taskOverField);
         }
     }
 
     function scheduleInterruption(nextBtn, taskField, taskOverField) {
-        const intTime = 70 * 1000;
-
         setTimeout(function(){
             // Hide Task and show move-on message
             taskField.style.display = "none";
@@ -92,6 +98,56 @@
 
             logTimeDirect(loggingField, 'taskEnd');
         }, intTime);
+    }
+
+    function playASSRNoise() {
+        logTimeDirect(loggingField, 'assrStimulusPlayed');
+        const audio = new Audio("{% static 'rest_assr.wav' %}");
+        audio.play();
+    }
+
+    function generateASSRNoise() {
+        let audioContext;
+        let noiseNode, gainNode, modulator, masterGain;
+
+        if (!audioContext) {
+            // Initialize audio context
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+            // Create white noise
+            const bufferSize = 2 * audioContext.sampleRate; // 2 seconds of noise
+            const noiseBuffer = audioContext.createBuffer(1, bufferSize, audioContext.sampleRate);
+            const data = noiseBuffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) {
+                data[i] = Math.random() * 2 - 1; // White noise
+            }
+
+            noiseNode = audioContext.createBufferSource();
+            noiseNode.buffer = noiseBuffer;
+            noiseNode.loop = true; // Loop noise
+
+            // Create amplitude modulation
+            modulator = audioContext.createOscillator();
+            modulator.frequency.value = 40; // 40 Hz modulation frequency
+
+            gainNode = audioContext.createGain();
+            gainNode.gain.value = 0.5; // Modulation depth (0.5 for full range)
+
+            modulator.connect(gainNode.gain); // Modulate the gain
+            modulator.start();
+
+            // Control output volume
+            masterGain = audioContext.createGain();
+            masterGain.gain.value = 0.2; // Adjust overall volume
+
+            // Connect the nodes
+            noiseNode.connect(gainNode);
+            gainNode.connect(masterGain);
+            masterGain.connect(audioContext.destination);
+
+            // Start noise playback
+            noiseNode.start();
+        }
     }
 
     jQuery(document).ready( function() {

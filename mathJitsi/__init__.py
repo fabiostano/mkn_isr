@@ -8,8 +8,8 @@ doc = ''
 class C(BaseConstants):
     NAME_IN_URL = 'mathJitsi'
     PLAYERS_PER_GROUP = 3
-    NUM_ROUNDS = 4
-    TASK_TIME_LIMIT = 5 * 60 # Task Time
+    NUM_ROUNDS = 5
+    TASK_TIME_LIMIT = 2 * 60 # Task Time
     TRIAL_TIME = 28
     BREAK_TIME = 4
     MIN_DIFFICULTY = 1  # Start difficulty level
@@ -17,7 +17,7 @@ class C(BaseConstants):
 
     COLORMAP = ['lightcoral', 'lightgreen', 'lightblue']
     LATIN_SQUARE_ORDERS = [
-        ["O", "A"],
+        # ["O", "A"],
         ["A", "O"]  # , "F", "B"
     ]
 
@@ -228,6 +228,40 @@ class Player(BasePlayer):
     fam1_lightblue = make_7p_likert_field('After this task, how well do you know the player labeled lightblue?', blank=True)
     fam2_lightblue = make_7p_likert_field('During the task, how closely did you work together with the player labeled lightblue?', blank=True)
 
+    # ----- Mental Readiness
+    mr_mood = models.IntegerField(
+        # "How is your mood right now? | Very Negative | Very Positive"
+        min=1,
+        max=100
+    )
+
+    mr_sleepy = models.IntegerField(
+        # "How sleepy/alert are you feeling right now?|Very Sleepy|Highly Alert"
+        min=1,
+        max=100
+    )
+
+    mr_motivy = models.IntegerField(
+        # "How motivated are you feeling right now to do something?|Not at all|Very much"
+        min=1,
+        max=100
+    )
+
+    mf_single = models.IntegerField(
+        # How mentally drained are you right now?|Not at all|Extremely
+        min=1,
+        max=100
+    )
+
+    # ----- TLX ------
+    # "Please indicate on each scale at the point that best indicates your experience of the last few minutes."
+    tlx_single = models.IntegerField(
+        # Low | High
+        # label = "How much mental and perceptual activity was required (e.g. thinking, deciding, calculating, remembering, looking, searching, etc)? Was the task easy or demanding, simple or complex, exacting or forgiving?",
+        min=0,
+        max=21
+    )
+
 def creating_session(subsession):
     for group in subsession.get_groups():
         if group.round_number == 1:
@@ -344,6 +378,14 @@ class TaskSurvey(Page):
         all_fields += info_fields
         return all_fields
 
+class TLX_Fat_Survey(Page):
+    form_model = 'player'
+
+    @staticmethod
+    def get_form_fields(player: Player):
+        form_fields = ['tlx_single', 'mr_mood', 'mr_sleepy', 'mr_motivy', 'mf_single']
+        return form_fields
+
 class TaskPhaseSurvey(Page):
     form_model = 'player'
 
@@ -441,15 +483,22 @@ class Task(Page):
 
     def vars_for_template(player):
         # Configure parameters for different task round (difficulty treatments)
-        if player.round_number == 1:  # This is the practice round!
+        if player.round_number in [1, 2, 4]:  # This is the practice round!
             level = 1
-            difficulty = "Easy"
-            min_level = C.MIN_DIFFICULTY
+            difficulty = "Optimal"
+            min_level = level
+            max_level = level
+        elif player.round_number in [3, 5]:
+            level = 10
+            difficulty = "Hard"
+            min_level = level
+            max_level = level
+
+        '''
         elif player.round_number == 2:  # This is the calibration round!
             level = 1
             difficulty = "Optimal"
             min_level = C.MIN_DIFFICULTY
-
         # Now start the "real" task rounds (after practice and calibration)
         else:  # Rounds 3–4: Experimental rounds
             # Get current condition letter from the Latin square
@@ -479,11 +528,12 @@ class Task(Page):
 
             else:
                 raise ValueError(f"Unknown condition: {condition}")
+        '''
 
         return dict(
             level=level,
             min_level=min_level,
-            max_level=C.MAX_DIFFICULTY,
+            max_level=max_level,
             difficulty=difficulty,
             id=player.id_in_group,
             taskDuration=C.TASK_TIME_LIMIT,
@@ -495,7 +545,9 @@ class Task(Page):
 
     def before_next_page(player, timeout_happened):
         player.color = C.COLORMAP[player.id_in_group - 1]
+        player.participant.calibrated_difficulty_jitsi = -1
 
+        '''
         if player.round_number == 2:  # This is the calibration round!
             # Check if the level_history object is not empty
             if player.level_history and player.level_history.strip():
@@ -508,7 +560,7 @@ class Task(Page):
 
             # else: # This would be the case if I auto-advance (even just one player...)
             #    player.participant.calibrated_difficulty_jitsi = -1
-
+        '''
 
     @staticmethod
     def live_method(player, data):
@@ -640,9 +692,9 @@ class DifficultySelection(Page):
         return player.participant.condition_order[index] == "A"
 
 page_sequence = [BeforeTask, BeforeVideo, # Only shown once
-                 DifficultySelection, # Only shown once
+                 # DifficultySelection, # Only shown once
                  Explanation, Wait_Page, Task, # All repeated (incl. practice and calibration)
-                 TaskSurvey, RestEyesOpen, # All repeated (only after calibration)
-                 PracticeAfter,
-                 TaskPhaseSurvey # Only shown once
+                 TLX_Fat_Survey, # TaskSurvey, # RestEyesOpen, # All repeated (only after calibration)
+                 PracticeAfter
+                 # TaskPhaseSurvey # Only shown once
                  ]

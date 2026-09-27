@@ -1,0 +1,67 @@
+{{ extends 'global/Page.html' }}
+
+{% block title%}
+    <div class="d-flex justify-content-center" style="margin-top: -50px">
+        <h2 style="margin-bottom:20px">HEADSET SURVEY</h2>
+    </div>
+{% endblock %}
+
+{% block content %}
+
+<!-- Latest compiled and minified CSS -->
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
+
+<!-- jQuery library -->
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+
+<!-- Latest compiled JavaScript -->
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
+
+<style>
+    #fatigue_trait tr:nth-child(even) {background-color: #f9f9f9;}
+    th {
+            text-align:center;
+            width: 5%;
+        }
+    input[type="radio"]{margin-left:-5.5px}
+</style>
+
+<div class="jumbotron" style="padding-top: 5%">
+    <p>How much do you agree with these statements?</p>
+    <table class="table" frame="void" style="width:100%; ">
+        <tr>
+            <th></th>
+            <th style="text-align:center"> Not At All </th>
+            <th>  </th>
+            <th>  </th>
+            <th style="text-align:center"> Partly </th>
+            <th>  </th>
+            <th>  </th>
+            <th style="text-align:center"> Very Much </th>
+        </tr>
+
+        {% for field in form %}
+            <tr>
+                <td align="left" style="width:40%">{{ field.label }}</td>
+
+                {% for choice in field %}
+                    <td align="center" >{{ choice }}</td>
+                {% endfor %}
+            </tr>
+        {% endfor %}
+    </table>
+</div>
+
+<div class="d-flex justify-content-center" style="clear:both">
+    <button class="otree-btn-next btn btn-primary next-button otree-next-button">Next</button>
+</div>
+
+<script>
+    // For better UX: Select radio button when clicking into a table cell
+    $('td').click(function() {
+        $(this).find('input:radio').prop('checked', true);
+    })
+</script>
+
+
+{% endblock %}

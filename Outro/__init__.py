@@ -137,6 +137,64 @@ class Player(BasePlayer):
     qual_recip_q5_mst_rehearse = models.LongStringField(blank=True, label="... how you could think about and change what you wanted to say before sending it?")
     qual_recip_q5_mst_reprocess = models.LongStringField(blank=True, label="... whether you could go back and review earlier messages or information from your team members?")
 
+    # UX/WX Questions
+    # ----- UX/WX Questions -----
+    ux_comfort = models.IntegerField(
+        label='The headset is comfortable.',
+        choices=[[1, ''], [2, ''], [3, ''], [4, ''],
+                 [5, ''], [6, ''], [7, '']],
+        widget=widgets.RadioSelectHorizontal
+    )
+
+    ux_speed = models.IntegerField(
+        label='The setup of the headset was quick.',
+        choices=[[1, ''], [2, ''], [3, ''], [4, ''],
+                 [5, ''], [6, ''], [7, '']],
+        widget=widgets.RadioSelectHorizontal
+    )
+
+    ux_ease = models.IntegerField(
+        label='The setup of the headset was easy.',
+        choices=[[1, ''], [2, ''], [3, ''], [4, ''],
+                 [5, ''], [6, ''], [7, '']],
+        widget=widgets.RadioSelectHorizontal
+    )
+
+    ux_look = models.IntegerField(
+        label='The headset looks good.',
+        choices=[[1, ''], [2, ''], [3, ''], [4, ''],
+                 [5, ''], [6, ''], [7, '']],
+        widget=widgets.RadioSelectHorizontal
+    )
+
+    wx_public = models.IntegerField(
+        label='I would feel comfortable wearing this headset in public.',
+        choices=[[1, ''], [2, ''], [3, ''], [4, ''],
+                 [5, ''], [6, ''], [7, '']],
+        widget=widgets.RadioSelectHorizontal
+    )
+
+    wx_private = models.IntegerField(
+        label='I would feel comfortable wearing this headset in private.',
+        choices=[[1, ''], [2, ''], [3, ''], [4, ''],
+                 [5, ''], [6, ''], [7, '']],
+        widget=widgets.RadioSelectHorizontal
+    )
+
+    wx_conversation = models.IntegerField(
+        label='I would feel comfortable having a conversation while wearing this headset.',
+        choices=[[1, ''], [2, ''], [3, ''], [4, ''],
+                 [5, ''], [6, ''], [7, '']],
+        widget=widgets.RadioSelectHorizontal
+    )
+
+    wx_others = models.IntegerField(
+        label='This headset would make other people uncomfortable.',
+        choices=[[1, ''], [2, ''], [3, ''], [4, ''],
+                 [5, ''], [6, ''], [7, '']],
+        widget=widgets.RadioSelectHorizontal
+    )
+
 def creating_session(subsession: Subsession):
     for group in subsession.get_groups():
         for p in group.get_players():
@@ -212,7 +270,36 @@ class Qual_Reciproc_Specific(Page):
                       'qual_recip_q5_mst_velocity', 'qual_recip_q5_mst_parallel', 'qual_recip_q5_mst_symbols', 'qual_recip_q5_mst_rehearse', 'qual_recip_q5_mst_reprocess']
         return all_fields
 
-page_sequence = [TraitQuestionnaire, # Qual_Intro,
-                 Qual_Individual_General, Qual_Individual_Specific,
-                 Qual_Reciproc_General, # Qual_Reciproc_Specific,
-                 ThankYou, Goodbye]
+class FinalQuestionnaire(Page):
+    form_model = 'player'
+
+    @staticmethod
+    def get_form_fields(player: Player):
+        ux_fields = ['ux_comfort']
+        random.shuffle(ux_fields)
+        return ux_fields
+
+class RecordingStop(Page):
+    form_model = 'player'
+
+class EndOfDayInstructions(Page):
+    form_model = 'player'
+
+class UXWX_Survey(Page):
+    form_model = 'player'
+
+    @staticmethod
+    def get_form_fields(player: Player):
+        form_fields = ['ux_comfort', 'ux_speed', 'ux_ease', 'ux_look',
+                       'wx_public', 'wx_private', 'wx_conversation', 'wx_others']
+        random.shuffle(form_fields)
+        return form_fields
+
+page_sequence = [# TraitQuestionnaire, # Qual_Intro,
+                 # Qual_Individual_General, Qual_Individual_Specific,
+                 # Qual_Reciproc_General, # Qual_Reciproc_Specific,
+                 FinalQuestionnaire, RecordingStop,
+                 EndOfDayInstructions, UXWX_Survey,
+                 ThankYou
+                 # Goodbye
+                 ]

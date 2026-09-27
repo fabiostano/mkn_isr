@@ -1,0 +1,263 @@
+{% extends "global/Page.html" %}
+{% load otree static %}
+
+{% block title %}
+<div class="d-flex justify-content-center" style="margin-top: -50px">
+    <h2 style="margin-bottom:20px">JITSI TEST</h2>
+</div>
+{% endblock %}
+
+{% block content %}
+
+<div class="row">
+    <div class="video-container">
+        <div id="jitsi-surface"></div>
+    </div>
+</div>
+
+<!-- NEXT BUTTON -->
+<div>
+    <div class="d-flex justify-content-center">
+        <button class="btn-primary btn-lg" id="nextbtn">Next</button>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block style %}
+
+<style>
+    .fit-image {
+        max-width: 100%;  /* Ensures it doesn't overflow the column width */
+        max-height: 60%; /* Ensures it doesn't overflow the column height */
+        object-fit: contain; /* Keeps the aspect ratio while fitting inside */
+    }
+
+    .video-container{
+        width: 1020px;
+        height: 500px;
+        padding: 10px;
+        margin-top: 10px;
+        border-radius: 5px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        background: black;
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    .otree-body{
+        background-color: rgba(112, 128, 144, 0.1);
+        border-radius: 10px;
+        margin-top: 20px;
+        max-width: 1900px;
+        font-size: 16px;
+        width:100%
+    }
+
+    .answer-box {text-align: center; font-weight: bold; font-size: large;}
+    .editable { cursor: pointer; background-color: white; }
+    .readonly { cursor: not-allowed; }
+    .highlighted { background-color: {{color}} !important; }
+
+    /* Remove all table borders */
+    .table.borderless td, .table.borderless th {
+        border: none !important;
+        background: transparent !important;
+    }
+
+    /* Remove Bootstrap's row striping (shading for even rows) */
+    .table.no-shading tbody tr:nth-of-type(even),
+    .table.no-shading tbody tr:nth-of-type(odd) {
+        background-color: transparent !important;
+    }
+
+    .table-fixed-height td {
+        height: 50px; /* Adjust this value as needed */
+        vertical-align: middle; /* Ensures text stays centered */
+    }
+</style>
+
+{% endblock %}
+
+{% block scripts %}
+
+<script src="{% static 'otree/js/reconnecting-websocket-iife.min.js' %}"></script>
+<script src="{% static 'otree/js/live.js' %}"></script>
+
+<!--<script src="https://video-meeting-system-backend.k8s.iism.kit.edu/external_api.js"></script>-->
+<script src="https://haps-meeting.k8s.iism.kit.edu/external_api.js"></script>
+
+<script>
+    /////////// JITSI STUFF
+
+    // const domain = "video-meeting-system-backend.k8s.iism.kit.edu/";
+    const domain = "haps-meeting.k8s.iism.kit.edu";
+    const options = {
+        roomName: "{{ room_id }}",   // hier otree group variable oder alternativ ein string
+        lang: "en",
+        width:  1000,   // anpassen je nach px größe
+        height: 480,   // anpassen je nach px größe
+        parentNode: document.getElementById("jitsi-surface"),  // wenn div anders benannt, dann hier anpassen
+        configOverwrite: {
+            prejoinConfig: {
+                enabled: false,
+            },
+            startWithTileView: true,
+            disableTileView: false,
+            disableStageFilmstrip: true,
+            disableDominantSpeakerIndicator: true,
+            startWithAudioMuted: false,
+            startWithVideoMuted: false,
+            disableSelfView: false,
+            disableSelfViewSettings: true,
+            disableModeratorIndicator: true,
+            disableSelfDemote: true,
+            speakerStats: {
+                disabled: true
+            },
+            connectionIndicators: {
+                disabled: true,
+                disableDetails: true,
+                inactiveDisabled: true
+            },
+            toolbarButtons: [],
+            buttonsWithNotifyClick: [],
+            participantMenuButtonsWithNotifyClick: ['pinToStage'],
+            disableLocalVideoFlip: true,
+            hideDominantSpeakerBadge: true,
+            hideConferenceTimer: true,
+            hideConferenceSubject: true,
+            hideRecordingLabel: true,
+            readOnlyName: true,
+
+            participantsPane: {
+                enabled: false,
+                hideModeratorSettingsTab: true,
+                hideMoreActionsButton: true,
+                hideMuteAllButton: true
+            },
+
+            disableAEC: false,
+            disableNS: false,
+
+            resolution: 360,
+
+            constraints: {
+                video: {
+                    height: {
+                        ideal: 360,
+                        max: 360,
+                        min: 180
+                    }
+                }
+            },
+
+            disableSimulcast: true,
+            enableLayerSuspension: false,
+
+            remoteVideoMenu: {
+                disableKick: true,
+                disableGrantModerator: true
+            },
+            disableRemoteMute: true,
+            disableModeratorIndicator: true,
+        },
+
+        userInfo: {
+            displayName: "{{ color }}",  // hier otree participant name
+        },
+    };
+
+    api = new JitsiMeetExternalAPI(domain, options);
+
+    // code snippets für unterschiedliche Logs
+
+    //get participant ID after I joined   - braucht man um herauszufinden wer wer ist beim speaker
+    api.on("videoConferenceJoined", function (abc) {
+        console.log("videoConferenceJoined");
+        me = api.getParticipantsInfo();
+
+        my_ID = abc.id;
+        const myId = me[0].participantId;
+        allIds[0] = myId;
+    });
+
+    // I left
+    api.on("videoConferenceLeft", function (abc) {
+        console.log("videoConferenceLeft");
+    });
+
+    // video available changed
+    api.on("videoAvailabilityChanged", function (available) {
+        console.log("videoAvailabilityChanged" + available.available);
+    });
+
+    // video mute changed
+    api.on("videoMuteStatusChanged", function (muted) {
+        console.log("videoMuteStatusChanged" + muted.muted);
+    });
+
+    // audio mute changed
+    api.on("audioMuteStatusChanged", function (muted) {
+        console.log("audioMuteStatusChanged" + muted.muted);
+    });
+
+    // participant joined
+    api.on("participantJoined", function (parjoin) {
+        console.log("partjoined_id_" + parjoin.id);
+        //console.log(      new Date().toString() + ": " + "partjoinedvarname",      parjoin.id    );
+
+        part_count = api.getNumberOfParticipants();
+        console.log("numberparticiants_" + part_count);
+
+        let i = part_count - 1;
+        const part = api.getParticipantsInfo();
+        const pId = part[i].participantId;
+
+        // Id in Array für alle Ids speichern
+        allIds[i] = pId;
+        console.log("overview_all_ids:" + allIds);
+    });
+
+    // participant left
+    api.on("participantLeft", function (parjoin) {
+        part_count = api.getNumberOfParticipants();
+        console.log("leave_numberparticiants_" + part_count);
+
+        let i = part_count - 1;
+        const part = api.getParticipantsInfo();
+        const pId = part[i].participantId;
+
+        // Id in Array für alle Ids speichern
+
+        const index = allIds.indexOf(pId);
+        const x = allIds.splice(index, 1);
+        console.log("leave_overview_all_ids:" + allIds);
+    });
+
+    // Additional event listeners (BGA recommendation)
+    api.addEventListener('videoConferenceJoined', () => {
+        api.executeCommand('setTileView', true);
+    });
+
+    api.addEventListener('tileViewChanged', (event) => {
+        if (!event.enabled) {
+            api.executeCommand('setTileView', true);
+        }
+    });
+
+    api.addEventListener('participantClicked', () => {
+        api.executeCommand('setTileView', true);
+    });
+
+    //dominant speaker changed event  , required for audio check
+    let speakingEvents = "";
+    let lastSpeaker = null;
+
+    api.on("dominantSpeakerChanged", function (event) {
+        console.log("dominantspeakerchanged_to_" + event.id);
+    });
+</script>
+
+{% endblock %}
+

@@ -1,0 +1,53 @@
+{{ extends 'global/Page.html' }}
+
+{{ block title }}
+
+    <div class="d-flex justify-content-center" style="margin-top: -50px">
+        <h2 style="margin-bottom:20px">Audio Setup</h2>
+    </div>
+
+{{ endblock }}
+
+{{ block content }}
+
+    <div class="explanation-container">
+        <p>Before starting this block, please check your audio setup:</p>
+        <ol>
+            <li>Make sure your <b>headphones are selected as the Bluetooth audio output device</b> on your computer.</li>
+            <li>Set your device's <b>volume to the same level you always use</b> for this study.</li>
+        </ol>
+
+        <div class="d-flex justify-content-center">
+            <img src="https://survey.win.kit.edu/upload/surveys/349316/images/BTSpeaker.png" alt="Bluetooth audio output selection" style="max-width: 400px; width: 100%; margin: 15px 0;" />
+        </div>
+
+        <p>These two sounds are used in this study, and adjust your volume until they're comfortable to listen to:</p>
+
+        <div class="d-flex justify-content-center" style="gap: 15px; margin: 15px 0;">
+            <button class="btn btn-primary" type="button" id="playBellBtn">Play Bell Sound</button>
+            <button class="btn btn-primary" type="button" id="playAssrBtn">Play ASSR Sound</button>
+        </div>
+    </div>
+
+    <div class="d-flex justify-content-center" style="clear:both">
+        <button class="otree-btn-next btn btn-primary next-button otree-next-button">Next</button>
+    </div>
+
+    <script>
+        jQuery(document).ready(function() {
+            let bellBtn = document.getElementById("playBellBtn");
+            let assrBtn = document.getElementById("playAssrBtn");
+
+            bellBtn.addEventListener("click", function(){
+                const audio = new Audio('http://expeeeriments.io/writingHome/bell.mp3');
+                audio.play();
+            });
+
+            assrBtn.addEventListener("click", function(){
+                const audio = new Audio("{% static 'rest_assr.wav' %}");
+                audio.play();
+            });
+        });
+    </script>
+
+{{ endblock }}

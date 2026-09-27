@@ -1,0 +1,73 @@
+{{ extends 'global/Page.html' }}
+
+{{ block title }}
+    <div class="d-flex justify-content-center" style="margin-top: -50px">
+        <h2 style="margin-bottom:20px">HEADPHONES SETUP</h2>
+    </div>
+{{ endblock }}
+
+{{ block content }}
+    <div class="jumbotron">
+        <p>
+            Now we need to prepare an EEG recording with the headphones.
+        </p>
+        <hr>
+        <div>
+            <h3>Preparation</h3>
+            <p>
+                <b>Before</b> putting on the headphones, please:
+            </p>
+            <ol>
+                <li>Remove chewing gum or similar food.</li>
+                <li>Remove any earrings that would touch the cushions</li>
+                <li>Leave your hair open (i.e. not in a bun or similar)</li>
+                <li>Take off your glasses for now (you can put them on after you put on the headphones)</li>
+            </ol>
+            <p>
+                Finally, please use the alcohol pad on your table to clean the skin around your ear thorougly
+                <b>(repeat at least 2x!)</b>.<br>
+                <img style="max-width: 400px; margin: 10px 0 10px 0;" src="https://survey.win.kit.edu/upload/surveys/398692/images/Swab_gif.gif">
+            </p>
+        </div>
+        <hr>
+        <div>
+            <h3>Putting on the Headphones</h3>
+            <p>
+                Now, to put on the headphones:
+            </p>
+            <ol>
+                <li>
+                    Rotate the headphones the right way (the left side has the black band)<br>
+                    <img style="max-width: 400px; margin: 10px 0 10px 0;" src="https://survey.win.kit.edu/upload/surveys/398692/images/IMG_0338.jpg">
+                </li>
+                <li>Put the headphones on so that they sit comfortably</li>
+                <li>
+                    Move hair out of the way of the electrodes<br>
+                    <img style="max-width: 400px; margin: 10px 0 10px 0;" src="https://survey.win.kit.edu/upload/surveys/398692/images/hair_gif.gif">
+                </li>
+                <li>
+                    Adjust the headband fit and wiggle the electrodes<br>
+                    <img style="max-width: 400px; margin: 10px 0 10px 0;" src="https://survey.win.kit.edu/upload/surveys/398692/images/wiggle_headband_gif.gif">
+                </li>
+                <li>
+                    Also push on the side for 3 seconds to make sure the electrodes have good skin contact<br>
+                    <img style="max-width: 400px; margin: 10px 0 10px 0;" src="https://survey.win.kit.edu/upload/surveys/398692/images/push_sides_gif.gif">
+                </li>
+                <li>
+                    If you are wearing glasses, you can put them on now. Make sure they sit above the the earcups.<br />
+                    <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+                        <img style="max-width: 200px; margin: 10px 0 10px 0;" src="https://survey.win.kit.edu/upload/surveys/398692/images/correct_glasses.png"/>
+                        <img style="max-width: 200px; margin: 10px 0 10px 0;" src="https://survey.win.kit.edu/upload/surveys/398692/images/false_glasses.png"/>
+                    </div>
+                </li>
+            </ol>
+            <p>
+                Great, you are now ready to start a recording!<br>
+                You will find instructions for that after a few questions.
+            </p>
+        </div>
+    </div>
+    <div class="d-flex justify-content-center" style="clear:both">
+        <button class="otree-btn-next btn btn-primary next-button otree-next-button" id="nextbtn">Next</button>
+    </div>
+{{ endblock }}

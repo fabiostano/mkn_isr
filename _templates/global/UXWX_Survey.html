@@ -1,0 +1,71 @@
+{% extends 'global/Page.html' %}
+
+{% block title %}
+    <div class="d-flex justify-content-center" style="margin-top: -50px">
+        <h2 style="margin-bottom:20px">Questionnaire</h2>
+    </div>
+    <div class="jumbotron" style="padding-top: 2%; padding-bottom: 2%; font-size: 21px; font-weight: 200">
+        Please answer the following questions <b style="color: #FFA500">about the headset that you are currently wearing</b>.
+        There are no right or wrong answers. We are only interested in <b>your personal opinion.</b>
+    </div>
+{% endblock %}
+
+{% block content %}
+
+    <style>
+        #fss tr:nth-child(even) {background-color: #f9f9f9;}
+        #dcd tr:nth-child(even) {background-color: #f9f9f9;}
+        #aut tr:nth-child(even) {background-color: #f9f9f9;}
+        th {
+            text-align:center;
+            width: 5%;
+        }
+        input[type="radio"]{margin-left:-5.5px}
+
+        input[type="range"] {
+            -webkit-appearance: slider-horizontal;
+            max-width: 85%;
+            display: inline;
+            margin-left: 2%;
+            margin-right: 2%;
+        }
+    </style>
+
+    <div id="uxwx" class="jumbotron" style="padding-top: 5%">
+        <p>How much do you agree with the following statements?</p>
+        <table class="table mytable" frame="void" style="width:100%; ">
+            <tr>
+                <th></th>
+                <th style="text-align:center"> Not At All </th>
+                <th>  </th>
+                <th>  </th>
+                <th style="text-align:center"> Partly </th>
+                <th>  </th>
+                <th>  </th>
+                <th style="text-align:center"> Very Much </th>
+            </tr>
+
+            {% for field in form %}
+            <tr>
+                <td align="left" style="width:33%">{{ field.label }}</td>
+
+                {% for choice in field %}
+                    <td align="center" >{{ choice }}</td>
+                {% endfor %}
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+    
+    <div id="next-page" class="d-flex justify-content-center" style="display:none">
+        {% next_button %}
+    </div>
+
+    <script>
+        // For better UX: Select radio button when clicking into a table cell
+        $('td').click(function() {
+            $(this).find('input:radio').prop('checked', true);
+        })
+    </script>
+
+{% endblock %}

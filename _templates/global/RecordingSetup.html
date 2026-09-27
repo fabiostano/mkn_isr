@@ -1,0 +1,94 @@
+{{ extends 'global/Page.html' }}
+
+{{ block title }}
+    <div class="d-flex justify-content-center" style="margin-top: -50px">
+        <h2 style="margin-bottom:20px">RECORDING SETUP</h2>
+    </div>
+{{ endblock }}
+
+{{ block content }}
+    <div class="jumbotron">
+        <div>
+            <h3>Signal Quality Check</h3>
+            <p>Now we need to start a recording with the EEG headphones.</p>
+            <p>
+                To do that, <b>the most important goal is to ensure that all electrodes have good skin contact.</b>
+                In the upcoming recording tool, you can see if an electrode has
+                <b style="color: #73AD21">good contact (green)</b> or <b style="color: #d9534f">bad contact (red)</b>.
+            </p>
+            <p>
+                Your goal in this next stage is to make sure that there are <b style="color: #d9534f">no "red" electrodes</b>.
+                Please beware, that this is often not achieved on the first try. If an electrode is bad (red),
+                please try to <b>move hair out of the way</b> and <b>press on the electrode for a few seconds</b>.
+                Sometimes it also <b>really helps</b> to <b>just wait for 5-10 seconds</b>.
+            </p>
+            <p>
+                If you have tried for some time, <b>but an electrode just won't improve</b>, please proceed with the experiment anyways.
+            </p>
+        </div>
+        <hr>
+        <div>
+            <h3>The Recording Tool</h3>
+            <p>
+                To check the signals and start a recording, we have developed the following recording tool.
+                <ol>
+                    <li>Follow the on-screen instructions to connect to the headset.</li>
+                    <li>
+                        After selecting the port that says "gekoppelt", the signal quality check starts automatically.<br />
+                        <img src="https://survey.win.kit.edu/upload/surveys/824747/images/01_Connection.gif" style="max-width: 400px; margin: 10px 0 10px 0;" />
+                    </li>
+                    <li>
+                        When all channels are <b style="color: #73AD21">green (or don't improve further)</b>, click on <b>"Start recording"</b>.
+                        You will be asked to complete two final checks. Please follow the instructions accordingly.<br />
+                        <img src="https://survey.win.kit.edu/upload/surveys/824747/images/02_Audio.gif" style="max-width: 400px; margin: 10px 0 10px 0;" />
+                        <img src="https://survey.win.kit.edu/upload/surveys/824747/images/03_Impedance.gif" style="max-width: 400px; margin: 10px 0 10px 0;" />
+                    </li>
+                    <li>
+                        When the impedance check is completed, <strong>click on "Continue" - then</strong> <b>the recording is started</b>.
+                        You should then return to this experiment tab. <font color="#ffa500">
+                        <b>Leave the recording tool website tab open (running in the background)</b></font>.<br />
+                        <img alt="" src="https://survey.win.kit.edu/upload/surveys/824747/images/04_Recording.gif" style="max-width: 400px; margin: 10px 0 10px 0;" />
+                    </li>
+                </ol>
+            </p>
+            <p>
+                You can start now:<br>
+                <button style="margin: 10px 0 10px 0" class="btn btn-success" id="setupLink" type="button" onclick="openSetupTool()">Set up an EEG recording</button>
+            </p>
+            <!--
+            <p>
+                If you run into trouble with the setup, <b>please call for an experimenter to help</b>.
+            </p>
+            -->
+        </div>
+    </div>
+
+    <div class="jumbotron" id="nexthint" style="display: none;">
+        <!--<p>Please press F11 now to enter fullscreen mode.</p>-->
+        <p>Then continue by clicking on the "Next" button.</p>
+        <button id="nextbtn" class="otree-btn-next btn btn-primary next-button otree-next-button" style="display: none; margin: 0 auto;">Next</button>
+    </div>
+
+    <script>
+        function openSetupTool(){
+            var url = "https://exg.win.kit.edu/recording?aHCWFRZvlU=aWlzbTRldmVy&AbXHPCkszw={{ token }}&wlmtdoqtqe=E";
+            // Open the URL in a new tab
+            window.open(url, "_blank");
+
+            tool_button = document.getElementById("setupLink");
+            tool_button.disabled = true;
+
+            document.getElementById("nextbtn").style.display = 'block';
+            document.getElementById("nexthint").style.display = 'block';
+        }
+
+        document.addEventListener('keydown', function(event) {
+          if (event.key === 'F11') {
+            // F11 key is pressed
+            // console.log('F11 key pressed');
+            document.getElementById("nextbtn").disabled = false;
+          }
+        });
+    </script>
+
+{{ endblock }}

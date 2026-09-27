@@ -1,0 +1,31 @@
+{% extends 'global/Page.html' %}
+
+{% block title %}
+    <div class="d-flex justify-content-center" style="margin-top: -50px">
+        <h2 id="heading" style="margin-bottom:20px">ROUND DONE</h2>
+    </div>
+{% endblock %}
+
+{% block content %}
+    <div class="jumbotron">
+        <p id="line1">You are done with round {{ round_number }} of the mental arithmetic task.</p>
+        <p>In the following round, please solve the equations as quickly as you can.</p>
+        <p>Please avoid unnecessary movements, and please do not speak (i.e. please stay silent).</p>
+        <p>Click on "Next" to proceed.</p>
+    </div>
+
+    <div class="d-flex justify-content-center">
+        <button class="otree-btn-next btn btn-primary next-button otree-next-button">Next</button>
+    </div>
+
+    <script>
+        var round_heading = "ROUND " + ({{ round_number }} + 1) + " DONE"
+        var first_line = "You are done with round " + ({{ round_number }} + 1) + " of the mental arithmetic task."
+
+            document.getElementById("heading").innerHTML = round_heading;
+            document.getElementById("line1").innerHTML = first_line;
+
+    </script>
+
+{% endblock %}
+

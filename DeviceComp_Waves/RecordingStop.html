@@ -1,0 +1,28 @@
+{{ extends 'global/Page.html' }}
+
+{{ block title }}
+    <div class="d-flex justify-content-center" style="margin-top: -50px">
+        <h2 style="margin-bottom:20px">RECORDING STOP</h2>
+    </div>
+{{ endblock }}
+
+{{ block content }}
+    <div class="jumbotron">
+        <p>During the Study, you would now leave this browser tab open in the background.</p>
+        <p>After the main task is completed, you'll need to finish up the EEG recording.</p>
+    </div>
+
+    <div class="jumbotron">
+        <p>You can finish the recording now.</p>
+        <p>Please go to the browser tab with the recording.</p>
+        <img src="https://survey.win.kit.edu/upload/surveys/349316/images/goToExGTab.png" style="max-width: 400px;" />
+        <p>There, you can click on <b>"Finish Recording"</b>.</p>
+        <p>Please make sure to leave the headphones on <b>until the final impedance check is completed.</b></p>
+    </div>
+
+    <div class="jumbotron" id="nexthint">
+        <p>Afterwards, please continue by clicking on the "Next" button.</p>
+        <button id="nextbtn" class="otree-btn-next btn btn-primary next-button otree-next-button">Next</button>
+    </div>
+
+{{ endblock }}

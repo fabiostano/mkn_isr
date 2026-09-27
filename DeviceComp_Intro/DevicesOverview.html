@@ -1,0 +1,28 @@
+{{ extends 'global/Page.html' }}
+
+{{ block title }}
+
+    <div class="d-flex justify-content-center" style="margin-top: -50px">
+        <h2 style="margin-bottom:20px">Devices</h2>
+    </div>
+
+{{ endblock }}
+
+{{ block content }}
+
+    <div class="explanation-container">
+        <h4>Devices</h4>
+        <p>
+            In this study, you will complete a short set of tasks (rest & mental arithmetic) while wearing one of these three headphones:
+        </p>
+        <img src="{% static 'devices-all.png' %}" style="max-width: 90%">
+        <p>
+            After wearing each of the devices, we will ask you a short series of questions about your experience with them.
+        </p>
+    </div>
+
+    <div class="d-flex justify-content-center">
+        <button class="otree-btn-next btn btn-primary next-button otree-next-button">Next</button>
+    </div>
+
+{{ endblock }}

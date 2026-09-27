@@ -1,0 +1,25 @@
+{{ extends 'global/Page.html' }}
+
+{{ block title }}
+
+    <div class="d-flex justify-content-center" style="margin-top: -50px">
+        <h2 style="margin-bottom:20px">Work Description</h2>
+    </div>
+
+{{ endblock }}
+
+{{ block content }}
+
+    <div class="explanation-container">
+        <p><b>A few questions about the work session.</b></p>
+        <p>Please answer in a few sentences each — the more detail you can give, the better this will help us understand what the last 45 minutes were like for you.</p>
+
+        {{ formfield 'qual_work_activity' }}
+        {{ formfield 'qual_work_env' }}
+    </div>
+
+    <div class="d-flex justify-content-center">
+        <button class="otree-btn-next btn btn-primary next-button otree-next-button">Next</button>
+    </div>
+
+{{ endblock }}
