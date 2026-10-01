@@ -81,10 +81,17 @@ class OutdoorSurvey(Page):
     def is_displayed(player: Player):
         return player.round_number > 3
 
+class RecordingStop(Page):
+    form_model = 'player'
+
+    @staticmethod
+    def is_displayed(player: Player):
+        return player.round_number > 3
 
 page_sequence = [RecordingInstructions,
                  AudioSetup, HeadphonesSetup, RecordingSetup,
                  RestEyesOpen, RestEyesClosed, TLX_Fat_Survey_Rest,
                  MathInstructions, MathTask, TLX_Fat_Survey_Math, BeforeTask,
+                 RecordingStop,
                  OutdoorTask, OutdoorSurvey
                  ]
